@@ -1,0 +1,48 @@
+appId: com.antigravity.liquid.dynamicisland
+productName: Liquid Dynamic Island
+directories:
+  output: dist
+  buildResources: build
+asar: true
+files:
+  - main.js
+  - package.json
+  - src/**/*
+extraResources:
+  - from: build/native-bin
+    to: bin
+    filter:
+      - "**/*"
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: build/icon.ico
+  executableName: Liquid Dynamic Island
+  requestedExecutionLevel: asInvoker
+nsis:
+  oneClick: false
+  perMachine: false
+  allowElevation: true
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: always
+  createStartMenuShortcut: true
+  shortcutName: Liquid Dynamic Island
+  installerIcon: build/icon.ico
+  uninstallerIcon: build/icon.ico
+  installerHeader: build/installerHeader.bmp
+  installerSidebar: build/installerSidebar.bmp
+  uninstallerSidebar: build/installerSidebar.bmp
+  license: build/license_fr.txt
+  language: "1036"
+  multiLanguageInstaller: false
+  displayLanguageSelector: false
+  runAfterFinish: true
+  artifactName: "${productName}-${version}-Setup-${arch}.${ext}"
+
+publish:
+  provider: github
+  owner: "dylanrobert"
+  repo: "dynamique-island-2"
+

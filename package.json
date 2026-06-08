@@ -1,0 +1,29 @@
+{
+  "name": "liquid-dynamic-island",
+  "version": "1.0.2",
+  "description": "Standalone Premium Dynamic Island Widget for Windows",
+  "productName": "Liquid Dynamic Island",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build:core": "dotnet publish native/liquid_core/liquid_core.csproj -c Release -r win-x64 --self-contained true -o build/native-bin",
+    "build": "npm run build:core && electron-builder --win nsis",
+    "build:dir": "npm run build:core && electron-builder --dir"
+  },
+  "keywords": [
+    "dynamic-island",
+    "widget",
+    "windows",
+    "glassmorphism",
+    "music"
+  ],
+  "author": "Antigravity",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^26.8.1"
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.9"
+  }
+}

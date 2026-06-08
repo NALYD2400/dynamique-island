@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Island Overlay</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Phosphor Icons Web Font -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <!-- Exact original stylesheet from liquid-os -->
+    <link rel="stylesheet" href="../components/dynamic-island.css">
+    
+    <style>
+        /* Transparent overlay positioning */
+        html, body {
+            background: transparent !important;
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            font-family: 'Inter', sans-serif;
+        }
+        
+        #dynamic-island-container {
+            position: fixed;
+            top: 50px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            z-index: 1000;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    
+    <!-- Exact original HTML layout from liquid-os -->
+    <div id="dynamic-island-container">
+      <div id="layout-drag-surface" aria-hidden="true"></div>
+      <div id="dynamic-island" class="island-idle">
+        <div class="island-bg-layer"></div>
+        <div class="island-content">
+          <!-- Injected via DynamicIsland.js -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Structured ES module loader -->
+    <script type="module" src="bootloader.js"></script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+# Node modules
+node_modules/
+
+# Electron-builder output
+dist/
+build/
+
+# Application Logs & Diagnostics
+*.log
+tmp_core_in.txt
+current_wallpaper.jpg
+processed_wallpaper.jpg
+
+# Local User Settings
+liquid-island-layout.json
+original_wallpaper_path.txt
+
+# .NET / C# compiled folders
+bin/Release/
+bin/Debug/
+obj/
+native/liquid_core/bin/
+native/liquid_core/obj/

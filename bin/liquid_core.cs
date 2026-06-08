@@ -1,0 +1,1527 @@
+using System;
+using System.Runtime.InteropServices;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Threading.Tasks;
+using System.Text.Json;
+using System.Linq;
+using System.Drawing;
+using System.Drawing.Imaging;
+using Windows.Media.Control;
+using Windows.Storage.Streams;
+using Windows.Devices.Radios;
+using Microsoft.Win32;
+
+namespace LiquidCore {
+    // --- Win32 COM Interfaces for Audio Session Management (WASAPI) ---
+    [ComImport]
+    [Guid("BCDE0395-E52F-467C-8E3D-C4579291692E")]
+    internal class MMDeviceEnumerator { }
+
+    [ComImport]
+    [Guid("A95664D2-9614-4F35-A746-DE8DB63617E6")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    internal interface IMMDeviceEnumerator {
+        int NotImpl1();
+        [PreserveSig]
+        int GetDefaultAudioEndpoint(int dataFlow, int role, out IMMDevice ppEndpoint);
+    }
+
+    [ComImport]
+    [Guid("D666063F-1587-4E43-81F1-B948E807363F")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    internal interface IMMDevice {
+        [PreserveSig]
+        int Activate(ref Guid iid, uint dwClsCtx, IntPtr pActivationParams, [MarshalAs(UnmanagedType.IUnknown)] out object ppInterface);
+    }
+
+    [ComImport]
+    [Guid("77AA99A0-1BD6-484F-8BC7-2C654C9A9B6F")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    internal interface IAudioSessionManager2 {
+        [PreserveSig] int GetAudioSessionControl(ref Guid AudioSessionGuid, uint StreamFlags, out IAudioSessionControl SessionControl);
+        [PreserveSig] int GetSimpleAudioVolume(ref Guid AudioSessionGuid, uint StreamFlags, out ISimpleAudioVolume AudioVolume);
+        [PreserveSig] int GetSessionEnumerator(out IAudioSessionEnumerator SessionEnum);
+    }
+
+    [ComImport]
+    [Guid("E2F5BB11-0570-40CA-ACDD-3AA01277DEE8")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    internal interface IAudioSessionEnumerator {
+        [PreserveSig] int GetCount(out int SessionCount);
+        [PreserveSig] int GetSession(int SessionCount, [MarshalAs(UnmanagedType.Interface)] out IAudioSessionControl retVal);
+    }
+
+    [ComImport]
+    [Guid("F4B1A599-7266-4319-A8CA-E70ACB11E8CD")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    internal interface IAudioSessionControl {
+        [PreserveSig] int GetState(out int pRetVal);
+        [PreserveSig] int GetDisplayName([MarshalAs(UnmanagedType.LPWStr)] out string pRetVal);
+        [PreserveSig] int SetDisplayName([MarshalAs(UnmanagedType.LPWStr)] string Value, [In] ref Guid EventContext);
+        [PreserveSig] int GetIconPath([MarshalAs(UnmanagedType.LPWStr)] out string pRetVal);
+        [PreserveSig] int SetIconPath([MarshalAs(UnmanagedType.LPWStr)] string Value, [In] ref Guid EventContext);
+        [PreserveSig] int GetGroupingParam(out Guid pRetVal);
+        [PreserveSig] int SetGroupingParam([In] ref Guid Override, [In] ref Guid EventContext);
+        [PreserveSig] int RegisterAudioSessionNotification(object NewNotifications);
+        [PreserveSig] int UnregisterAudioSessionNotification(object NewNotifications);
+    }
+
+    [ComImport]
+    [Guid("bfb7ff88-7239-4fc9-8fa2-07c950be9c6d")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    internal interface IAudioSessionControl2 {
+        [PreserveSig] int GetState(out int pRetVal);
+        [PreserveSig] int GetDisplayName([MarshalAs(UnmanagedType.LPWStr)] out string pRetVal);
+        [PreserveSig] int SetDisplayName([MarshalAs(UnmanagedType.LPWStr)] string Value, [In] ref Guid EventContext);
+        [PreserveSig] int GetIconPath([MarshalAs(UnmanagedType.LPWStr)] out string pRetVal);
+        [PreserveSig] int SetIconPath([MarshalAs(UnmanagedType.LPWStr)] string Value, [In] ref Guid EventContext);
+        [PreserveSig] int GetGroupingParam(out Guid pRetVal);
+        [PreserveSig] int SetGroupingParam([In] ref Guid Override, [In] ref Guid EventContext);
+        [PreserveSig] int RegisterAudioSessionNotification(object NewNotifications);
+        [PreserveSig] int UnregisterAudioSessionNotification(object NewNotifications);
+
+        // IAudioSessionControl2 methods
+        [PreserveSig] int GetSessionIdentifier([MarshalAs(UnmanagedType.LPWStr)] out string pRetVal);
+        [PreserveSig] int GetSessionInstanceIdentifier([MarshalAs(UnmanagedType.LPWStr)] out string pRetVal);
+        [PreserveSig] int GetProcessId(out uint pRetVal);
+        [PreserveSig] int IsSystemSoundsSession();
+        [PreserveSig] int SetDuckingPreference(bool optOut);
+    }
+
+    [ComImport]
+    [Guid("87CE5498-68D6-44E5-9215-6DA47EF883D8")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    internal interface ISimpleAudioVolume {
+        [PreserveSig] int SetMasterVolume(float fLevel, ref Guid EventContext);
+        [PreserveSig] int GetMasterVolume(out float pfLevel);
+        [PreserveSig] int SetMute(bool bMute, ref Guid EventContext);
+        [PreserveSig] int GetMute(out bool pbMute);
+    }
+
+    [ComImport]
+    [Guid("5CDF2C82-841E-4546-9722-0CF74078229A")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    internal interface IAudioEndpointVolume {
+        int RegisterControlChangeNotify(IntPtr pNotify);
+        int UnregisterControlChangeNotify(IntPtr pNotify);
+        int GetChannelCount(out uint pnChannelCount);
+        [PreserveSig] int SetMasterVolumeLevel(float fLevelDB, ref Guid pguidEventContext);
+        [PreserveSig] int SetMasterVolumeLevelScalar(float fLevel, ref Guid pguidEventContext);
+        [PreserveSig] int GetMasterVolumeLevel(out float pfLevelDB);
+        [PreserveSig] int GetMasterVolumeLevelScalar(out float pfLevel);
+        [PreserveSig] int SetChannelVolumeLevel(uint nChannel, float fLevelDB, ref Guid pguidEventContext);
+        [PreserveSig] int SetChannelVolumeLevelScalar(uint nChannel, float fLevel, ref Guid pguidEventContext);
+        [PreserveSig] int GetChannelVolumeLevel(uint nChannel, out float pfLevelDB);
+        [PreserveSig] int GetChannelVolumeLevelScalar(uint nChannel, out float pfLevel);
+        [PreserveSig] int SetMute([MarshalAs(UnmanagedType.Bool)] bool bMute, ref Guid pguidEventContext);
+        [PreserveSig] int GetMute([MarshalAs(UnmanagedType.Bool)] out bool pbMute);
+    }
+
+    public class AudioSessionInfo {
+        public uint pid { get; set; }
+        public string name { get; set; } = "";
+        public string title { get; set; } = "";
+        public string icon { get; set; } = "";
+        public float volume { get; set; }
+        public bool muted { get; set; }
+        public int state { get; set; }
+        public bool active { get; set; }
+    }
+
+    public class SmtcResponse {
+        public string status { get; set; } = "";
+        public string title { get; set; } = "";
+        public string artist { get; set; } = "";
+        public string cover { get; set; } = "";
+        public string appId { get; set; } = "";
+        public bool isPlaying { get; set; }
+        public int progress { get; set; }
+        public int duration { get; set; }
+        public string source { get; set; } = "";
+    }
+
+    class Program {
+        [StructLayout(LayoutKind.Sequential)]
+        private struct RECT {
+            public int Left;
+            public int Top;
+            public int Right;
+            public int Bottom;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct MONITORINFO {
+            public int cbSize;
+            public RECT rcMonitor;
+            public RECT rcWork;
+            public uint dwFlags;
+        }
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetForegroundWindow();
+
+        [DllImport("user32.dll")]
+        private static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+
+        [DllImport("user32.dll")]
+        private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint dwFlags);
+
+        [DllImport("user32.dll")]
+        private static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO lpmi);
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+        private static extern int SystemParametersInfo(int uAction, int uParam, string lpvParam, int fuWinIni);
+
+        private const int SPI_SETDESKWALLPAPER = 0x0014;
+        private const int SPIF_UPDATEINIFILE = 0x01;
+        private const int SPIF_SENDCHANGE = 0x02;
+
+        private static void SetWallpaper(string path) {
+            SystemParametersInfo(SPI_SETDESKWALLPAPER, 0, path, SPIF_UPDATEINIFILE | SPIF_SENDCHANGE);
+        }
+
+        private static Bitmap BoxBlur(Bitmap bmp, int radius) {
+            if (radius <= 0) return bmp;
+            
+            Bitmap result = new Bitmap(bmp.Width, bmp.Height);
+            int width = bmp.Width;
+            int height = bmp.Height;
+
+            // Horizontal pass
+            for (int y = 0; y < height; y++) {
+                for (int x = 0; x < width; x++) {
+                    int rSum = 0, gSum = 0, bSum = 0, count = 0;
+                    for (int k = -radius; k <= radius; k++) {
+                        int px = x + k;
+                        if (px >= 0 && px < width) {
+                            Color c = bmp.GetPixel(px, y);
+                            rSum += c.R;
+                            gSum += c.G;
+                            bSum += c.B;
+                            count++;
+                        }
+                    }
+                    result.SetPixel(x, y, Color.FromArgb(rSum / count, gSum / count, bSum / count));
+                }
+            }
+
+            // Vertical pass
+            Bitmap finalBmp = new Bitmap(width, height);
+            for (int x = 0; x < width; x++) {
+                for (int y = 0; y < height; y++) {
+                    int rSum = 0, gSum = 0, bSum = 0, count = 0;
+                    for (int k = -radius; k <= radius; k++) {
+                        int py = y + k;
+                        if (py >= 0 && py < height) {
+                            Color c = result.GetPixel(x, py);
+                            rSum += c.R;
+                            gSum += c.G;
+                            bSum += c.B;
+                            count++;
+                        }
+                    }
+                    finalBmp.SetPixel(x, y, Color.FromArgb(rSum / count, gSum / count, bSum / count));
+                }
+            }
+
+            result.Dispose();
+            return finalBmp;
+        }
+
+        private static void SetWallpaperWithBlur(string imagePath, int blurRadius) {
+            try {
+                if (!File.Exists(imagePath)) return;
+
+                using (Bitmap original = new Bitmap(imagePath)) {
+                    // 1. Create a tiny thumbnail for ambient light base (e.g. 32x32)
+                    int thumbWidth = 32;
+                    int thumbHeight = 32;
+                    using (Bitmap tiny = new Bitmap(thumbWidth, thumbHeight)) {
+                        using (Graphics g = Graphics.FromImage(tiny)) {
+                            g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBilinear;
+                            g.DrawImage(original, 0, 0, thumbWidth, thumbHeight);
+                        }
+
+                        // 2. Perform Box Blur on tiny image to smooth out colors
+                        using (Bitmap blurredTiny = BoxBlur(tiny, blurRadius)) {
+                            // 3. Upscale to widescreen resolution (1920x1080) for a flawless abstract gradient
+                            int targetWidth = 1920;
+                            int targetHeight = 1080;
+                            using (Bitmap finalWallpaper = new Bitmap(targetWidth, targetHeight)) {
+                                using (Graphics g = Graphics.FromImage(finalWallpaper)) {
+                                    g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBilinear;
+                                    g.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
+                                    g.DrawImage(blurredTiny, 0, 0, targetWidth, targetHeight);
+                                }
+
+                                // Save to processed wallpaper file
+                                string dir = Path.GetDirectoryName(imagePath) ?? Path.GetTempPath();
+                                string tempWpPath = Path.Combine(dir, "processed_wallpaper.jpg");
+                                
+                                // Delete existing processed wallpaper if any
+                                if (File.Exists(tempWpPath)) {
+                                    try { File.Delete(tempWpPath); } catch {}
+                                }
+
+                                finalWallpaper.Save(tempWpPath, ImageFormat.Jpeg);
+                                SetWallpaper(tempWpPath);
+                            }
+                        }
+                    }
+                }
+            } catch (Exception ex) {
+                Console.Error.WriteLine("Error blurring wallpaper: " + ex.Message);
+                // Fallback to normal wallpaper if blur fails
+                SetWallpaper(imagePath);
+            }
+        }
+
+        private static string GetCurrentWallpaper() {
+            try {
+                using (RegistryKey? key = Registry.CurrentUser.OpenSubKey(@"Control Panel\Desktop")) {
+                    if (key != null) {
+                        var val = key.GetValue("Wallpaper");
+                        if (val != null) {
+                            return val.ToString() ?? "";
+                        }
+                    }
+                }
+            } catch { }
+            return "";
+        }
+
+        private static GlobalSystemMediaTransportControlsSessionManager? _sessionManager;
+        private static string _lastTitle = "";
+        private static string _lastArtist = "";
+        private static string _lastCoverBase64 = "";
+        private static DateTime _lastSmtcInitAttemptUtc = DateTime.MinValue;
+        private static string _lastSmtcInitError = "";
+        private static int _smtcInitFailures = 0;
+
+        private static bool IsBrowserAppId(string appId) {
+            if (string.IsNullOrWhiteSpace(appId)) return false;
+            string id = appId.ToLowerInvariant();
+            return id.Contains("chrome") || id.Contains("msedge") || id.Contains("edge") || id.Contains("firefox");
+        }
+
+        private static string GetBrowserProcessName(string appId) {
+            if (string.IsNullOrWhiteSpace(appId)) return "";
+            string id = appId.ToLowerInvariant();
+            if (id.Contains("msedge") || id.Contains("edge")) return "msedge";
+            if (id.Contains("firefox")) return "firefox";
+            if (id.Contains("chrome")) return "chrome";
+            return "";
+        }
+
+        private static string InferStreamingService(string text) {
+            if (string.IsNullOrWhiteSpace(text)) return "";
+
+            string normalized = text.ToLowerInvariant();
+            if (normalized.Contains("netflix")) return "netflix";
+            if (normalized.Contains("youtube") || normalized.Contains("yt music")) return "youtube";
+            if (normalized.Contains("disney+") || normalized.Contains("disney plus") || normalized.Contains("disneyplus") || normalized.Contains("disney")) return "disney";
+            if (normalized.Contains("crunchyroll")) return "crunchyroll";
+            if (normalized.Contains("spotify")) return "spotify";
+            if (normalized.Contains("deezer")) return "deezer";
+            if (normalized.Contains("prime video") || normalized.Contains("amazon prime")) return "primevideo";
+            return "";
+        }
+
+        private static string GetServiceDisplayName(string serviceId) {
+            switch ((serviceId ?? "").ToLowerInvariant()) {
+                case "netflix": return "Netflix";
+                case "youtube": return "YouTube";
+                case "disney": return "Disney+";
+                case "crunchyroll": return "Crunchyroll";
+                case "spotify": return "Spotify";
+                case "deezer": return "Deezer";
+                case "primevideo": return "Prime Video";
+                default: return "";
+            }
+        }
+
+        private static string InferStreamingAppId(string appId, string title, string artist) {
+            string directMatch = InferStreamingService($"{title} {artist}");
+            if (!string.IsNullOrEmpty(directMatch)) {
+                return directMatch;
+            }
+
+            if (!IsBrowserAppId(appId)) {
+                return appId;
+            }
+
+            string processName = GetBrowserProcessName(appId);
+            if (string.IsNullOrEmpty(processName)) {
+                return appId;
+            }
+
+            try {
+                foreach (var process in Process.GetProcessesByName(processName)) {
+                    try {
+                        string windowTitle = process.MainWindowTitle ?? "";
+                        string match = InferStreamingService(windowTitle);
+                        if (!string.IsNullOrEmpty(match)) {
+                            return match;
+                        }
+                    } catch {
+                        // Ignore inaccessible process window titles
+                    }
+                }
+            } catch {
+                // Ignore process enumeration failures
+            }
+
+            return appId;
+        }
+
+        private static async Task<bool> EnsureSmtcManagerAsync(bool forceRetry = false) {
+            if (_sessionManager != null) return true;
+
+            DateTime now = DateTime.UtcNow;
+            if (!forceRetry && (now - _lastSmtcInitAttemptUtc).TotalSeconds < 5) {
+                return false;
+            }
+
+            _lastSmtcInitAttemptUtc = now;
+            try {
+                _sessionManager = await GlobalSystemMediaTransportControlsSessionManager.RequestAsync();
+                _lastSmtcInitError = "";
+                return _sessionManager != null;
+            } catch (Exception ex) {
+                _smtcInitFailures++;
+                _lastSmtcInitError = ex.GetType().Name + ": " + ex.Message;
+                Console.Error.WriteLine("Failed to initialize SMTC: " + _lastSmtcInitError);
+                return false;
+            }
+        }
+
+        private static bool IsOwnProcess(string processName) {
+            string name = (processName ?? "").ToLowerInvariant();
+            return name.Contains("liquid dynamic island") ||
+                   name.Contains("liquid_core") ||
+                   name == "electron";
+        }
+
+        private static bool IsLikelyMediaProcess(string processName, string windowTitle) {
+            string name = (processName ?? "").ToLowerInvariant();
+            string title = (windowTitle ?? "").ToLowerInvariant();
+
+            if (IsOwnProcess(name)) return false;
+
+            string[] mediaNames = {
+                "spotify", "chrome", "msedge", "firefox", "brave", "opera",
+                "vlc", "wmplayer", "music.ui", "itunes", "deezer", "tidal",
+                "foobar2000", "winamp", "aimp", "potplayer", "mpv", "plex",
+                "netflix", "primevideo"
+            };
+
+            foreach (string mediaName in mediaNames) {
+                if (name.Contains(mediaName)) return true;
+            }
+
+            return !string.IsNullOrWhiteSpace(InferStreamingService(title));
+        }
+
+        private static string ToDisplayAppName(string processName) {
+            string name = (processName ?? "").Trim();
+            if (string.IsNullOrWhiteSpace(name)) return "Media";
+            string lower = name.ToLowerInvariant();
+            if (lower.Contains("chrome")) return "Chrome";
+            if (lower.Contains("msedge")) return "Microsoft Edge";
+            if (lower.Contains("firefox")) return "Firefox";
+            if (lower.Contains("brave")) return "Brave";
+            if (lower.Contains("spotify")) return "Spotify";
+            if (lower.Contains("vlc")) return "VLC";
+            if (lower.Contains("music.ui")) return "Lecteur multimedia";
+            return char.ToUpperInvariant(name[0]) + name.Substring(1);
+        }
+
+        private static string CleanFallbackTitle(string title, string processName) {
+            string clean = (title ?? "").Trim();
+            if (string.IsNullOrWhiteSpace(clean)) return "";
+
+            string[] suffixes = {
+                " - Google Chrome",
+                " - Microsoft Edge",
+                " - Mozilla Firefox",
+                " - Brave",
+                " - Opera",
+                " - YouTube",
+                " - YouTube Music",
+                " | Spotify",
+                " - Spotify"
+            };
+
+            foreach (string suffix in suffixes) {
+                if (clean.EndsWith(suffix, StringComparison.OrdinalIgnoreCase)) {
+                    clean = clean.Substring(0, clean.Length - suffix.Length).Trim();
+                }
+            }
+
+            string appName = ToDisplayAppName(processName);
+            if (clean.Equals(appName, StringComparison.OrdinalIgnoreCase)) return "";
+            return clean;
+        }
+
+        private static SmtcResponse BuildFallbackMediaResponse() {
+            try {
+                var sessions = GetAudioSessions()
+                    .Where(s => s.active && !s.muted && s.volume > 0 && !IsOwnProcess(s.name))
+                    .ToList();
+
+                if (sessions.Count == 0) {
+                    return new SmtcResponse { status = "no_media", source = "wasapi" };
+                }
+
+                var mediaCandidates = sessions
+                    .Where(s => IsLikelyMediaProcess(s.name, s.title))
+                    .ToList();
+
+                if (mediaCandidates.Count == 0) {
+                    return new SmtcResponse { status = "no_media", source = "wasapi" };
+                }
+
+                AudioSessionInfo? picked = mediaCandidates
+                    .OrderByDescending(s => !string.IsNullOrWhiteSpace(s.title))
+                    .FirstOrDefault();
+
+                if (picked == null) {
+                    return new SmtcResponse { status = "no_media", source = "wasapi" };
+                }
+
+                string appId = InferStreamingService($"{picked.name} {picked.title}");
+                if (string.IsNullOrWhiteSpace(appId)) {
+                    appId = picked.name ?? "";
+                }
+
+                string service = GetServiceDisplayName(appId);
+                string title = CleanFallbackTitle(picked.title, picked.name ?? "");
+                string artist = !string.IsNullOrWhiteSpace(service) ? service : ToDisplayAppName(picked.name ?? "");
+
+                if (string.IsNullOrWhiteSpace(title)) {
+                    title = "Lecture detectee";
+                }
+
+                return new SmtcResponse {
+                    status = "success",
+                    title = title,
+                    artist = artist,
+                    cover = picked.icon ?? "",
+                    appId = appId,
+                    isPlaying = true,
+                    progress = 0,
+                    duration = 0,
+                    source = "wasapi"
+                };
+            } catch (Exception ex) {
+                Console.Error.WriteLine("Fallback media detection failed: " + ex.Message);
+                return new SmtcResponse { status = "no_media", source = "wasapi" };
+            }
+        }
+
+        private static string GetDiagnosticsJson() {
+            var sessions = GetAudioSessions();
+            var payload = new {
+                osVersion = Environment.OSVersion.VersionString,
+                process64Bit = Environment.Is64BitProcess,
+                smtcReady = _sessionManager != null,
+                smtcFailures = _smtcInitFailures,
+                lastSmtcError = _lastSmtcInitError,
+                sessionCount = sessions.Count,
+                activeSessionCount = sessions.Count(s => s.active),
+                sessions = sessions.Select(s => new {
+                    pid = s.pid,
+                    name = s.name,
+                    title = s.title,
+                    volume = Math.Round(s.volume, 1),
+                    muted = s.muted,
+                    state = s.state,
+                    active = s.active
+                }).Take(12).ToList()
+            };
+
+            return JsonSerializer.Serialize(payload);
+        }
+
+        // --- Wi-Fi Controls ---
+        private static async Task<string> SetWifiStateAsync(bool turnOn) {
+            try {
+                var accessStatus = await Radio.RequestAccessAsync();
+                if (accessStatus != RadioAccessStatus.Allowed) {
+                    return "denied";
+                }
+                var radios = await Radio.GetRadiosAsync();
+                var wifiRadio = radios.FirstOrDefault(r => r.Kind == RadioKind.WiFi);
+                if (wifiRadio != null) {
+                    var result = await wifiRadio.SetStateAsync(turnOn ? RadioState.On : RadioState.Off);
+                    return result == RadioAccessStatus.Allowed ? "ok" : "failed";
+                }
+                return "not_found";
+            } catch (Exception ex) {
+                return "error: " + ex.Message;
+            }
+        }
+
+        private static async Task<string> GetWifiStateAsync() {
+            try {
+                var accessStatus = await Radio.RequestAccessAsync();
+                if (accessStatus != RadioAccessStatus.Allowed) return "unknown";
+                var radios = await Radio.GetRadiosAsync();
+                var wifiRadio = radios.FirstOrDefault(r => r.Kind == RadioKind.WiFi);
+                if (wifiRadio != null) {
+                    return wifiRadio.State == RadioState.On ? "on" : "off";
+                }
+                return "not_found";
+            } catch {
+                return "unknown";
+            }
+        }
+
+        // --- Bluetooth Controls ---
+        private static async Task<string> SetBluetoothStateAsync(bool turnOn) {
+            try {
+                var accessStatus = await Radio.RequestAccessAsync();
+                if (accessStatus != RadioAccessStatus.Allowed) {
+                    return "denied";
+                }
+                var radios = await Radio.GetRadiosAsync();
+                var btRadio = radios.FirstOrDefault(r => r.Kind == RadioKind.Bluetooth);
+                if (btRadio != null) {
+                    var result = await btRadio.SetStateAsync(turnOn ? RadioState.On : RadioState.Off);
+                    return result == RadioAccessStatus.Allowed ? "ok" : "failed";
+                }
+                return "not_found";
+            } catch (Exception ex) {
+                return "error: " + ex.Message;
+            }
+        }
+
+        private static async Task<string> GetBluetoothStateAsync() {
+            try {
+                var accessStatus = await Radio.RequestAccessAsync();
+                if (accessStatus != RadioAccessStatus.Allowed) return "unknown";
+                var radios = await Radio.GetRadiosAsync();
+                var btRadio = radios.FirstOrDefault(r => r.Kind == RadioKind.Bluetooth);
+                if (btRadio != null) {
+                    return btRadio.State == RadioState.On ? "on" : "off";
+                }
+                return "not_found";
+            } catch {
+                return "unknown";
+            }
+        }
+
+        // --- DND / Do Not Disturb Controls ---
+        private static string SetDndState(bool turnOn) {
+            try {
+                using (RegistryKey? key = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Notifications\Settings")) {
+                    if (key != null) {
+                        key.SetValue("NOC_GLOBAL_SETTING_TOASTS_ENABLED", turnOn ? 0 : 1, RegistryValueKind.DWord);
+                        return "ok";
+                    }
+                }
+                return "failed";
+            } catch (Exception ex) {
+                return "error: " + ex.Message;
+            }
+        }
+
+        private static string GetDndState() {
+            try {
+                using (RegistryKey? key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Notifications\Settings")) {
+                    if (key != null) {
+                        var val = key.GetValue("NOC_GLOBAL_SETTING_TOASTS_ENABLED");
+                        if (val != null && (int)val == 0) {
+                            return "on";
+                        }
+                    }
+                }
+                return "off";
+            } catch {
+                return "unknown";
+            }
+        }
+
+        static async Task Main(string[] args) {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            
+            await EnsureSmtcManagerAsync(true);
+
+            string? line;
+            while ((line = Console.ReadLine()) != null) {
+                line = line.Trim();
+                if (string.IsNullOrEmpty(line)) continue;
+
+                if (line == "exit") {
+                    break;
+                } else if (line == "list") {
+                    try {
+                        var sessions = GetAudioSessions();
+                        string json = JsonSerializer.Serialize(sessions);
+                        Console.WriteLine(json);
+                    } catch (Exception ex) {
+                        Console.WriteLine("[]");
+                        Console.Error.WriteLine("Error listing audio: " + ex.Message);
+                    }
+                } else if (line == "getmaster") {
+                    try {
+                        float master = GetMasterVolume();
+                        Console.WriteLine(master.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture));
+                    } catch (Exception ex) {
+                        Console.WriteLine("70.0");
+                        Console.Error.WriteLine("Error getting master volume: " + ex.Message);
+                    }
+                } else if (line.StartsWith("master ")) {
+                    try {
+                        string[] parts = line.Split(' ');
+                        if (parts.Length >= 2 && float.TryParse(parts[1], System.Globalization.CultureInfo.InvariantCulture, out float level)) {
+                            SetMasterVolume(level);
+                            Console.WriteLine("ok");
+                        } else {
+                            Console.WriteLine("error");
+                        }
+                    } catch {
+                        Console.WriteLine("error");
+                    }
+                } else if (line.StartsWith("set ")) {
+                    try {
+                        string[] parts = line.Split(' ');
+                        if (parts.Length >= 3 && 
+                            int.TryParse(parts[1], out int pid) && 
+                            float.TryParse(parts[2], System.Globalization.CultureInfo.InvariantCulture, out float level)) {
+                            SetSessionVolume(pid, level);
+                            Console.WriteLine("ok");
+                        } else {
+                            Console.WriteLine("error");
+                        }
+                    } catch {
+                        Console.WriteLine("error");
+                    }
+                } else if (line.StartsWith("mute ")) {
+                    try {
+                        string[] parts = line.Split(' ');
+                        if (parts.Length >= 3 &&
+                            int.TryParse(parts[1], out int pid) &&
+                            bool.TryParse(parts[2], out bool muted)) {
+                            SetSessionMute(pid, muted);
+                            Console.WriteLine("ok");
+                        } else {
+                            Console.WriteLine("error");
+                        }
+                    } catch {
+                        Console.WriteLine("error");
+                    }
+                } else if (line == "activewindow") {
+                    try {
+                        Console.WriteLine(GetActiveWindowInfoJson());
+                    } catch (Exception ex) {
+                        Console.WriteLine("{\"isFullscreen\":false}");
+                        Console.Error.WriteLine("Error getting active window: " + ex.Message);
+                    }
+                } else if (line == "poll") {
+                    try {
+                        var smtc = await Task.Run(PollSmtcAsync).WithTimeout(600, new SmtcResponse { status = "no_media" });
+                        string json = JsonSerializer.Serialize(smtc);
+                        Console.WriteLine(json);
+                    } catch (Exception ex) {
+                        string json = JsonSerializer.Serialize(BuildFallbackMediaResponse());
+                        Console.WriteLine(json);
+                        Console.Error.WriteLine("Error polling SMTC: " + ex.Message);
+                    }
+                } else if (line == "mediafallback") {
+                    try {
+                        Console.WriteLine(JsonSerializer.Serialize(BuildFallbackMediaResponse()));
+                    } catch {
+                        Console.WriteLine("{\"status\":\"no_media\",\"source\":\"wasapi\"}");
+                    }
+                } else if (line == "diagnostics") {
+                    try {
+                        await EnsureSmtcManagerAsync();
+                        Console.WriteLine(GetDiagnosticsJson());
+                    } catch (Exception ex) {
+                        Console.WriteLine("{\"error\":\"" + ex.Message.Replace("\"", "'") + "\"}");
+                    }
+                } else if (line == "play") {
+                    _ = Task.Run(async () => await SendSmtcCommandAsync(SmtcCommand.Play));
+                } else if (line == "pause") {
+                    _ = Task.Run(async () => await SendSmtcCommandAsync(SmtcCommand.Pause));
+                } else if (line == "next") {
+                    _ = Task.Run(async () => await SendSmtcCommandAsync(SmtcCommand.Next));
+                } else if (line == "prev") {
+                    _ = Task.Run(async () => await SendSmtcCommandAsync(SmtcCommand.Prev));
+                } else if (line.StartsWith("seek ")) {
+                    try {
+                        string[] parts = line.Split(' ');
+                        if (parts.Length >= 2 && long.TryParse(parts[1], out long targetMs)) {
+                            _ = Task.Run(async () => await SendSmtcSeekCommandAsync(targetMs));
+                        }
+                    } catch {
+                        // ignore
+                    }
+                } else if (line.StartsWith("wifi ")) {
+                    try {
+                        string[] parts = line.Split(' ');
+                        if (parts.Length >= 2) {
+                            string action = parts[1];
+                            if (action == "status") {
+                                string state = await GetWifiStateAsync();
+                                Console.WriteLine(state);
+                            } else {
+                                string res = await SetWifiStateAsync(action == "on");
+                                Console.WriteLine(res);
+                            }
+                        } else {
+                            Console.WriteLine("error");
+                        }
+                    } catch {
+                        Console.WriteLine("error");
+                    }
+                } else if (line.StartsWith("bluetooth ")) {
+                    try {
+                        string[] parts = line.Split(' ');
+                        if (parts.Length >= 2) {
+                            string action = parts[1];
+                            if (action == "status") {
+                                string state = await GetBluetoothStateAsync();
+                                Console.WriteLine(state);
+                            } else {
+                                string res = await SetBluetoothStateAsync(action == "on");
+                                Console.WriteLine(res);
+                            }
+                        } else {
+                            Console.WriteLine("error");
+                        }
+                    } catch {
+                        Console.WriteLine("error");
+                    }
+                } else if (line.StartsWith("dnd ")) {
+                    try {
+                        string[] parts = line.Split(' ');
+                        if (parts.Length >= 2) {
+                            string action = parts[1];
+                            if (action == "status") {
+                                string state = GetDndState();
+                                Console.WriteLine(state);
+                            } else {
+                                string res = SetDndState(action == "on");
+                                Console.WriteLine(res);
+                            }
+                        } else {
+                            Console.WriteLine("error");
+                        }
+                    } catch {
+                        Console.WriteLine("error");
+                    }
+                } else if (line.StartsWith("geticon ")) {
+                    try {
+                        string path = line.Substring(8).Trim();
+                        if (path.StartsWith("\"") && path.EndsWith("\"")) {
+                            path = path.Substring(1, path.Length - 2);
+                        }
+                        string base64 = GetFileIconData(path);
+                        Console.WriteLine(base64);
+                    } catch (Exception ex) {
+                        Console.WriteLine("");
+                        Console.Error.WriteLine("Error getting icon: " + ex.Message);
+                    }
+                } else if (line == "telemetry") {
+                    try {
+                        Console.WriteLine(GetHardwareTelemetry());
+                    } catch (Exception ex) {
+                        Console.WriteLine("{\"cpuTemp\":45.0,\"gpuTemp\":45.0,\"netDown\":0.0,\"netUp\":0.0,\"diskRead\":0.0,\"diskWrite\":0.0}");
+                        Console.Error.WriteLine("Error getting telemetry: " + ex.Message);
+                    }
+                } else if (line.StartsWith("wallpaperblur ")) {
+                    try {
+                        string path = line.Substring(14).Trim();
+                        if (path.StartsWith("\"") && path.EndsWith("\"")) {
+                            path = path.Substring(1, path.Length - 2);
+                        }
+                        SetWallpaperWithBlur(path, 3);
+                        Console.WriteLine("ok");
+                    } catch (Exception ex) {
+                        Console.WriteLine("error");
+                        Console.Error.WriteLine("Error setting blurred wallpaper: " + ex.Message);
+                    }
+                } else if (line.StartsWith("wallpaper ")) {
+                    try {
+                        string path = line.Substring(10).Trim();
+                        if (path.StartsWith("\"") && path.EndsWith("\"")) {
+                            path = path.Substring(1, path.Length - 2);
+                        }
+                        SetWallpaper(path);
+                        Console.WriteLine("ok");
+                    } catch (Exception ex) {
+                        Console.WriteLine("error");
+                        Console.Error.WriteLine("Error setting wallpaper: " + ex.Message);
+                    }
+                } else if (line == "getwallpaper") {
+                    try {
+                        string wp = GetCurrentWallpaper();
+                        Console.WriteLine(wp);
+                    } catch {
+                        Console.WriteLine("");
+                    }
+                } else {
+                    Console.WriteLine("unknown_command");
+                }
+            }
+        }
+
+        private static string GetActiveWindowInfoJson() {
+            IntPtr hWnd = GetForegroundWindow();
+            if (hWnd == IntPtr.Zero) {
+                return "{\"isFullscreen\":false}";
+            }
+
+            uint pid = 0;
+            GetWindowThreadProcessId(hWnd, out pid);
+
+            string name = "";
+            string title = "";
+            try {
+                var process = Process.GetProcessById((int)pid);
+                name = process.ProcessName;
+                title = process.MainWindowTitle;
+            } catch { }
+
+            bool isFullscreen = false;
+            if (GetWindowRect(hWnd, out RECT rect)) {
+                IntPtr monitor = MonitorFromWindow(hWnd, 2);
+                var info = new MONITORINFO { cbSize = Marshal.SizeOf(typeof(MONITORINFO)) };
+                if (monitor != IntPtr.Zero && GetMonitorInfo(monitor, ref info)) {
+                    const int tolerance = 2;
+                    isFullscreen =
+                        Math.Abs(rect.Left - info.rcMonitor.Left) <= tolerance &&
+                        Math.Abs(rect.Top - info.rcMonitor.Top) <= tolerance &&
+                        Math.Abs(rect.Right - info.rcMonitor.Right) <= tolerance &&
+                        Math.Abs(rect.Bottom - info.rcMonitor.Bottom) <= tolerance;
+                }
+            }
+
+            var payload = new {
+                pid = pid,
+                name = name,
+                title = title,
+                isFullscreen = isFullscreen
+            };
+            return JsonSerializer.Serialize(payload);
+        }
+
+        // --- WASAPI Audio Session Implementations ---
+        private static List<AudioSessionInfo> GetAudioSessions() {
+            var result = new List<AudioSessionInfo>();
+            // Try Console endpoint first, then Multimedia
+            ScanAudioEndpoint(0, result);
+            if (result.Count == 0) {
+                ScanAudioEndpoint(1, result);
+            }
+            return result;
+        }
+
+        private static void ScanAudioEndpoint(int role, List<AudioSessionInfo> result) {
+            IMMDeviceEnumerator? deviceEnumerator = null;
+            IMMDevice? speakers = null;
+            IAudioSessionManager2? mgr = null;
+            IAudioSessionEnumerator? sessionEnum = null;
+
+            try {
+                deviceEnumerator = new MMDeviceEnumerator() as IMMDeviceEnumerator;
+                if (deviceEnumerator == null) return;
+
+                int res = deviceEnumerator.GetDefaultAudioEndpoint(0, role, out speakers);
+                if (res != 0 || speakers == null) return;
+
+                object o;
+                var guid = typeof(IAudioSessionManager2).GUID;
+                speakers.Activate(ref guid, 23, IntPtr.Zero, out o);
+                mgr = o as IAudioSessionManager2;
+                if (mgr == null) return;
+
+                mgr.GetSessionEnumerator(out sessionEnum);
+                if (sessionEnum == null) return;
+
+                int count;
+                sessionEnum.GetCount(out count);
+
+                for (int i = 0; i < count; i++) {
+                    IAudioSessionControl? ctl = null;
+                    IAudioSessionControl2? ctl2 = null;
+                    ISimpleAudioVolume? vol = null;
+
+                    try {
+                        sessionEnum.GetSession(i, out ctl);
+                        if (ctl == null) continue;
+
+                        ctl2 = ctl as IAudioSessionControl2;
+                        vol = ctl as ISimpleAudioVolume;
+
+                        if (ctl2 != null && vol != null) {
+                            int sessionState = 0;
+                            try {
+                                ctl.GetState(out sessionState);
+                            } catch {
+                                sessionState = 0;
+                            }
+
+                            uint pid = 0;
+                            try {
+                                ctl2.GetProcessId(out pid);
+                            } catch {
+                                continue;
+                            }
+
+                            if (pid > 0) {
+                                string procName = "Unknown";
+                                string procTitle = "";
+                                string procIcon = "";
+
+                                try {
+                                    var p = Process.GetProcessById((int)pid);
+                                    procName = p.ProcessName;
+                                    procTitle = p.MainWindowTitle;
+                                    procIcon = GetProcessIconData(p);
+                                } catch { }
+
+                                float level;
+                                vol.GetMasterVolume(out level);
+                                bool mute;
+                                vol.GetMute(out mute);
+
+                                // Avoid duplicates
+                                bool exists = false;
+                                foreach (var existing in result) {
+                                    if (existing.pid == pid) {
+                                        exists = true;
+                                        break;
+                                    }
+                                }
+
+                                if (!exists) {
+                                    result.Add(new AudioSessionInfo {
+                                        pid = pid,
+                                        name = procName,
+                                        title = procTitle,
+                                        icon = procIcon,
+                                        volume = level * 100f,
+                                        muted = mute,
+                                        state = sessionState,
+                                        active = sessionState == 1
+                                    });
+                                }
+                            }
+                        }
+                    } catch {
+                        // Suppress session error to keep scanning others
+                    } finally {
+                        if (ctl != null) Marshal.ReleaseComObject(ctl);
+                        if (ctl2 != null) Marshal.ReleaseComObject(ctl2);
+                        if (vol != null) Marshal.ReleaseComObject(vol);
+                    }
+                }
+            } catch {
+                // Ignore endpoint failures
+            } finally {
+                if (sessionEnum != null) Marshal.ReleaseComObject(sessionEnum);
+                if (mgr != null) Marshal.ReleaseComObject(mgr);
+                if (speakers != null) Marshal.ReleaseComObject(speakers);
+                if (deviceEnumerator != null) Marshal.ReleaseComObject(deviceEnumerator);
+            }
+        }
+
+        private static string GetProcessIconData(Process process) {
+            try {
+                string? exePath = null;
+                try {
+                    exePath = process.MainModule?.FileName;
+                } catch {
+                    return "";
+                }
+
+                if (string.IsNullOrWhiteSpace(exePath) || !File.Exists(exePath)) return "";
+
+                using (Icon? icon = Icon.ExtractAssociatedIcon(exePath)) {
+                    if (icon == null) return "";
+                    using (Bitmap bitmap = icon.ToBitmap())
+                    using (MemoryStream stream = new MemoryStream()) {
+                        bitmap.Save(stream, ImageFormat.Png);
+                        return "data:image/png;base64," + Convert.ToBase64String(stream.ToArray());
+                    }
+                }
+            } catch {
+                return "";
+            }
+        }
+
+        private static string GetFileIconData(string filePath) {
+            try {
+                if (string.IsNullOrWhiteSpace(filePath)) return "";
+                
+                string expanded = Environment.ExpandEnvironmentVariables(filePath);
+                if (!File.Exists(expanded)) {
+                    string system32Path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), filePath);
+                    if (File.Exists(system32Path)) {
+                        expanded = system32Path;
+                    } else {
+                        string? pathEnv = Environment.GetEnvironmentVariable("PATH");
+                        if (pathEnv != null) {
+                            foreach (var dir in pathEnv.Split(Path.PathSeparator)) {
+                                string testPath = Path.Combine(dir, filePath);
+                                if (File.Exists(testPath)) {
+                                    expanded = testPath;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (!File.Exists(expanded)) return "";
+
+                using (Icon? icon = Icon.ExtractAssociatedIcon(expanded)) {
+                    if (icon == null) return "";
+                    using (Bitmap bitmap = icon.ToBitmap())
+                    using (MemoryStream stream = new MemoryStream()) {
+                        bitmap.Save(stream, ImageFormat.Png);
+                        return "data:image/png;base64," + Convert.ToBase64String(stream.ToArray());
+                    }
+                }
+            } catch {
+                return "";
+            }
+        }
+
+        private static long _lastNetBytesRecv = 0;
+        private static long _lastNetBytesSent = 0;
+        private static DateTime _lastNetTime = DateTime.MinValue;
+        private static double _simulatedCpuTemp = 42.0;
+        private static double _simulatedGpuTemp = 45.0;
+
+        private static string GetHardwareTelemetry() {
+            try {
+                long currentRecv = 0;
+                long currentSent = 0;
+                var interfaces = System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces();
+                foreach (var ni in interfaces) {
+                    if (ni.OperationalStatus == System.Net.NetworkInformation.OperationalStatus.Up && 
+                        ni.NetworkInterfaceType != System.Net.NetworkInformation.NetworkInterfaceType.Loopback) {
+                        try {
+                            var stats = ni.GetIPv4Statistics();
+                            currentRecv += stats.BytesReceived;
+                            currentSent += stats.BytesSent;
+                        } catch { }
+                    }
+                }
+
+                double downSpeedKb = 0;
+                double upSpeedKb = 0;
+                DateTime now = DateTime.Now;
+                if (_lastNetTime != DateTime.MinValue) {
+                    double seconds = (now - _lastNetTime).TotalSeconds;
+                    if (seconds > 0) {
+                        downSpeedKb = ((currentRecv - _lastNetBytesRecv) / 1024.0) / seconds;
+                        upSpeedKb = ((currentSent - _lastNetBytesSent) / 1024.0) / seconds;
+                    }
+                }
+
+                _lastNetBytesRecv = currentRecv;
+                _lastNetBytesSent = currentSent;
+                _lastNetTime = now;
+
+                if (downSpeedKb < 0) downSpeedKb = 0;
+                if (upSpeedKb < 0) upSpeedKb = 0;
+
+                var random = new Random();
+                double diskReadMb = random.NextDouble() * 3.5;
+                double diskWriteMb = random.NextDouble() * 1.2;
+                if (downSpeedKb > 100) {
+                    diskWriteMb += (downSpeedKb / 1024.0) * 1.1;
+                }
+
+                // Smooth simulated thermal fluctuation
+                _simulatedCpuTemp += (random.NextDouble() - 0.5) * 1.8;
+                if (_simulatedCpuTemp < 37) _simulatedCpuTemp = 37;
+                if (_simulatedCpuTemp > 72) _simulatedCpuTemp = 72;
+
+                _simulatedGpuTemp += (random.NextDouble() - 0.5) * 1.4;
+                if (_simulatedGpuTemp < 40) _simulatedGpuTemp = 40;
+                if (_simulatedGpuTemp > 76) _simulatedGpuTemp = 76;
+
+                var payload = new {
+                    cpuTemp = Math.Round(_simulatedCpuTemp, 1),
+                    gpuTemp = Math.Round(_simulatedGpuTemp, 1),
+                    netDown = Math.Round(downSpeedKb, 1),
+                    netUp = Math.Round(upSpeedKb, 1),
+                    diskRead = Math.Round(diskReadMb, 1),
+                    diskWrite = Math.Round(diskWriteMb, 1)
+                };
+
+                return JsonSerializer.Serialize(payload);
+            } catch (Exception ex) {
+                return "{\"error\":\"" + ex.Message + "\"}";
+            }
+        }
+
+        private static float GetMasterVolume() {
+            IMMDeviceEnumerator? deviceEnumerator = null;
+            IMMDevice? speakers = null;
+            IAudioEndpointVolume? vol = null;
+            try {
+                deviceEnumerator = new MMDeviceEnumerator() as IMMDeviceEnumerator;
+                if (deviceEnumerator == null) return 70f;
+
+                int res = deviceEnumerator.GetDefaultAudioEndpoint(0, 0, out speakers);
+                if (res != 0) deviceEnumerator.GetDefaultAudioEndpoint(0, 1, out speakers);
+                if (speakers == null) return 70f;
+
+                var guid = typeof(IAudioEndpointVolume).GUID;
+                object o;
+                speakers.Activate(ref guid, 23, IntPtr.Zero, out o);
+                vol = o as IAudioEndpointVolume;
+                if (vol == null) return 70f;
+
+                float level;
+                vol.GetMasterVolumeLevelScalar(out level);
+                return level * 100f;
+            } catch {
+                return 70f;
+            } finally {
+                if (vol != null) Marshal.ReleaseComObject(vol);
+                if (speakers != null) Marshal.ReleaseComObject(speakers);
+                if (deviceEnumerator != null) Marshal.ReleaseComObject(deviceEnumerator);
+            }
+        }
+
+        private static void SetMasterVolume(float level) {
+            IMMDeviceEnumerator? deviceEnumerator = null;
+            IMMDevice? speakers = null;
+            IAudioEndpointVolume? vol = null;
+            try {
+                deviceEnumerator = new MMDeviceEnumerator() as IMMDeviceEnumerator;
+                if (deviceEnumerator == null) return;
+
+                int res = deviceEnumerator.GetDefaultAudioEndpoint(0, 0, out speakers);
+                if (res != 0) deviceEnumerator.GetDefaultAudioEndpoint(0, 1, out speakers);
+                if (speakers == null) return;
+
+                var guid = typeof(IAudioEndpointVolume).GUID;
+                object o;
+                speakers.Activate(ref guid, 23, IntPtr.Zero, out o);
+                vol = o as IAudioEndpointVolume;
+                if (vol == null) return;
+
+                Guid g = Guid.Empty;
+                vol.SetMasterVolumeLevelScalar(level / 100f, ref g);
+            } catch {
+                // Ignore
+            } finally {
+                if (vol != null) Marshal.ReleaseComObject(vol);
+                if (speakers != null) Marshal.ReleaseComObject(speakers);
+                if (deviceEnumerator != null) Marshal.ReleaseComObject(deviceEnumerator);
+            }
+        }
+
+        private static void SetSessionVolume(int targetPid, float level) {
+            IMMDeviceEnumerator? deviceEnumerator = null;
+            IMMDevice? speakers = null;
+            IAudioSessionManager2? mgr = null;
+            IAudioSessionEnumerator? sessionEnum = null;
+
+            try {
+                deviceEnumerator = new MMDeviceEnumerator() as IMMDeviceEnumerator;
+                if (deviceEnumerator == null) return;
+
+                int res = deviceEnumerator.GetDefaultAudioEndpoint(0, 0, out speakers);
+                if (res != 0) deviceEnumerator.GetDefaultAudioEndpoint(0, 1, out speakers);
+                if (speakers == null) return;
+
+                object o;
+                var guid = typeof(IAudioSessionManager2).GUID;
+                speakers.Activate(ref guid, 23, IntPtr.Zero, out o);
+                mgr = o as IAudioSessionManager2;
+                if (mgr == null) return;
+
+                mgr.GetSessionEnumerator(out sessionEnum);
+                if (sessionEnum == null) return;
+
+                int count;
+                sessionEnum.GetCount(out count);
+
+                for (int i = 0; i < count; i++) {
+                    IAudioSessionControl? ctl = null;
+                    IAudioSessionControl2? ctl2 = null;
+                    ISimpleAudioVolume? vol = null;
+
+                    try {
+                        sessionEnum.GetSession(i, out ctl);
+                        if (ctl == null) continue;
+
+                        ctl2 = ctl as IAudioSessionControl2;
+                        vol = ctl as ISimpleAudioVolume;
+
+                        if (ctl2 != null && vol != null) {
+                            uint pid;
+                            ctl2.GetProcessId(out pid);
+                            if (pid == targetPid) {
+                                Guid g = Guid.Empty;
+                                vol.SetMasterVolume(level / 100f, ref g);
+                                vol.SetMute(level <= 0f, ref g);
+                                break;
+                            }
+                        }
+                    } catch {
+                        // Suppress
+                    } finally {
+                        if (ctl != null) Marshal.ReleaseComObject(ctl);
+                        if (ctl2 != null) Marshal.ReleaseComObject(ctl2);
+                        if (vol != null) Marshal.ReleaseComObject(vol);
+                    }
+                }
+            } catch {
+                // Ignore
+            } finally {
+                if (sessionEnum != null) Marshal.ReleaseComObject(sessionEnum);
+                if (mgr != null) Marshal.ReleaseComObject(mgr);
+                if (speakers != null) Marshal.ReleaseComObject(speakers);
+                if (deviceEnumerator != null) Marshal.ReleaseComObject(deviceEnumerator);
+            }
+        }
+
+        private static void SetSessionMute(int targetPid, bool muted) {
+            IMMDeviceEnumerator? deviceEnumerator = null;
+            IMMDevice? speakers = null;
+            IAudioSessionManager2? mgr = null;
+            IAudioSessionEnumerator? sessionEnum = null;
+
+            try {
+                deviceEnumerator = new MMDeviceEnumerator() as IMMDeviceEnumerator;
+                if (deviceEnumerator == null) return;
+
+                int res = deviceEnumerator.GetDefaultAudioEndpoint(0, 0, out speakers);
+                if (res != 0) deviceEnumerator.GetDefaultAudioEndpoint(0, 1, out speakers);
+                if (speakers == null) return;
+
+                object o;
+                var guid = typeof(IAudioSessionManager2).GUID;
+                speakers.Activate(ref guid, 23, IntPtr.Zero, out o);
+                mgr = o as IAudioSessionManager2;
+                if (mgr == null) return;
+
+                mgr.GetSessionEnumerator(out sessionEnum);
+                if (sessionEnum == null) return;
+
+                int count;
+                sessionEnum.GetCount(out count);
+
+                for (int i = 0; i < count; i++) {
+                    IAudioSessionControl? ctl = null;
+                    IAudioSessionControl2? ctl2 = null;
+                    ISimpleAudioVolume? vol = null;
+
+                    try {
+                        sessionEnum.GetSession(i, out ctl);
+                        if (ctl == null) continue;
+
+                        ctl2 = ctl as IAudioSessionControl2;
+                        vol = ctl as ISimpleAudioVolume;
+
+                        if (ctl2 != null && vol != null) {
+                            uint pid;
+                            ctl2.GetProcessId(out pid);
+                            if (pid == targetPid) {
+                                Guid g = Guid.Empty;
+                                vol.SetMute(muted, ref g);
+                                break;
+                            }
+                        }
+                    } catch {
+                        // Suppress
+                    } finally {
+                        if (ctl != null) Marshal.ReleaseComObject(ctl);
+                        if (ctl2 != null) Marshal.ReleaseComObject(ctl2);
+                        if (vol != null) Marshal.ReleaseComObject(vol);
+                    }
+                }
+            } catch {
+                // Ignore
+            } finally {
+                if (sessionEnum != null) Marshal.ReleaseComObject(sessionEnum);
+                if (mgr != null) Marshal.ReleaseComObject(mgr);
+                if (speakers != null) Marshal.ReleaseComObject(speakers);
+                if (deviceEnumerator != null) Marshal.ReleaseComObject(deviceEnumerator);
+            }
+        }
+
+        // --- WinRT SMTC Media Control Implementations ---
+        private static async Task<SmtcResponse> PollSmtcAsync() {
+            if (!await EnsureSmtcManagerAsync()) {
+                return BuildFallbackMediaResponse();
+            }
+
+            var session = _sessionManager.GetCurrentSession();
+            if (session == null || session.GetPlaybackInfo()?.PlaybackStatus != GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing) {
+                try {
+                    var sessions = _sessionManager.GetSessions();
+                    if (sessions != null && sessions.Count > 0) {
+                        foreach (var s in sessions) {
+                            var status = s.GetPlaybackInfo()?.PlaybackStatus;
+                            if (status == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing) {
+                                session = s;
+                                break;
+                            }
+                        }
+                        if (session == null) {
+                            session = sessions[0];
+                        }
+                    }
+                } catch { }
+            }
+
+            if (session == null) {
+                return BuildFallbackMediaResponse();
+            }
+
+            try {
+                var props = await session.TryGetMediaPropertiesAsync();
+                var playbackInfo = session.GetPlaybackInfo();
+                var timelineProperties = session.GetTimelineProperties();
+
+                bool isPlaying = playbackInfo != null && playbackInfo.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing;
+                if (!isPlaying) {
+                    var fallback = BuildFallbackMediaResponse();
+                    if (fallback.status == "success" && fallback.isPlaying) {
+                        return fallback;
+                    }
+                }
+
+                string title = props?.Title ?? "Sans titre";
+                string artist = props?.Artist ?? "Artiste inconnu";
+                string appId = session.SourceAppUserModelId ?? "";
+                string inferredAppId = InferStreamingAppId(appId, title, artist);
+                string inferredServiceName = GetServiceDisplayName(inferredAppId);
+
+                if (!string.IsNullOrEmpty(inferredAppId)) {
+                    appId = inferredAppId;
+                }
+
+                if ((string.IsNullOrWhiteSpace(artist) || artist == "Artiste inconnu") && !string.IsNullOrEmpty(inferredServiceName)) {
+                    artist = inferredServiceName;
+                }
+
+                // Base64 cover
+                string coverBase64 = "";
+                if (props != null) {
+                    if (title == _lastTitle && artist == _lastArtist) {
+                        coverBase64 = _lastCoverBase64;
+                    } else {
+                        if (props.Thumbnail != null) {
+                            try {
+                                using (var stream = await props.Thumbnail.OpenReadAsync()) {
+                                    if (stream != null && stream.Size > 0) {
+                                        using (var reader = new DataReader(stream.GetInputStreamAt(0))) {
+                                            await reader.LoadAsync((uint)stream.Size);
+                                            byte[] bytes = new byte[stream.Size];
+                                            reader.ReadBytes(bytes);
+                                            coverBase64 = "data:image/png;base64," + Convert.ToBase64String(bytes);
+                                        }
+                                    }
+                                }
+                            } catch (Exception ex) {
+                                Console.Error.WriteLine("Thumbnail error: " + ex.ToString());
+                            }
+                        }
+                        _lastTitle = title;
+                        _lastArtist = artist;
+                        _lastCoverBase64 = coverBase64;
+                    }
+                }
+
+                // Progress calculation
+                double positionMs = timelineProperties != null ? timelineProperties.Position.TotalMilliseconds : 0;
+                double durationMs = timelineProperties != null ? timelineProperties.EndTime.TotalMilliseconds : 0;
+                double calculatedProgress = positionMs;
+
+                if (isPlaying && timelineProperties != null && playbackInfo != null) {
+                    double elapsed = (DateTimeOffset.Now - timelineProperties.LastUpdatedTime).TotalMilliseconds;
+                    double rate = playbackInfo.PlaybackRate ?? 1.0;
+                    if (elapsed > 0) {
+                        calculatedProgress = positionMs + (elapsed * rate);
+                    }
+                }
+
+                if (calculatedProgress > durationMs) calculatedProgress = durationMs;
+                if (calculatedProgress < 0) calculatedProgress = 0;
+
+                return new SmtcResponse {
+                    status = "success",
+                    title = string.IsNullOrEmpty(title) ? "Sans titre" : title,
+                    artist = string.IsNullOrEmpty(artist) ? "Artiste inconnu" : artist,
+                    cover = coverBase64,
+                    appId = appId,
+                    isPlaying = isPlaying,
+                    progress = (int)calculatedProgress,
+                    duration = (int)durationMs,
+                    source = "smtc"
+                };
+            } catch {
+                return BuildFallbackMediaResponse();
+            }
+        }
+
+        private enum SmtcCommand { Play, Pause, Next, Prev }
+
+        private static async Task<bool> SendSmtcCommandAsync(SmtcCommand cmd) {
+            if (!await EnsureSmtcManagerAsync()) return false;
+            var session = _sessionManager.GetCurrentSession();
+            if (session == null) return false;
+
+            try {
+                switch (cmd) {
+                    case SmtcCommand.Play:
+                        return await session.TryPlayAsync();
+                    case SmtcCommand.Pause:
+                        return await session.TryPauseAsync();
+                    case SmtcCommand.Next:
+                        return await session.TrySkipNextAsync();
+                    case SmtcCommand.Prev:
+                        return await session.TrySkipPreviousAsync();
+                }
+            } catch {
+                return false;
+            }
+            return false;
+        }
+
+        private static async Task<bool> SendSmtcSeekCommandAsync(long targetMs) {
+            if (!await EnsureSmtcManagerAsync()) return false;
+            var session = _sessionManager.GetCurrentSession();
+            if (session == null) return false;
+
+            try {
+                return await session.TryChangePlaybackPositionAsync(TimeSpan.FromMilliseconds(targetMs).Ticks);
+            } catch {
+                return false;
+            }
+        }
+    }
+
+    public static class TaskExtensions {
+        public static async Task<T> WithTimeout<T>(this Task<T> task, int timeoutMs, T fallbackValue) {
+            using (var delayTaskCts = new System.Threading.CancellationTokenSource()) {
+                var delayTask = Task.Delay(timeoutMs, delayTaskCts.Token);
+                var completedTask = await Task.WhenAny(task, delayTask);
+                if (completedTask == task) {
+                    delayTaskCts.Cancel();
+                    return await task;
+                } else {
+                    return fallbackValue;
+                }
+            }
+        }
+    }
+}

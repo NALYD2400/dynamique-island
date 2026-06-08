@@ -1,0 +1,1785 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Island - Réglages</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Phosphor Icons Web Font -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <style>
+        :root {
+            --bg-dark: #06060b;
+            --card-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-highlight: rgba(255, 255, 255, 0.03);
+            --neon-primary: #00f3ff;
+            --neon-primary-rgb: 0, 243, 255;
+            --neon-secondary: #bc13fe;
+            --neon-secondary-rgb: 188, 19, 254;
+            --text-main: #ffffff;
+            --text-muted: rgba(255, 255, 255, 0.6);
+            --font-sans: 'Inter', sans-serif;
+            --font-display: 'Outfit', sans-serif;
+            --font-mono: 'Fira Code', monospace;
+        }
+
+        html, body {
+            background: transparent !important;
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            font-family: var(--font-sans);
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .settings-container {
+            width: 760px;
+            height: 520px;
+            background:
+                linear-gradient(160deg, rgba(var(--neon-primary-rgb), 0.08), rgba(8, 8, 12, 0) 32%),
+                linear-gradient(220deg, rgba(var(--neon-secondary-rgb), 0.08), rgba(8, 8, 12, 0) 38%),
+                rgba(10, 10, 15, 0.78);
+            border: 1px solid rgba(var(--neon-primary-rgb), 0.18);
+            border-radius: 24px;
+            box-shadow:
+                        0 12px 30px rgba(0, 0, 0, 0.22),
+                        0 0 0 1px rgba(255, 255, 255, 0.03) inset,
+                        0 0 26px rgba(var(--neon-primary-rgb), 0.12),
+                        0 0 52px rgba(var(--neon-primary-rgb), 0.10),
+                        0 0 68px rgba(var(--neon-secondary-rgb), 0.08);
+            backdrop-filter: blur(40px);
+            -webkit-backdrop-filter: blur(40px);
+            display: flex;
+            overflow: hidden;
+            position: relative;
+            transition: border-color 0.5s ease, box-shadow 0.5s ease;
+        }
+
+        .settings-container::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            background:
+                radial-gradient(circle at 18% 18%, rgba(var(--neon-primary-rgb), 0.16), transparent 28%),
+                radial-gradient(circle at 82% 22%, rgba(var(--neon-secondary-rgb), 0.14), transparent 24%),
+                linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0));
+            opacity: 0.9;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .settings-bg-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+            opacity: 0;
+            filter: blur(56px) saturate(150%);
+            -webkit-filter: blur(56px) saturate(150%);
+            z-index: 0;
+            pointer-events: none;
+            transition: background-image 0.8s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.8s ease;
+        }
+
+        /* Sidebar Styling */
+        .sidebar {
+            width: 230px;
+            background: rgba(255, 255, 255, 0.02);
+            border-right: 1px solid var(--glass-border);
+            display: flex;
+            flex-direction: column;
+            padding: 24px 16px;
+            box-sizing: border-box;
+            -webkit-app-region: drag; /* Draggable window support */
+            position: relative;
+            z-index: 1;
+        }
+
+        .sidebar-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 30px;
+        }
+
+        .sidebar-logo {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--neon-primary), var(--neon-secondary));
+            color: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            box-shadow: 0 4px 15px rgba(var(--neon-primary-rgb), 0.4);
+            flex-shrink: 0;
+            transition: box-shadow 0.5s ease;
+        }
+
+        .sidebar-title-area {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-title {
+            font-family: var(--font-display);
+            font-size: 15px;
+            font-weight: 800;
+            color: #fff;
+            line-height: 1.2;
+        }
+
+        .sidebar-subtitle {
+            font-size: 9px;
+            color: var(--text-muted);
+            letter-spacing: 0.5px;
+        }
+
+        .nav-menu {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            -webkit-app-region: no-drag;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            border-radius: 12px;
+            color: var(--text-muted);
+            font-size: 12.5px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+            user-select: none;
+        }
+
+        .nav-item i {
+            font-size: 16px;
+            transition: transform 0.2s;
+        }
+
+        .nav-item:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .nav-item.active {
+            background: rgba(var(--neon-primary-rgb), 0.08);
+            border: 1px solid rgba(var(--neon-primary-rgb), 0.15);
+            color: var(--neon-primary);
+            box-shadow: 0 4px 12px rgba(var(--neon-primary-rgb), 0.12);
+        }
+
+        .nav-item.active i {
+            color: var(--neon-primary);
+            transform: scale(1.1);
+        }
+
+        /* Main Content Pane */
+        .content-pane {
+            flex: 1;
+            padding: 28px;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+            position: relative;
+            z-index: 1;
+            min-width: 0;
+            min-height: 0;
+        }
+
+        .tab-content {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 24px;
+            right: 24px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.2s;
+            z-index: 100;
+        }
+
+        .close-btn:hover {
+            background: rgba(255, 59, 48, 0.2);
+            border-color: rgba(255, 59, 48, 0.4);
+            color: #ff453a;
+            transform: scale(1.05);
+        }
+
+        .section-header {
+            margin-bottom: 24px;
+        }
+
+        .section-title {
+            font-family: var(--font-display);
+            font-size: 22px;
+            font-weight: 800;
+            color: #fff;
+            margin: 0 0 4px 0;
+        }
+
+        .section-desc {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin: 0;
+        }
+
+        .settings-scroll-area {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            padding-right: 6px;
+            padding-bottom: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* Custom Scrollbar */
+        .settings-scroll-area::-webkit-scrollbar {
+            width: 4px;
+        }
+        .settings-scroll-area::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .settings-scroll-area::-webkit-scrollbar-thumb {
+            background: rgba(var(--neon-primary-rgb), 0.25);
+            border-radius: 4px;
+        }
+        .settings-scroll-area::-webkit-scrollbar-thumb:hover {
+            background: rgba(var(--neon-primary-rgb), 0.45);
+        }
+
+        /* Settings Card & Rows */
+        .settings-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 6px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .setting-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 14px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            box-sizing: border-box;
+        }
+
+        .setting-item:last-child {
+            border-bottom: none;
+        }
+
+        .setting-item.range-type {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 10px;
+        }
+
+        .setting-info {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .setting-icon-wrapper {
+            width: 32px;
+            height: 32px;
+            border-radius: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 15px;
+            flex-shrink: 0;
+        }
+
+        .setting-details {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            min-width: 0;
+        }
+
+        .setting-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .setting-desc {
+            font-size: 9.5px;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Ranges */
+        .range-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+
+        .badge {
+            background: rgba(var(--neon-primary-rgb), 0.06);
+            border: 1px solid rgba(var(--neon-primary-rgb), 0.15);
+            padding: 2px 6px;
+            border-radius: 6px;
+            font-size: 9px;
+            font-weight: 700;
+            color: var(--neon-primary);
+            font-family: var(--font-mono);
+        }
+
+        .premium-range {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            outline: none;
+        }
+
+        .premium-range::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--neon-primary);
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(var(--neon-primary-rgb), 0.6);
+            transition: transform 0.1s ease;
+        }
+
+        .premium-range::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        /* iOS Switches */
+        .ios-switch {
+            position: relative;
+            display: inline-block;
+            width: 36px;
+            height: 20px;
+            flex-shrink: 0;
+        }
+
+        .ios-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .switch-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.15);
+            transition: .3s cubic-bezier(0.16, 1, 0.3, 1);
+            border-radius: 20px;
+        }
+
+        .switch-slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 2px;
+            bottom: 2px;
+            background-color: white;
+            transition: .3s cubic-bezier(0.16, 1, 0.3, 1);
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .ios-switch input:checked + .switch-slider {
+            background-color: #34c759;
+        }
+
+        .ios-switch input:checked + .switch-slider:before {
+            transform: translateX(16px);
+        }
+
+        /* Dropdowns & Pickers */
+        .theme-select {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--glass-border);
+            border-radius: 10px;
+            padding: 6px 12px;
+            color: #fff;
+            font-size: 11px;
+            outline: none;
+            cursor: pointer;
+            font-family: var(--font-sans);
+            transition: all 0.25s;
+        }
+
+        .theme-select:focus {
+            border-color: var(--neon-primary);
+            box-shadow: 0 0 10px rgba(var(--neon-primary-rgb), 0.3);
+        }
+
+        .theme-select option {
+            background: #0d0d17;
+            color: #fff;
+        }
+
+        .color-picker-wrapper {
+            position: relative;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 1.5px solid #fff;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            flex-shrink: 0;
+        }
+
+        .color-picker-wrapper input[type="color"] {
+            position: absolute;
+            top: -5px;
+            left: -5px;
+            width: 34px;
+            height: 34px;
+            border: none;
+            background: none;
+            cursor: pointer;
+        }
+
+        .text-input {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--glass-border);
+            border-radius: 10px;
+            padding: 6px 12px;
+            color: #fff;
+            font-size: 11px;
+            outline: none;
+            font-family: var(--font-sans);
+            transition: all 0.25s;
+        }
+
+        .text-input:focus {
+            border-color: var(--neon-primary);
+            box-shadow: 0 0 10px rgba(var(--neon-primary-rgb), 0.3);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Shortcut Slot Card Grid */
+        .shortcut-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .shortcut-row {
+            background: rgba(255, 255, 255, 0.01);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 14px;
+            padding: 10px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .shortcut-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .shortcut-inputs-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .shortcut-inputs-group input {
+            flex: 1;
+        }
+
+        .profile-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            padding: 10px;
+        }
+
+        .profile-card {
+            min-height: 92px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.035);
+            color: #fff;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            justify-content: space-between;
+            padding: 12px;
+            text-align: left;
+            font-family: var(--font-sans);
+            transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+        }
+
+        .profile-card:hover,
+        .profile-card.active {
+            transform: translateY(-1px);
+            border-color: rgba(var(--neon-primary-rgb), 0.45);
+            background: rgba(var(--neon-primary-rgb), 0.08);
+            box-shadow: 0 8px 22px rgba(var(--neon-primary-rgb), 0.12);
+        }
+
+        .profile-card i {
+            font-size: 20px;
+            color: var(--neon-primary);
+        }
+
+        .profile-card strong {
+            font-size: 12px;
+        }
+
+        .profile-card span {
+            font-size: 9px;
+            line-height: 1.35;
+            color: var(--text-muted);
+        }
+
+        .profile-tools {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto auto;
+            gap: 8px;
+            padding: 10px;
+            border-top: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .profile-tools.two {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .mini-action-btn {
+            min-height: 32px;
+            border: 1px solid rgba(var(--neon-primary-rgb), 0.18);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.045);
+            color: rgba(255, 255, 255, 0.86);
+            padding: 0 12px;
+            font-size: 11px;
+            font-weight: 800;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .mini-action-btn:hover {
+            color: #fff;
+            background: rgba(var(--neon-primary-rgb), 0.12);
+            border-color: rgba(var(--neon-primary-rgb), 0.35);
+        }
+
+        .mini-action-btn.danger {
+            color: #ff8a82;
+            border-color: rgba(255, 69, 58, 0.24);
+        }
+
+        .mini-action-btn.danger:hover {
+            background: rgba(255, 69, 58, 0.14);
+            border-color: rgba(255, 69, 58, 0.42);
+        }
+
+        .mini-action-btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.38;
+        }
+
+        .layout-panel {
+            margin-top: 6px;
+            width: 100%;
+            padding: 16px;
+            border-radius: 18px;
+            border: 1px solid rgba(255,255,255,0.06);
+            background: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.018));
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            box-sizing: border-box;
+        }
+
+        .layout-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(82px, 1fr));
+            gap: 12px;
+            width: 100%;
+        }
+
+        .layout-btn {
+            border: 1px solid rgba(var(--neon-primary-rgb), 0.16);
+            background: rgba(255, 255, 255, 0.04);
+            color: #fff;
+            border-radius: 12px;
+            padding: 10px 14px;
+            min-height: 42px;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .layout-btn:hover {
+            background: rgba(var(--neon-primary-rgb), 0.12);
+            border-color: rgba(var(--neon-primary-rgb), 0.28);
+            color: var(--neon-primary);
+        }
+
+        .layout-btn.active {
+            background: rgba(var(--neon-primary-rgb), 0.16);
+            border-color: rgba(var(--neon-primary-rgb), 0.34);
+            color: var(--neon-primary);
+            box-shadow: 0 8px 18px rgba(var(--neon-primary-rgb), 0.16);
+        }
+
+        .layout-status {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+            width: 100%;
+        }
+
+        .layout-stat {
+            border-radius: 14px;
+            border: 1px solid rgba(255,255,255,0.06);
+            background: rgba(255,255,255,0.03);
+            padding: 14px 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            min-height: 62px;
+            justify-content: center;
+        }
+
+        .layout-stat-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+        }
+
+        .layout-stat-value {
+            font-family: var(--font-mono);
+            font-size: 14px;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        /* Visual refresh: make the full settings window feel like the island */
+        .settings-container {
+            width: 100vw;
+            height: 100vh;
+            box-sizing: border-box;
+            border-radius: 24px;
+            background:
+                radial-gradient(circle at 14% 0%, rgba(var(--neon-primary-rgb), 0.13), transparent 34%),
+                radial-gradient(circle at 84% 18%, rgba(var(--neon-secondary-rgb), 0.12), transparent 30%),
+                linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.012)),
+                rgba(7, 7, 11, 0.9);
+            border-top: 1px solid rgba(255, 255, 255, 0.18);
+            border-left: 1px solid rgba(255, 255, 255, 0.11);
+            border-right: 1px solid rgba(255, 255, 255, 0.07);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.5);
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.12),
+                inset 0 0 0 1px rgba(255, 255, 255, 0.025),
+                0 0 22px rgba(var(--neon-primary-rgb), 0.08);
+        }
+
+        .settings-container::before {
+            background:
+                linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0) 42%),
+                radial-gradient(circle at 22% 16%, rgba(var(--neon-primary-rgb), 0.12), transparent 30%),
+                radial-gradient(circle at 74% 74%, rgba(var(--neon-secondary-rgb), 0.09), transparent 28%);
+            opacity: 0.75;
+        }
+
+        .settings-bg-layer {
+            filter: blur(62px) saturate(175%) brightness(0.72);
+            -webkit-filter: blur(62px) saturate(175%) brightness(0.72);
+        }
+
+        .sidebar {
+            width: 218px;
+            padding: 22px 14px;
+            background:
+                linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.012)),
+                rgba(255, 255, 255, 0.012);
+            border-right: 1px solid rgba(255, 255, 255, 0.055);
+        }
+
+        .sidebar-header {
+            gap: 10px;
+            margin-bottom: 24px;
+            padding: 8px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.025);
+            border: 1px solid rgba(255, 255, 255, 0.055);
+        }
+
+        .sidebar-logo {
+            width: 34px;
+            height: 34px;
+            border-radius: 11px;
+            background: rgba(var(--neon-primary-rgb), 0.14);
+            color: var(--neon-primary);
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.08),
+                0 0 14px rgba(var(--neon-primary-rgb), 0.22);
+        }
+
+        .sidebar-title {
+            font-size: 14px;
+            letter-spacing: 0;
+        }
+
+        .sidebar-subtitle {
+            font-size: 8.5px;
+            opacity: 0.66;
+            letter-spacing: 0;
+        }
+
+        .nav-menu {
+            gap: 7px;
+        }
+
+        .nav-item {
+            min-height: 36px;
+            padding: 0 12px;
+            border-radius: 13px;
+            border: 1px solid transparent;
+            color: rgba(255, 255, 255, 0.58);
+            background: transparent;
+            font-size: 11.5px;
+            letter-spacing: 0;
+        }
+
+        .nav-item:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.045);
+            border-color: rgba(255, 255, 255, 0.055);
+            transform: translateY(-1px);
+        }
+
+        .nav-item.active {
+            background:
+                linear-gradient(90deg, rgba(var(--neon-primary-rgb), 0.16), rgba(255,255,255,0.035));
+            border-color: rgba(var(--neon-primary-rgb), 0.22);
+            color: #fff;
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.07),
+                0 8px 18px rgba(var(--neon-primary-rgb), 0.09);
+        }
+
+        .content-pane {
+            padding: 22px 22px 20px;
+        }
+
+        .close-btn {
+            top: 34px;
+            right: 40px;
+            width: 24px;
+            height: 24px;
+            background: rgba(255, 255, 255, 0.045);
+            border-color: rgba(255, 255, 255, 0.075);
+            box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.06),
+                0 4px 10px rgba(0, 0, 0, 0.14);
+            -webkit-app-region: no-drag;
+        }
+
+        .close-btn i {
+            font-size: 11px;
+            opacity: 0.78;
+        }
+
+        .close-btn:hover {
+            background: rgba(255, 255, 255, 0.09);
+            border-color: rgba(255, 255, 255, 0.14);
+            color: #fff;
+            transform: translateY(-1px);
+        }
+
+        .section-header {
+            margin-bottom: 14px;
+            padding: 13px 48px 13px 16px;
+            border-radius: 19px;
+            background:
+                linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.018));
+            border: 1px solid rgba(255,255,255,0.065);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.055);
+        }
+
+        .section-title {
+            font-size: 18px;
+            letter-spacing: 0;
+            line-height: 1;
+            margin-bottom: 6px;
+        }
+
+        .section-desc {
+            font-size: 10px;
+            line-height: 1.35;
+            color: rgba(255,255,255,0.54);
+        }
+
+        .settings-scroll-area {
+            gap: 12px;
+            padding-right: 4px;
+            padding-bottom: 4px;
+        }
+
+        .settings-card,
+        .layout-panel {
+            border-radius: 19px;
+            background:
+                linear-gradient(180deg, rgba(255,255,255,0.038), rgba(255,255,255,0.015));
+            border: 1px solid rgba(255,255,255,0.065);
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,0.045),
+                0 10px 24px rgba(0,0,0,0.15);
+        }
+
+        .settings-card {
+            padding: 7px;
+        }
+
+        .setting-item {
+            min-height: 58px;
+            padding: 10px 12px;
+            border-bottom-color: rgba(255,255,255,0.035);
+            border-radius: 13px;
+            transition: background 0.2s, transform 0.2s;
+        }
+
+        .setting-item:hover {
+            background: rgba(255,255,255,0.025);
+        }
+
+        .setting-icon-wrapper {
+            width: 30px;
+            height: 30px;
+            border-radius: 10px;
+            background: rgba(var(--neon-primary-rgb), 0.13) !important;
+            color: var(--neon-primary);
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,0.08),
+                0 0 10px rgba(var(--neon-primary-rgb), 0.14);
+        }
+
+        .setting-label {
+            font-size: 11.5px;
+            font-weight: 700;
+        }
+
+        .setting-desc {
+            font-size: 9px;
+            color: rgba(255,255,255,0.48);
+        }
+
+        .badge {
+            border-radius: 999px;
+            padding: 3px 7px;
+            color: #fff;
+            background: rgba(var(--neon-primary-rgb), 0.12);
+        }
+
+        .theme-select,
+        .text-input {
+            min-height: 30px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.045);
+            border-color: rgba(255,255,255,0.075);
+        }
+
+        .premium-range {
+            height: 5px;
+            background: rgba(255,255,255,0.105);
+            border-radius: 999px;
+        }
+
+        .premium-range::-webkit-slider-thumb {
+            width: 15px;
+            height: 15px;
+            background: #fff;
+            box-shadow:
+                0 2px 8px rgba(0,0,0,0.35),
+                0 0 12px rgba(var(--neon-primary-rgb), 0.36);
+        }
+
+        .switch-slider {
+            background-color: rgba(255, 255, 255, 0.12);
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.25);
+        }
+
+        .ios-switch input:checked + .switch-slider {
+            background-color: rgba(var(--neon-primary-rgb), 0.78);
+            box-shadow: 0 0 12px rgba(var(--neon-primary-rgb), 0.26);
+        }
+
+        .shortcut-row,
+        .profile-card {
+            border-radius: 16px;
+            background:
+                linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.018));
+            border-color: rgba(255,255,255,0.065);
+        }
+
+        .profile-card:hover,
+        .profile-card.active {
+            background:
+                linear-gradient(180deg, rgba(var(--neon-primary-rgb), 0.13), rgba(255,255,255,0.03));
+        }
+    </style>
+</head>
+<body class="preset-cyberpunk">
+    
+    <main class="settings-container">
+        <!-- Blurred background cover art layer -->
+        <div class="settings-bg-layer"></div>
+        
+        <!-- LEFT SIDEBAR -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo"><i class="ph-fill ph-sliders"></i></div>
+                <div class="sidebar-title-area">
+                    <span class="sidebar-title">Réglages Island</span>
+                    <span class="sidebar-subtitle">Version Premium</span>
+                </div>
+            </div>
+            
+            <nav class="nav-menu">
+                <div class="nav-item active" data-tab="tab-appearance">
+                    <i class="ph-fill ph-palette"></i> Apparence
+                </div>
+                <div class="nav-item" data-tab="tab-visualizer">
+                    <i class="ph-fill ph-music-notes"></i> Visualiseur
+                </div>
+                <div class="nav-item" data-tab="tab-shortcuts">
+                    <i class="ph-fill ph-paperplane-tilt"></i> Raccourcis CC
+                </div>
+                <div class="nav-item" data-tab="tab-layout">
+                    <i class="ph-fill ph-arrows-out-cardinal"></i> Disposition
+                </div>
+                <div class="nav-item" data-tab="tab-behavior">
+                    <i class="ph-fill ph-lightning"></i> Comportement
+                </div>
+                <div class="nav-item" data-tab="tab-modules">
+                    <i class="ph-fill ph-squares-four"></i> Modules
+                </div>
+            </nav>
+        </aside>
+        
+        <!-- RIGHT CONTENT PANE -->
+        <section class="content-pane">
+            <button id="btn-close-settings" class="close-btn" title="Fermer"><i class="ph-bold ph-x"></i></button>
+            
+            <!-- TAB 1: APPARENCE -->
+            <div id="tab-appearance" class="tab-content">
+                <div class="section-header">
+                    <h2 class="section-title">Apparence</h2>
+                    <p class="section-desc">Personnalisez l'opacité, le flou et la lueur néon d'arrière-plan.</p>
+                </div>
+                <div class="settings-scroll-area">
+                    <div class="settings-card">
+                        <div class="setting-item range-type">
+                            <div class="range-header">
+                                <div class="setting-info">
+                                    <div class="setting-icon-wrapper" style="background-color: #34c759;"><i class="ph-fill ph-wave-sine"></i></div>
+                                    <div class="setting-details">
+                                        <span class="setting-label">Animations</span>
+                                        <span class="setting-desc">Sobre, fluide ou plus vivante selon le profil</span>
+                                    </div>
+                                </div>
+                                <span id="val-motion" class="badge">Fluide</span>
+                            </div>
+                            <input type="range" id="range-motion" min="0" max="2" step="1" value="1" class="premium-range">
+                        </div>
+
+                        <div class="setting-item range-type">
+                            <div class="range-header">
+                                <div class="setting-info">
+                                    <div class="setting-icon-wrapper" style="background-color: #5856d6;"><i class="ph-fill ph-circle-half"></i></div>
+                                    <div class="setting-details">
+                                        <span class="setting-label">Opacité du corps</span>
+                                        <span class="setting-desc">Opacité générale de la pilule</span>
+                                    </div>
+                                </div>
+                                <span id="val-opacity" class="badge">92%</span>
+                            </div>
+                            <input type="range" id="range-opacity" min="50" max="100" value="92" class="premium-range">
+                        </div>
+                        
+                        <div class="setting-item range-type">
+                            <div class="range-header">
+                                <div class="setting-info">
+                                    <div class="setting-icon-wrapper" style="background-color: #ff9500;"><i class="ph-fill ph-sparkles"></i></div>
+                                    <div class="setting-details">
+                                        <span class="setting-label">Intensité du flou</span>
+                                        <span class="setting-desc">Flou d'arrière-plan de l'Island</span>
+                                    </div>
+                                </div>
+                                <span id="val-blur" class="badge">30px</span>
+                            </div>
+                            <input type="range" id="range-blur" min="0" max="50" value="30" class="premium-range">
+                        </div>
+                        
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-icon-wrapper" style="background-color: #ffcc00;"><i class="ph-fill ph-lightbulb"></i></div>
+                                <div class="setting-details">
+                                    <span class="setting-label">Halo lumineux (Glow)</span>
+                                    <span class="setting-desc">Projection néon d'ambiance extérieure</span>
+                                </div>
+                            </div>
+                            <label class="ios-switch">
+                                <input type="checkbox" id="toggle-glow" checked>
+                                <span class="switch-slider"></span>
+                            </label>
+                        </div>
+                        
+                        <div class="setting-item range-type" id="glow-density-container">
+                            <div class="range-header">
+                                <div class="setting-info">
+                                    <div class="setting-icon-wrapper" style="background-color: #ff3b30;"><i class="ph-fill ph-corners-out"></i></div>
+                                    <div class="setting-details">
+                                        <span class="setting-label">Épaisseur du halo</span>
+                                        <span class="setting-desc">Taille de la lueur externe</span>
+                                    </div>
+                                </div>
+                                <span id="val-glow-density" class="badge">20px</span>
+                            </div>
+                            <input type="range" id="range-glow-density" min="5" max="50" value="20" class="premium-range">
+                        </div>
+                        
+                        <div class="setting-item" id="glow-color-container">
+                            <div class="setting-info">
+                                <div class="setting-icon-wrapper" style="background-color: #007aff;"><i class="ph-fill ph-disc"></i></div>
+                                <div class="setting-details">
+                                    <span class="setting-label">Couleur du halo</span>
+                                    <span class="setting-desc">Suit la pochette ou utilise une couleur fixe</span>
+                                </div>
+                            </div>
+                            <select id="glow-color-mode" class="theme-select">
+                                <option value="cover" selected>Pochette active</option>
+                                <option value="mix">Pochette + couleur fixe</option>
+                                <option value="fixed">Couleur fixe</option>
+                            </select>
+                        </div>
+
+                        <div class="setting-item" id="glow-fixed-color-container">
+                            <div class="setting-info">
+                                <div class="setting-icon-wrapper" style="background-color: #007aff;"><i class="ph-fill ph-paint-brush"></i></div>
+                                <div class="setting-details">
+                                    <span class="setting-label">Couleur fixe de secours</span>
+                                    <span class="setting-desc">Utilisee sans pochette ou en mode fixe</span>
+                                </div>
+                            </div>
+                            <div class="color-picker-wrapper">
+                                <input type="color" id="color-glow" value="#00f3ff">
+                            </div>
+                        </div>
+
+                        <div class="setting-item range-type hidden" id="glow-blend-container">
+                            <div class="range-header">
+                                <div class="setting-info">
+                                    <div class="setting-icon-wrapper" style="background-color: #af52de;"><i class="ph-fill ph-drop-half"></i></div>
+                                    <div class="setting-details">
+                                        <span class="setting-label">Influence pochette</span>
+                                        <span class="setting-desc">Melange entre couleur fixe et pochette</span>
+                                    </div>
+                                </div>
+                                <span id="val-glow-blend" class="badge">65%</span>
+                            </div>
+                            <input type="range" id="range-glow-blend" min="0" max="100" value="65" class="premium-range">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- TAB 2: VISUALISEUR -->
+            <div id="tab-visualizer" class="tab-content hidden">
+                <div class="section-header">
+                    <h2 class="section-title">Visualiseur Audio</h2>
+                    <p class="section-desc">Configurez la colorimétrie et le dégradé du visualiseur audio WASAPI.</p>
+                </div>
+                <div class="settings-scroll-area">
+                    <div class="settings-card">
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-icon-wrapper" style="background-color: #5856d6;"><i class="ph-fill ph-waveform"></i></div>
+                                <div class="setting-details">
+                                    <span class="setting-label">Source d'analyse</span>
+                                    <span class="setting-desc">Choisissez l'audio réel ou la simulation fluide</span>
+                                </div>
+                            </div>
+                            <select id="viz-analysis-mode" class="theme-select">
+                                <option value="real" selected>Détection Audio Réelle (WASAPI)</option>
+                                <option value="simulation">Simulation d'ambiance (Procedurale)</option>
+                            </select>
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-icon-wrapper" style="background-color: #ff2d55;"><i class="ph-fill ph-equalizer"></i></div>
+                                <div class="setting-details">
+                                    <span class="setting-label">Style de couleur</span>
+                                    <span class="setting-desc">Nuances de fréquences audio</span>
+                                </div>
+                            </div>
+                            <select id="viz-color-mode" class="theme-select">
+                                <option value="cyberpunk" selected>Dégradé Cyberpunk</option>
+                                <option value="cover">Synchro Pochette (Auto)</option>
+                                <option value="solid">Couleur unique fixe</option>
+                                <option value="gradient">Dégradé personnalisé</option>
+                            </select>
+                        </div>
+
+                        <div class="setting-item range-type" id="viz-sensitivity-container">
+                            <div class="range-header">
+                                <div class="setting-info">
+                                    <div class="setting-icon-wrapper" style="background-color: #af52de;"><i class="ph-fill ph-waveform"></i></div>
+                                    <div class="setting-details">
+                                        <span class="setting-label">Sensibilité du spectre</span>
+                                        <span class="setting-desc">Multiplicateur d'amplitude pour les barres audio</span>
+                                    </div>
+                                </div>
+                                <span id="val-visualizer-sensitivity" class="badge">2.5x</span>
+                            </div>
+                            <input type="range" id="range-visualizer-sensitivity" min="10" max="60" step="5" value="25" class="premium-range">
+                        </div>
+                        
+                        <div class="setting-item hidden" id="viz-solid-container">
+                            <div class="setting-info">
+                                <div class="setting-icon-wrapper" style="background-color: #34c759;"><i class="ph-fill ph-square"></i></div>
+                                <div class="setting-details">
+                                    <span class="setting-label">Couleur unique</span>
+                                    <span class="setting-desc">Couleur unie pour le spectre</span>
+                                </div>
+                            </div>
+                            <div class="color-picker-wrapper">
+                                <input type="color" id="viz-color-solid" value="#00f3ff">
+                            </div>
+                        </div>
+                        
+                        <div class="setting-item hidden" id="viz-gradient-container" style="flex-direction: column; align-items: stretch; gap: 12px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                                <div class="setting-info">
+                                    <div class="setting-icon-wrapper" style="background-color: #af52de;"><i class="ph-fill ph-gradient"></i></div>
+                                    <div class="setting-details">
+                                        <span class="setting-label">Couleur début (A)</span>
+                                        <span class="setting-desc">Départ du gradient</span>
+                                    </div>
+                                </div>
+                                <div class="color-picker-wrapper">
+                                    <input type="color" id="viz-color-grada" value="#00f3ff">
+                                </div>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; border-top: 1px solid rgba(255,255,255,0.04); padding-top: 12px;">
+                                <div class="setting-info">
+                                    <div class="setting-icon-wrapper" style="background-color: #ec4899;"><i class="ph-fill ph-gradient"></i></div>
+                                    <div class="setting-details">
+                                        <span class="setting-label">Couleur fin (B)</span>
+                                        <span class="setting-desc">Arrivée du gradient</span>
+                                    </div>
+                                </div>
+                                <div class="color-picker-wrapper">
+                                    <input type="color" id="viz-color-gradb" value="#ff00ff">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- TAB 3: RACCOURCIS CC -->
+            <div id="tab-shortcuts" class="tab-content hidden">
+                <div class="section-header">
+                    <h2 class="section-title">Dashboard & Raccourcis CC</h2>
+                    <p class="section-desc">Sélectionnez le widget actif pour le Centre de Contrôle et configurez ses boutons.</p>
+                </div>
+                <div class="settings-scroll-area">
+                    <div class="settings-card">
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-icon-wrapper" style="background-color: #5856d6;"><i class="ph-fill ph-sliders"></i></div>
+                                <div class="setting-details">
+                                    <span class="setting-label">Widget de contrôle actif</span>
+                                    <span class="setting-desc">Type de module affiché au bas</span>
+                                </div>
+                            </div>
+                            <select id="control-widget-type" class="theme-select">
+                                <option value="launchpad">🚀 Raccourcis Rapides</option>
+                                <option value="stats">📊 Performance (CPU & RAM)</option>
+                                <option value="machine">🔋 Machine (Batterie & Disque)</option>
+                                <option value="weather">🌤️ Météo (Apple Weather)</option>
+                                <option value="mixer">🔊 Mélangeur Audio</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="shortcut-grid hidden" id="shortcuts-config-container">
+                        <span class="section-label" style="font-size: 10px; margin-top: 8px;">Configuration des Raccourcis Launchpad</span>
+                        
+                        <div class="settings-card" style="gap: 12px; padding: 12px;">
+                            <!-- Bouton 1 -->
+                            <div class="shortcut-row">
+                                <div class="shortcut-header">
+                                    <span class="setting-label" style="font-size: 11px;">Bouton 1</span>
+                                    <select id="shortcut-preset-0" class="theme-select" style="padding: 4px 8px; font-size: 10px;">
+                                        <option value="explorer">📁 Explorateur</option>
+                                        <option value="settings">⚙️ Paramètres</option>
+                                        <option value="taskmgr">💻 Gestionnaire</option>
+                                        <option value="calc">🧮 Calculatrice</option>
+                                        <option value="terminal">📟 Terminal</option>
+                                        <option value="notepad">📝 Bloc-notes</option>
+                                        <option value="paint">🎨 Paint</option>
+                                        <option value="snipping">📷 Capture</option>
+                                        <option value="music">Lecteur Island</option>
+                                        <option value="history">Historique musique</option>
+                                        <option value="musicSearch">Recherche musique</option>
+                                        <option value="widgets">Widgets Island</option>
+                                        <option value="mixer">Mixer audio</option>
+                                        <option value="islandSettings">Reglages Island</option>
+                                        <option value="music">Lecteur Island</option>
+                                        <option value="history">Historique musique</option>
+                                        <option value="musicSearch">Recherche musique</option>
+                                        <option value="widgets">Widgets Island</option>
+                                        <option value="mixer">Mixer audio</option>
+                                        <option value="islandSettings">Reglages Island</option>
+                                        <option value="music">Lecteur Island</option>
+                                        <option value="history">Historique musique</option>
+                                        <option value="musicSearch">Recherche musique</option>
+                                        <option value="widgets">Widgets Island</option>
+                                        <option value="mixer">Mixer audio</option>
+                                        <option value="islandSettings">Reglages Island</option>
+                                        <option value="music">Lecteur Island</option>
+                                        <option value="history">Historique musique</option>
+                                        <option value="musicSearch">Recherche musique</option>
+                                        <option value="widgets">Widgets Island</option>
+                                        <option value="mixer">Mixer audio</option>
+                                        <option value="islandSettings">Reglages Island</option>
+                                        <option value="custom">✨ Personnalisé...</option>
+                                    </select>
+                                </div>
+                                <div id="shortcut-custom-container-0" class="shortcut-inputs-group hidden">
+                                    <input type="text" id="shortcut-name-0" placeholder="Nom" class="text-input" style="flex: 1; padding: 5px;">
+                                    <input type="text" id="shortcut-cmd-0" placeholder="Commande ou Chemin absolu" class="text-input" style="flex: 2; padding: 5px;">
+                                </div>
+                            </div>
+                            <!-- Bouton 2 -->
+                            <div class="shortcut-row">
+                                <div class="shortcut-header">
+                                    <span class="setting-label" style="font-size: 11px;">Bouton 2</span>
+                                    <select id="shortcut-preset-1" class="theme-select" style="padding: 4px 8px; font-size: 10px;">
+                                        <option value="explorer">📁 Explorateur</option>
+                                        <option value="settings">⚙️ Paramètres</option>
+                                        <option value="taskmgr">💻 Gestionnaire</option>
+                                        <option value="calc">🧮 Calculatrice</option>
+                                        <option value="terminal">📟 Terminal</option>
+                                        <option value="notepad">📝 Bloc-notes</option>
+                                        <option value="paint">🎨 Paint</option>
+                                        <option value="snipping">📷 Capture</option>
+                                        <option value="custom">✨ Personnalisé...</option>
+                                    </select>
+                                </div>
+                                <div id="shortcut-custom-container-1" class="shortcut-inputs-group hidden">
+                                    <input type="text" id="shortcut-name-1" placeholder="Nom" class="text-input" style="flex: 1; padding: 5px;">
+                                    <input type="text" id="shortcut-cmd-1" placeholder="Commande ou Chemin absolu" class="text-input" style="flex: 2; padding: 5px;">
+                                </div>
+                            </div>
+                            <!-- Bouton 3 -->
+                            <div class="shortcut-row">
+                                <div class="shortcut-header">
+                                    <span class="setting-label" style="font-size: 11px;">Bouton 3</span>
+                                    <select id="shortcut-preset-2" class="theme-select" style="padding: 4px 8px; font-size: 10px;">
+                                        <option value="explorer">📁 Explorateur</option>
+                                        <option value="settings">⚙️ Paramètres</option>
+                                        <option value="taskmgr">💻 Gestionnaire</option>
+                                        <option value="calc">🧮 Calculatrice</option>
+                                        <option value="terminal">📟 Terminal</option>
+                                        <option value="notepad">📝 Bloc-notes</option>
+                                        <option value="paint">🎨 Paint</option>
+                                        <option value="snipping">📷 Capture</option>
+                                        <option value="custom">✨ Personnalisé...</option>
+                                    </select>
+                                </div>
+                                <div id="shortcut-custom-container-2" class="shortcut-inputs-group hidden">
+                                    <input type="text" id="shortcut-name-2" placeholder="Nom" class="text-input" style="flex: 1; padding: 5px;">
+                                    <input type="text" id="shortcut-cmd-2" placeholder="Commande ou Chemin absolu" class="text-input" style="flex: 2; padding: 5px;">
+                                </div>
+                            </div>
+                            <!-- Bouton 4 -->
+                            <div class="shortcut-row">
+                                <div class="shortcut-header">
+                                    <span class="setting-label" style="font-size: 11px;">Bouton 4</span>
+                                    <select id="shortcut-preset-3" class="theme-select" style="padding: 4px 8px; font-size: 10px;">
+                                        <option value="explorer">📁 Explorateur</option>
+                                        <option value="settings">⚙️ Paramètres</option>
+                                        <option value="taskmgr">💻 Gestionnaire</option>
+                                        <option value="calc">🧮 Calculatrice</option>
+                                        <option value="terminal">📟 Terminal</option>
+                                        <option value="notepad">📝 Bloc-notes</option>
+                                        <option value="paint">🎨 Paint</option>
+                                        <option value="snipping">📷 Capture</option>
+                                        <option value="custom">✨ Personnalisé...</option>
+                                    </select>
+                                </div>
+                                <div id="shortcut-custom-container-3" class="shortcut-inputs-group hidden">
+                                    <input type="text" id="shortcut-name-3" placeholder="Nom" class="text-input" style="flex: 1; padding: 5px;">
+                                    <input type="text" id="shortcut-cmd-3" placeholder="Commande ou Chemin absolu" class="text-input" style="flex: 2; padding: 5px;">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- TAB 4: DISPOSITION -->
+            <div id="tab-layout" class="tab-content hidden">
+                <div class="section-header">
+                    <h2 class="section-title">Disposition</h2>
+                    <p class="section-desc">Déplacez l'Island, ajustez sa taille et créez une position qui vous ressemble.</p>
+                </div>
+                <div class="settings-scroll-area">
+                    <div class="settings-card">
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-icon-wrapper" style="background-color: #ff9500;"><i class="ph-fill ph-cursor-click"></i></div>
+                                <div class="setting-details">
+                                    <span class="setting-label">Mode placement</span>
+                                    <span class="setting-desc">Activez un glisser-déposer direct sur l'Island</span>
+                                </div>
+                            </div>
+                            <button id="btn-layout-edit" class="layout-btn">Activer</button>
+                        </div>
+
+                        <div class="setting-item range-type">
+                            <div class="range-header">
+                                <div class="setting-info">
+                                    <div class="setting-icon-wrapper" style="background-color: #34c759;"><i class="ph-fill ph-frame-corners"></i></div>
+                                    <div class="setting-details">
+                                        <span class="setting-label">Taille globale</span>
+                                        <span class="setting-desc">Réduit ou agrandit toute l'Island</span>
+                                    </div>
+                                </div>
+                                <span id="val-layout-scale" class="badge">100%</span>
+                            </div>
+                            <input type="range" id="range-layout-scale" min="65" max="110" value="100" class="premium-range">
+                        </div>
+
+                        <div class="layout-panel">
+                        <div class="layout-status">
+                            <div class="layout-stat">
+                                <span class="layout-stat-label">Position X</span>
+                                <span id="layout-pos-x" class="layout-stat-value">0 px</span>
+                            </div>
+                            <div class="layout-stat">
+                                <span class="layout-stat-label">Position Y</span>
+                                <span id="layout-pos-y" class="layout-stat-value">10 px</span>
+                            </div>
+                            <div class="layout-stat">
+                                <span class="layout-stat-label">État</span>
+                                <span id="layout-edit-state" class="layout-stat-value">Fixe</span>
+                            </div>
+                        </div>
+
+                        <div class="layout-actions">
+                            <button id="btn-layout-left" class="layout-btn">Gauche</button>
+                            <button id="btn-layout-right" class="layout-btn">Droite</button>
+                            <button id="btn-layout-up" class="layout-btn">Haut</button>
+                            <button id="btn-layout-down" class="layout-btn">Bas</button>
+                            <button id="btn-layout-center" class="layout-btn">Recentrer</button>
+                        </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- TAB 5: COMPORTEMENT -->
+            <div id="tab-behavior" class="tab-content hidden">
+                <div class="section-header">
+                    <h2 class="section-title">Comportement</h2>
+                    <p class="section-desc">Gérez l'intégration système et les raccourcis claviers globaux.</p>
+                </div>
+                <div class="settings-scroll-area">
+                    <div class="settings-card">
+                        <div class="profile-grid">
+                            <button class="profile-card" data-profile="gaming">
+                                <i class="ph-fill ph-game-controller"></i>
+                                <strong>Gaming</strong>
+                                <span>DND, mixer audio, volume haut, visuel plus leger.</span>
+                            </button>
+                            <button class="profile-card" data-profile="work">
+                                <i class="ph-fill ph-briefcase"></i>
+                                <strong>Travail</strong>
+                                <span>Dashboard propre, raccourcis rapides, rendu stable.</span>
+                            </button>
+                            <button class="profile-card" data-profile="music">
+                                <i class="ph-fill ph-music-notes"></i>
+                                <strong>Musique</strong>
+                                <span>Visualizer, pochette, historique, mixer audio.</span>
+                            </button>
+                        </div>
+
+                        <div class="profile-tools">
+                            <select id="profile-select" class="theme-select"></select>
+                            <button id="profile-apply" class="mini-action-btn"><i class="ph-fill ph-play"></i> Appliquer</button>
+                            <button id="profile-delete" class="mini-action-btn danger"><i class="ph-fill ph-trash"></i></button>
+                        </div>
+                        <div class="profile-tools">
+                            <input type="text" id="profile-name" placeholder="Nom du profil perso" class="text-input">
+                            <button id="profile-create" class="mini-action-btn"><i class="ph-fill ph-plus"></i> Créer</button>
+                            <button id="profile-save" class="mini-action-btn"><i class="ph-fill ph-floppy-disk"></i> Sauver</button>
+                        </div>
+                        <div class="profile-tools two">
+                            <button id="settings-export" class="mini-action-btn"><i class="ph-fill ph-download-simple"></i> Exporter réglages</button>
+                            <button id="settings-import" class="mini-action-btn"><i class="ph-fill ph-upload-simple"></i> Importer réglages</button>
+                            <input type="file" id="settings-import-file" class="hidden" accept="application/json,.json">
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-icon-wrapper" style="background-color: #ff9500;"><i class="ph-fill ph-power"></i></div>
+                                <div class="setting-details">
+                                    <span class="setting-label">Lancer au demarrage Windows</span>
+                                    <span class="setting-desc">Ouvre Liquid Dynamic Island automatiquement</span>
+                                </div>
+                            </div>
+                            <label class="ios-switch">
+                                <input type="checkbox" id="toggle-auto-start">
+                                <span class="switch-slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-icon-wrapper" style="background-color: #34c759;"><i class="ph-fill ph-push-pin"></i></div>
+                                <div class="setting-details">
+                                    <span class="setting-label">Toujours visible (Pin)</span>
+                                    <span class="setting-desc">Reste au-dessus des autres applications</span>
+                                </div>
+                            </div>
+                            <label class="ios-switch">
+                                <input type="checkbox" id="toggle-persistent">
+                                <span class="switch-slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-icon-wrapper" style="background-color: #ff2d55;"><i class="ph-fill ph-bell"></i></div>
+                                <div class="setting-details">
+                                    <span class="setting-label">Notifications Island</span>
+                                    <span class="setting-desc">Autorise les alertes temporaires dans la pilule</span>
+                                </div>
+                            </div>
+                            <label class="ios-switch">
+                                <input type="checkbox" id="toggle-notifications" checked>
+                                <span class="switch-slider"></span>
+                            </label>
+                        </div>
+                        
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-icon-wrapper" style="background-color: #007aff;"><i class="ph-fill ph-shuffle"></i></div>
+                                <div class="setting-details">
+                                    <span class="setting-label">Couleurs adaptatives</span>
+                                    <span class="setting-desc">S'adapte à la pochette active en temps réel</span>
+                                </div>
+                            </div>
+                            <label class="ios-switch">
+                                <input type="checkbox" id="toggle-cover-sync" checked>
+                                <span class="switch-slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-icon-wrapper" style="background-color: #5856d6;"><i class="ph-fill ph-image"></i></div>
+                                <div class="setting-details">
+                                    <span class="setting-label">Fond pochette réduit</span>
+                                    <span class="setting-desc">Floute la pochette en fond de la petite pilule</span>
+                                </div>
+                            </div>
+                            <label class="ios-switch">
+                                <input type="checkbox" id="toggle-idle-cover-bg" checked>
+                                <span class="switch-slider"></span>
+                            </label>
+                        </div>
+                        
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-icon-wrapper" style="background-color: #34c759;"><i class="ph-fill ph-desktop"></i></div>
+                                <div class="setting-details">
+                                    <span class="setting-label">Synchro fond d'écran Windows</span>
+                                    <span class="setting-desc">Applique la pochette active en fond d'écran de votre bureau</span>
+                                </div>
+                            </div>
+                            <label class="ios-switch">
+                                <input type="checkbox" id="toggle-wallpaper-sync">
+                                <span class="switch-slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="setting-item" id="wallpaper-style-container">
+                            <div class="setting-info">
+                                <div class="setting-icon-wrapper" style="background-color: #007aff;"><i class="ph-fill ph-paint-brush"></i></div>
+                                <div class="setting-details">
+                                    <span class="setting-label">Style du fond d'écran</span>
+                                    <span class="setting-desc">Sélectionnez l'effet appliqué sur le bureau</span>
+                                </div>
+                            </div>
+                            <select id="wallpaper-sync-style" class="theme-select">
+                                <option value="blur" selected>Flou Ambiant (Premium)</option>
+                                <option value="sharp">Pochette Nette (Originale)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-icon-wrapper" style="background-color: #af52de;"><i class="ph-fill ph-keyboard"></i></div>
+                                <div class="setting-details">
+                                    <span class="setting-label">Raccourci clavier global</span>
+                                    <span class="setting-desc">Afficher / masquer l'Island (cliquez & tapez)</span>
+                                </div>
+                            </div>
+                            <input type="text" id="input-shortcut" value="Alt+I" class="text-input" style="width: 130px; text-align: center; text-transform: uppercase; font-family: var(--font-mono); font-weight: 700;" readonly>
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-icon-wrapper" style="background-color: #ff9500;"><i class="ph-fill ph-palette"></i></div>
+                                <div class="setting-details">
+                                    <span class="setting-label">Style de matériau</span>
+                                    <span class="setting-desc">Sélectionnez la texture et le style de la pilule</span>
+                                </div>
+                            </div>
+                            <select id="island-material-style" class="theme-select">
+                                <option value="glass" selected>Verre Dépoli Classique</option>
+                                <option value="metal">Métal Brossé Sombre</option>
+                                <option value="holo">Reflets Holographiques</option>
+                            </select>
+                        </div>
+                        
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-icon-wrapper" style="background-color: #ff3b30;"><i class="ph-fill ph-sparkles"></i></div>
+                                <div class="setting-details">
+                                    <span class="setting-label">Grain de Film Cinématique</span>
+                                    <span class="setting-desc">Ajoute un bruit de grain premium et immersif</span>
+                                </div>
+                            </div>
+                            <select id="island-grain-effect" class="theme-select">
+                                <option value="none" selected>Désactivé</option>
+                                <option value="light">Grain Léger (Premium)</option>
+                                <option value="medium">Grain Moyen (Cinématique)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- TAB 6: MODULES -->
+            <div id="tab-modules" class="tab-content hidden">
+                <div class="section-header">
+                    <h2 class="section-title">Modules de la Pilule</h2>
+                    <p class="section-desc">Activez ou désactivez les fonctionnalités principales de la Dynamic Island.</p>
+                </div>
+                <div class="settings-scroll-area">
+                    <div class="settings-card">
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-icon-wrapper" style="background-color: #ff2d55;"><i class="ph-fill ph-music-notes"></i></div>
+                                <div class="setting-details">
+                                    <span class="setting-label">Lecteur de Musique</span>
+                                    <span class="setting-desc">Détection et affichage audio WASAPI</span>
+                                </div>
+                            </div>
+                            <label class="ios-switch">
+                                <input type="checkbox" id="toggle-music" checked>
+                                <span class="switch-slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-icon-wrapper" style="background-color: #007aff;"><i class="ph-fill ph-clock"></i></div>
+                                <div class="setting-details">
+                                    <span class="setting-label">Afficher la duree</span>
+                                    <span class="setting-desc">Montre les temps sous la barre de progression</span>
+                                </div>
+                            </div>
+                            <label class="ios-switch">
+                                <input type="checkbox" id="toggle-player-show-times" checked>
+                                <span class="switch-slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-icon-wrapper" style="background-color: #af52de;"><i class="ph-fill ph-waveform"></i></div>
+                                <div class="setting-details">
+                                    <span class="setting-label">Visualiseur sous la barre</span>
+                                    <span class="setting-desc">Affiche les petites barres audio en bas du lecteur</span>
+                                </div>
+                            </div>
+                            <label class="ios-switch">
+                                <input type="checkbox" id="toggle-player-show-visualizer" checked>
+                                <span class="switch-slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-icon-wrapper" style="background-color: #5856d6;"><i class="ph-fill ph-squares-four"></i></div>
+                                <div class="setting-details">
+                                    <span class="setting-label">Actions rapides lecteur</span>
+                                    <span class="setting-desc">Affiche historique, recherche et widgets en haut du lecteur</span>
+                                </div>
+                            </div>
+                            <label class="ios-switch">
+                                <input type="checkbox" id="toggle-player-show-actions" checked>
+                                <span class="switch-slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-icon-wrapper" style="background-color: #34c759;"><i class="ph-fill ph-speaker-high"></i></div>
+                                <div class="setting-details">
+                                    <span class="setting-label">Molette volume de l'app</span>
+                                    <span class="setting-desc">Regle Spotify, Chrome, Edge, etc. au lieu du volume Windows</span>
+                                </div>
+                            </div>
+                            <label class="ios-switch">
+                                <input type="checkbox" id="toggle-player-wheel-app-volume" checked>
+                                <span class="switch-slider"></span>
+                            </label>
+                        </div>
+                        
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-icon-wrapper" style="background-color: #ff9500;"><i class="ph-fill ph-timer"></i></div>
+                                <div class="setting-details">
+                                    <span class="setting-label">Minuteur & Chronomètre</span>
+                                    <span class="setting-desc">Module de chronométrage direct</span>
+                                </div>
+                            </div>
+                            <label class="ios-switch">
+                                <input type="checkbox" id="toggle-timer" checked>
+                                <span class="switch-slider"></span>
+                            </label>
+                        </div>
+                        
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-icon-wrapper" style="background-color: #5856d6;"><i class="ph-fill ph-sliders"></i></div>
+                                <div class="setting-details">
+                                    <span class="setting-label">Centre de contrôle</span>
+                                    <span class="setting-desc">Active ou cache le volet de raccourcis</span>
+                                </div>
+                            </div>
+                            <label class="ios-switch">
+                                <input type="checkbox" id="toggle-control" checked>
+                                <span class="switch-slider"></span>
+                            </label>
+                        </div>
+
+
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-icon-wrapper" style="background-color: #34c759;"><i class="ph-fill ph-game-controller"></i></div>
+                                <div class="setting-details">
+                                    <span class="setting-label">Détection du mode Jeu</span>
+                                    <span class="setting-desc">Masque l'Island et passe en compact en plein écran</span>
+                                </div>
+                            </div>
+                            <label class="ios-switch">
+                                <input type="checkbox" id="toggle-game-detection" checked>
+                                <span class="switch-slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-icon-wrapper" style="background-color: #ff9500;"><i class="ph-fill ph-speaker-hifi"></i></div>
+                                <div class="setting-details">
+                                    <span class="setting-label">Effets sonores</span>
+                                    <span class="setting-desc">Activer les bruitages fluides lors des transitions</span>
+                                </div>
+                            </div>
+                            <label class="ios-switch">
+                                <input type="checkbox" id="toggle-sound-effects" checked>
+                                <span class="switch-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+        </section>
+        
+    </main>
+
+    <!-- Settings Logic -->
+    <script src="settings.js"></script>
+</body>
+</html>
