@@ -802,16 +802,35 @@ function createSettingsWindow() {
 }
 
 // 3.5 CREATE SYSTEM TRAY
+function getTrayIconPath() {
+    const candidates = app.isPackaged
+        ? [
+            path.join(process.resourcesPath, 'tray', 'icon.ico'),
+            path.join(process.resourcesPath, 'icon.ico')
+        ]
+        : [
+            path.join(__dirname, 'build', 'icon.ico')
+        ];
+
+    return candidates.find(candidate => fs.existsSync(candidate)) || null;
+}
+
 function createTray() {
-    const { Menu, Tray } = require('electron');
-    const iconPath = path.join(__dirname, 'build', 'icon.ico');
+    const { Menu, Tray, nativeImage } = require('electron');
+    const iconPath = getTrayIconPath();
     
-    if (!fs.existsSync(iconPath)) {
-        console.warn('[Tray] Icon file not found:', iconPath);
+    if (!iconPath) {
+        console.warn('[Tray] Icon file not found in packaged resources.');
         return;
     }
     
-    tray = new Tray(iconPath);
+    const trayIcon = nativeImage.createFromPath(iconPath);
+    if (trayIcon.isEmpty()) {
+        console.warn('[Tray] Icon file could not be loaded:', iconPath);
+        return;
+    }
+
+    tray = new Tray(trayIcon);
     tray.setToolTip('Liquid Dynamic Island');
     
     const contextMenu = Menu.buildFromTemplate([

@@ -1,6 +1,6 @@
 {
   "name": "liquid-dynamic-island",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Standalone Premium Dynamic Island Widget for Windows",
   "productName": "Liquid Dynamic Island",
   "main": "main.js",

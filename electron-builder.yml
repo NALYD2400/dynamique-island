@@ -13,6 +13,8 @@ extraResources:
     to: bin
     filter:
       - "**/*"
+  - from: build/icon.ico
+    to: tray/icon.ico
 win:
   target:
     - target: nsis
