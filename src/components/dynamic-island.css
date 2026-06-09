@@ -729,6 +729,31 @@ body.motion-vivid .inner-action-btn:hover {
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
 }
 
+.app-logo-art {
+    box-sizing: border-box;
+    object-fit: cover;
+    background:
+        radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.16), transparent 28%),
+        linear-gradient(145deg, rgba(var(--neon-primary-rgb), 0.18), rgba(var(--neon-secondary-rgb), 0.16)),
+        #07080d;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow:
+        0 8px 22px rgba(0, 0, 0, 0.38),
+        0 0 18px rgba(var(--neon-primary-rgb), 0.16);
+}
+
+.album-art.app-logo-art {
+    padding: 0;
+}
+
+.idle-cover-art {
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    margin-left: 2px;
+    flex: 0 0 auto;
+}
+
 .album-art-stack {
     position: relative;
     flex: 0 0 auto;
@@ -1558,6 +1583,14 @@ body.motion-vivid .inner-action-btn:hover {
     justify-content: center;
     color: var(--neon-primary);
     background: linear-gradient(135deg, rgba(var(--neon-primary-rgb), 0.28), rgba(var(--neon-secondary-rgb), 0.22));
+}
+
+.music-history-cover-fallback.app-logo-art {
+    display: block;
+    background:
+        radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.16), transparent 28%),
+        linear-gradient(145deg, rgba(var(--neon-primary-rgb), 0.18), rgba(var(--neon-secondary-rgb), 0.16)),
+        #07080d;
 }
 
 .music-history-meta {
@@ -4058,6 +4091,12 @@ body.motion-vivid .inner-action-btn:hover {
     object-fit: cover;
     box-shadow: 0 4px 10px rgba(0,0,0,0.3);
     flex-shrink: 0;
+}
+
+.ic-np-cover.app-logo-art {
+    box-shadow:
+        0 8px 22px rgba(0, 0, 0, 0.38),
+        0 0 18px rgba(var(--neon-primary-rgb), 0.16);
 }
 
 .ic-np-cover-fallback {

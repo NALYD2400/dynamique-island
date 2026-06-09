@@ -24,6 +24,7 @@ win:
   executableName: Liquid Dynamic Island
   requestedExecutionLevel: asInvoker
 nsis:
+  include: build/installer.nsh
   oneClick: false
   perMachine: false
   allowElevation: true

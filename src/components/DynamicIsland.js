@@ -3,6 +3,8 @@ import { SoundService } from '../services/SoundService.js';
 import { visualizerService } from '../services/AudioVisualizerService.js';
 import { ThemeService } from '../services/ThemeService.js';
 
+const APP_LOGO_ART = '../assets/app-logo.png';
+
 function hexToRgb(hex) {
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
     return result ? {
@@ -2278,7 +2280,7 @@ export class DynamicIsland {
         const flipClass = this._pendingCoverAnimationTrackKey && this._pendingCoverAnimationTrackKey === controlTrackKey ? 'flip-active' : '';
         const npCoverHtml = hasCover
             ? `<img id="ic-np-cover-img" src="${effectiveNpArt}" class="ic-np-cover ${flipClass}">`
-            : `<div id="ic-np-cover-img" class="ic-np-cover-fallback ${flipClass}"><i class="ph-fill ph-music-note"></i></div>`;
+            : `<img id="ic-np-cover-img" src="${APP_LOGO_ART}" class="ic-np-cover app-logo-art ${flipClass}" alt="Liquid Dynamic Island">`;
 
         // Render customizable third card based on user preference
         const widgetType = localStorage.getItem('liquid_control_widget_type') || 'launchpad';
@@ -3093,7 +3095,7 @@ export class DynamicIsland {
                 if (appIcon) {
                     coverHtml = `<img src="${appIcon}" style="width: 28px; height: 28px; border-radius: 6px; object-fit: contain; background: #000; padding: 2px; margin-left: 2px;" onerror="this.outerHTML='<div style=\\'width: 28px; height: 28px; border-radius: 6px; background: linear-gradient(135deg, var(--neon-primary), var(--neon-secondary)); display: flex; align-items: center; justify-content: center; margin-left: 2px;\\'><i class=\\'ph-fill ph-music-note\\' style=\\'font-size: 14px; color: #fff;\\'></i></div>';">`;
                 } else {
-                    coverHtml = `<div style="width: 28px; height: 28px; border-radius: 6px; background: linear-gradient(135deg, var(--neon-primary), var(--neon-secondary)); display: flex; align-items: center; justify-content: center; margin-left: 2px;"><i class="ph-fill ph-music-note" style="font-size: 14px; color: #fff;"></i></div>`;
+                    coverHtml = `<img src="${APP_LOGO_ART}" class="idle-cover-art app-logo-art" alt="Liquid Dynamic Island">`;
                 }
             }
 
@@ -3227,7 +3229,7 @@ export class DynamicIsland {
             if (appIcon) {
                 coverHtml = `<img src="${appIcon}" class="album-art ${flipClass}" style="object-fit: contain; background: #000; padding: 5px;" alt="App Icon">`;
             } else {
-                coverHtml = `<div class="album-art ${flipClass}" style="background: linear-gradient(135deg, var(--neon-primary), var(--neon-secondary)); display: flex; align-items: center; justify-content: center;"><i class="ph-fill ph-music-note" style="font-size: 24px; color: #fff;"></i></div>`;
+                coverHtml = `<img src="${APP_LOGO_ART}" class="album-art app-logo-art ${flipClass}" alt="Liquid Dynamic Island">`;
             }
         }
 
@@ -3701,7 +3703,7 @@ export class DynamicIsland {
             const isCurrent = this.isCurrentHistoryItem(item);
             const cover = item.cover
                 ? `<img src="${escapeHtml(item.cover)}" class="music-history-cover" alt="">`
-                : `<div class="music-history-cover music-history-cover-fallback"><i class="ph-fill ph-music-note"></i></div>`;
+                : `<img src="${APP_LOGO_ART}" class="music-history-cover music-history-cover-fallback app-logo-art" alt="Liquid Dynamic Island">`;
 
             return `
             <div class="music-history-row ${item.favorite ? 'is-favorite' : ''}" data-index="${index}">
@@ -4860,6 +4862,7 @@ export class DynamicIsland {
                 if (effectiveNpArt && effectiveNpArt.length > 0) {
                     if (npCover.tagName === 'IMG') {
                         npCover.src = effectiveNpArt;
+                        npCover.className = 'ic-np-cover';
                     } else {
                         const parent = npCover.parentNode;
                         const img = document.createElement('img');
@@ -4870,12 +4873,17 @@ export class DynamicIsland {
                     }
                 } else {
                     if (npCover.tagName === 'IMG') {
+                        npCover.src = APP_LOGO_ART;
+                        npCover.className = 'ic-np-cover app-logo-art';
+                    } else {
                         const parent = npCover.parentNode;
-                        const div = document.createElement('div');
-                        div.id = 'ic-np-cover-img';
-                        div.className = 'ic-np-cover-fallback';
-                        div.innerHTML = `<i class="ph-fill ph-music-note"></i>`;
-                        parent.replaceChild(div, npCover);
+                        if (!parent) return;
+                        const img = document.createElement('img');
+                        img.id = 'ic-np-cover-img';
+                        img.className = 'ic-np-cover app-logo-art';
+                        img.src = APP_LOGO_ART;
+                        img.alt = 'Liquid Dynamic Island';
+                        parent.replaceChild(img, npCover);
                     }
                 }
             }

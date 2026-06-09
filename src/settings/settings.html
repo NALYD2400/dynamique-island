@@ -643,6 +643,155 @@
             opacity: 0.38;
         }
 
+        .settings-card.update-card {
+            position: relative;
+            overflow: hidden;
+            padding: 16px;
+            gap: 14px;
+        }
+
+        .update-card::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(120deg, transparent 0%, rgba(var(--neon-primary-rgb), 0.16) 45%, transparent 70%);
+            transform: translateX(-130%);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .update-card.is-active::before,
+        .update-card.is-available::before,
+        .update-card.is-downloading::before {
+            animation: update-scan 2.2s ease-in-out infinite;
+            opacity: 1;
+        }
+
+        .update-hero {
+            position: relative;
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr);
+            gap: 14px;
+            align-items: center;
+            z-index: 1;
+        }
+
+        .update-orbit {
+            width: 54px;
+            height: 54px;
+            border-radius: 18px;
+            display: grid;
+            place-items: center;
+            color: #fff;
+            background:
+                radial-gradient(circle at 30% 20%, rgba(255,255,255,0.28), transparent 34%),
+                linear-gradient(135deg, rgba(var(--neon-primary-rgb), 0.9), rgba(52, 199, 89, 0.76));
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,0.22),
+                0 0 24px rgba(var(--neon-primary-rgb), 0.28);
+        }
+
+        .update-card.is-available .update-orbit,
+        .update-card.is-downloading .update-orbit,
+        .update-card.is-downloaded .update-orbit {
+            animation: update-pulse 1.35s ease-in-out infinite;
+        }
+
+        .update-orbit i {
+            font-size: 25px;
+        }
+
+        .update-title-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .update-title {
+            font-size: 15px;
+            font-weight: 850;
+            color: #fff;
+        }
+
+        .update-desc {
+            margin-top: 5px;
+            font-size: 10px;
+            line-height: 1.45;
+            color: rgba(255,255,255,0.58);
+        }
+
+        .update-meta {
+            position: relative;
+            z-index: 1;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+        }
+
+        .update-meta-item {
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 13px;
+            padding: 9px 10px;
+            background: rgba(255,255,255,0.035);
+        }
+
+        .update-meta-label {
+            display: block;
+            font-size: 8.5px;
+            color: rgba(255,255,255,0.42);
+            text-transform: uppercase;
+            font-weight: 800;
+        }
+
+        .update-meta-value {
+            display: block;
+            margin-top: 4px;
+            font-size: 11px;
+            color: rgba(255,255,255,0.86);
+            font-weight: 800;
+        }
+
+        .update-progress-track {
+            position: relative;
+            z-index: 1;
+            height: 7px;
+            overflow: hidden;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.08);
+        }
+
+        .update-progress-fill {
+            width: 0%;
+            height: 100%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, var(--neon-primary), #34c759);
+            box-shadow: 0 0 16px rgba(var(--neon-primary-rgb), 0.35);
+            transition: width 0.25s ease;
+        }
+
+        .update-actions {
+            position: relative;
+            z-index: 1;
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 8px;
+        }
+
+        .update-status-badge {
+            white-space: nowrap;
+        }
+
+        @keyframes update-scan {
+            0% { transform: translateX(-130%); }
+            52%, 100% { transform: translateX(130%); }
+        }
+
+        @keyframes update-pulse {
+            0%, 100% { transform: scale(1); box-shadow: inset 0 1px 0 rgba(255,255,255,0.22), 0 0 20px rgba(var(--neon-primary-rgb), 0.24); }
+            50% { transform: scale(1.04); box-shadow: inset 0 1px 0 rgba(255,255,255,0.28), 0 0 34px rgba(var(--neon-primary-rgb), 0.46); }
+        }
+
         .layout-panel {
             margin-top: 6px;
             width: 100%;
@@ -1020,6 +1169,9 @@
                 </div>
                 <div class="nav-item" data-tab="tab-behavior">
                     <i class="ph-fill ph-lightning"></i> Comportement
+                </div>
+                <div class="nav-item" data-tab="tab-updates">
+                    <i class="ph-fill ph-download-simple"></i> Mise à jour
                 </div>
                 <div class="nav-item" data-tab="tab-modules">
                     <i class="ph-fill ph-squares-four"></i> Modules
@@ -1637,7 +1789,52 @@
                 </div>
             </div>
             
-            <!-- TAB 6: MODULES -->
+            <!-- TAB 6: MISE A JOUR -->
+            <div id="tab-updates" class="tab-content hidden">
+                <div class="section-header">
+                    <h2 class="section-title">Mise à jour</h2>
+                    <p class="section-desc">Liquid Dynamic Island vérifie les versions disponibles sans les installer automatiquement.</p>
+                </div>
+                <div class="settings-scroll-area">
+                    <div id="update-card" class="settings-card update-card">
+                        <div class="update-hero">
+                            <div class="update-orbit">
+                                <i id="update-icon" class="ph-fill ph-shield-check"></i>
+                            </div>
+                            <div>
+                                <div class="update-title-row">
+                                    <span id="update-title" class="update-title">Recherche de version</span>
+                                    <span id="update-status-badge" class="badge update-status-badge">Initialisation</span>
+                                </div>
+                                <div id="update-desc" class="update-desc">L'application garde la main sur les mises à jour : rien ne s'installe sans ton clic.</div>
+                            </div>
+                        </div>
+
+                        <div class="update-meta">
+                            <div class="update-meta-item">
+                                <span class="update-meta-label">Version actuelle</span>
+                                <span id="update-current-version" class="update-meta-value">-</span>
+                            </div>
+                            <div class="update-meta-item">
+                                <span class="update-meta-label">Version disponible</span>
+                                <span id="update-available-version" class="update-meta-value">Aucune</span>
+                            </div>
+                        </div>
+
+                        <div class="update-progress-track">
+                            <div id="update-progress-fill" class="update-progress-fill"></div>
+                        </div>
+
+                        <div class="update-actions">
+                            <button id="btn-update-check" class="mini-action-btn"><i class="ph-fill ph-arrows-clockwise"></i> Vérifier</button>
+                            <button id="btn-update-download" class="mini-action-btn"><i class="ph-fill ph-download-simple"></i> Télécharger</button>
+                            <button id="btn-update-install" class="mini-action-btn"><i class="ph-fill ph-rocket-launch"></i> Installer</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- TAB 7: MODULES -->
             <div id="tab-modules" class="tab-content hidden">
                 <div class="section-header">
                     <h2 class="section-title">Modules de la Pilule</h2>

@@ -51,10 +51,194 @@ let activeWindowCache = {
     at: 0,
     info: null
 };
+let updateStatus = {
+    state: 'idle',
+    currentVersion: app.getVersion(),
+    availableVersion: null,
+    releaseName: '',
+    releaseDate: '',
+    progress: 0,
+    downloaded: false,
+    error: '',
+    checkedAt: null
+};
+let updateCheckInProgress = false;
+let updateDownloadInProgress = false;
+let isInstallingUpdate = false;
 
 const TRUSTED_PERMISSION_SET = new Set(['media', 'notifications']);
 const CORE_TEXT_ARG_MAX_LENGTH = 2048;
 const MAX_CORE_COMMAND_QUEUE_LENGTH = 128;
+
+function getPublicUpdateStatus() {
+    return {
+        ...updateStatus,
+        currentVersion: app.getVersion(),
+        canCheck: app.isPackaged && !updateCheckInProgress && !updateDownloadInProgress,
+        canDownload: app.isPackaged && updateStatus.state === 'available' && !updateDownloadInProgress,
+        canInstall: app.isPackaged && updateStatus.state === 'downloaded'
+    };
+}
+
+function sendToTrustedWindows(channel, payload) {
+    [mainWindow, settingsWindow].forEach((targetWindow) => {
+        if (targetWindow && !targetWindow.isDestroyed()) {
+            targetWindow.webContents.send(channel, payload);
+        }
+    });
+}
+
+function sendUpdateStatus(notifyIsland = false) {
+    const publicStatus = getPublicUpdateStatus();
+    sendToTrustedWindows('update-status-changed', publicStatus);
+
+    if (notifyIsland && mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('trigger-notif', {
+            title: 'Mise a jour disponible',
+            message: `Version ${publicStatus.availableVersion || 'recente'} prete dans les reglages`,
+            icon: 'ph-download-simple'
+        });
+    }
+}
+
+function setUpdateStatus(patch, options = {}) {
+    updateStatus = {
+        ...updateStatus,
+        ...patch,
+        currentVersion: app.getVersion()
+    };
+    sendUpdateStatus(Boolean(options.notifyIsland));
+    return getPublicUpdateStatus();
+}
+
+function getUpdateInfoVersion(info) {
+    return info?.version || info?.tag || null;
+}
+
+function configureUpdater() {
+    autoUpdater.autoDownload = false;
+    autoUpdater.autoInstallOnAppQuit = false;
+
+    autoUpdater.on('checking-for-update', () => {
+        updateCheckInProgress = true;
+        setUpdateStatus({
+            state: 'checking',
+            progress: 0,
+            error: '',
+            checkedAt: new Date().toISOString()
+        });
+    });
+
+    autoUpdater.on('update-available', (info) => {
+        updateCheckInProgress = false;
+        setUpdateStatus({
+            state: 'available',
+            availableVersion: getUpdateInfoVersion(info),
+            releaseName: info?.releaseName || '',
+            releaseDate: info?.releaseDate || '',
+            progress: 0,
+            downloaded: false,
+            error: ''
+        }, { notifyIsland: true });
+    });
+
+    autoUpdater.on('update-not-available', () => {
+        updateCheckInProgress = false;
+        updateDownloadInProgress = false;
+        setUpdateStatus({
+            state: 'up-to-date',
+            availableVersion: null,
+            releaseName: '',
+            releaseDate: '',
+            progress: 0,
+            downloaded: false,
+            error: '',
+            checkedAt: new Date().toISOString()
+        });
+    });
+
+    autoUpdater.on('download-progress', (progress) => {
+        updateDownloadInProgress = true;
+        setUpdateStatus({
+            state: 'downloading',
+            progress: Math.max(0, Math.min(100, Math.round(progress?.percent || 0))),
+            error: ''
+        });
+    });
+
+    autoUpdater.on('update-downloaded', (info) => {
+        updateDownloadInProgress = false;
+        setUpdateStatus({
+            state: 'downloaded',
+            availableVersion: getUpdateInfoVersion(info) || updateStatus.availableVersion,
+            releaseName: info?.releaseName || updateStatus.releaseName,
+            releaseDate: info?.releaseDate || updateStatus.releaseDate,
+            progress: 100,
+            downloaded: true,
+            error: ''
+        }, { notifyIsland: true });
+    });
+
+    autoUpdater.on('before-quit-for-update', () => {
+        isInstallingUpdate = true;
+    });
+
+    autoUpdater.on('error', (err) => {
+        updateCheckInProgress = false;
+        updateDownloadInProgress = false;
+        setUpdateStatus({
+            state: 'error',
+            error: err?.message || String(err || 'Erreur de mise a jour'),
+            progress: 0
+        });
+        console.error('[Updater]', err);
+    });
+}
+
+async function checkForUpdatesManual() {
+    if (!app.isPackaged) {
+        return setUpdateStatus({
+            state: 'dev',
+            error: '',
+            checkedAt: new Date().toISOString()
+        });
+    }
+
+    if (updateCheckInProgress || updateDownloadInProgress) {
+        return getPublicUpdateStatus();
+    }
+
+    try {
+        await autoUpdater.checkForUpdates();
+        return getPublicUpdateStatus();
+    } catch (err) {
+        return setUpdateStatus({
+            state: 'error',
+            error: err?.message || String(err || 'Verification impossible')
+        });
+    }
+}
+
+async function downloadAvailableUpdate() {
+    if (!app.isPackaged || updateDownloadInProgress || updateStatus.state !== 'available') {
+        return getPublicUpdateStatus();
+    }
+
+    updateDownloadInProgress = true;
+    setUpdateStatus({ state: 'downloading', progress: 0, error: '' });
+
+    try {
+        await autoUpdater.downloadUpdate();
+        return getPublicUpdateStatus();
+    } catch (err) {
+        updateDownloadInProgress = false;
+        return setUpdateStatus({
+            state: 'error',
+            error: err?.message || String(err || 'Telechargement impossible'),
+            progress: 0
+        });
+    }
+}
 
 function getEventUrl(event) {
     return event?.senderFrame?.url || event?.sender?.getURL?.() || "";
@@ -900,15 +1084,20 @@ function createTray() {
 
 // 4. BIND ELECTRON LIFECYCLE EVENTS
 app.whenReady().then(() => {
+    configureUpdater();
     currentLayoutConfig = loadLayoutConfig();
     startCoreWorker();
     createMainWindow();
     createTray();
 
     if (app.isPackaged) {
-        autoUpdater.checkForUpdatesAndNotify().catch(err => {
-            console.error('[Updater] Error checking for updates:', err);
-        });
+        setTimeout(() => {
+            checkForUpdatesManual().catch(err => {
+                console.error('[Updater] Error checking for updates:', err);
+            });
+        }, 2500);
+    } else {
+        setUpdateStatus({ state: 'dev', checkedAt: new Date().toISOString() });
     }
 
 
@@ -964,6 +1153,7 @@ app.on('window-all-closed', () => {
 
 let isQuitting = false;
 app.on('will-quit', (event) => {
+    if (isInstallingUpdate) return;
     if (isQuitting) return;
     event.preventDefault();
     isQuitting = true;
@@ -1005,6 +1195,51 @@ ipcMain.on('open-settings', (event) => {
 ipcMain.on('close-settings', (event) => {
     if (!isTrustedSender(event)) return;
     if (settingsWindow) settingsWindow.close();
+});
+
+ipcMain.handle('get-update-status', (event) => {
+    const trust = ensureTrustedSender(event, getPublicUpdateStatus());
+    if (!trust.trusted) return trust.value;
+    return getPublicUpdateStatus();
+});
+
+ipcMain.handle('check-for-updates-manual', async (event) => {
+    const trust = ensureTrustedSender(event, getPublicUpdateStatus());
+    if (!trust.trusted) return trust.value;
+    return checkForUpdatesManual();
+});
+
+ipcMain.handle('download-update-manual', async (event) => {
+    const trust = ensureTrustedSender(event, getPublicUpdateStatus());
+    if (!trust.trusted) return trust.value;
+    return downloadAvailableUpdate();
+});
+
+ipcMain.handle('install-downloaded-update', async (event) => {
+    const trust = ensureTrustedSender(event, getPublicUpdateStatus());
+    if (!trust.trusted) return trust.value;
+
+    if (!app.isPackaged || updateStatus.state !== 'downloaded') {
+        return getPublicUpdateStatus();
+    }
+
+    isInstallingUpdate = true;
+    setUpdateStatus({ state: 'installing', error: '' });
+
+    try {
+        if (isWallpaperSyncEnabled) {
+            await restoreOriginalWallpaper();
+        }
+        cleanupCore();
+    } catch (err) {
+        console.error('[Updater] Cleanup before install failed:', err);
+    }
+
+    setImmediate(() => {
+        autoUpdater.quitAndInstall(false, true);
+    });
+
+    return getPublicUpdateStatus();
 });
 
 // Config changed: relays parameters from Settings Window to Island Window
@@ -1491,6 +1726,21 @@ ipcMain.handle('get-audio-sessions', async (event) => {
     } catch (e) {
         console.error('Error getting audio sessions via core:', e);
         return [];
+    }
+});
+
+ipcMain.handle('get-audio-meter', async (event) => {
+    const trust = ensureTrustedSender(event, { peak: 0, left: 0, right: 0, channels: 0 });
+    if (!trust.trusted) return trust.value;
+
+    if (!coreWorker) return { peak: 0, left: 0, right: 0, channels: 0 };
+    try {
+        const line = await sendCoreCommand('meter');
+        if (!line) return { peak: 0, left: 0, right: 0, channels: 0 };
+        return JSON.parse(line);
+    } catch (e) {
+        console.error('Error getting audio meter via core:', e);
+        return { peak: 0, left: 0, right: 0, channels: 0 };
     }
 });
 

@@ -4,6 +4,15 @@ node_modules/
 # Electron-builder output
 dist/
 build/
+!build/
+build/*
+!build/icon.ico
+!build/installerHeader.bmp
+!build/installerSidebar.bmp
+!build/license_fr.txt
+!build/installer.nsh
+!build/assistedMessages.yml
+!build/INSTALLER_ASSETS.md
 
 # Application Logs & Diagnostics
 *.log

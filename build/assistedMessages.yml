@@ -1,0 +1,28 @@
+chooseInstallationOptions:
+  fr: Choisir le mode d'installation
+chooseUninstallationOptions:
+  fr: Choisir le mode de désinstallation
+whoShouldThisApplicationBeInstalledFor:
+  fr: Pour qui installer Liquid Dynamic Island ?
+selectUserMode:
+  fr: "Choisis si l'application doit être disponible seulement pour toi ou pour tous les utilisateurs de ce PC."
+onlyForMe:
+  fr: Seulement pour moi
+forAll:
+  fr: Tous les utilisateurs du PC
+freshInstallForCurrent:
+  fr: Nouvelle installation pour l'utilisateur actuel.
+freshInstallForAll:
+  fr: Nouvelle installation pour tous les utilisateurs. Des droits administrateur seront demandés.
+reinstallUpgrade:
+  fr: Mettre à jour l'installation existante.
+uninstall:
+  fr: Désinstaller Liquid Dynamic Island.
+perUserInstallExists:
+  fr: Une installation existe déjà pour cet utilisateur.
+perMachineInstallExists:
+  fr: Une installation existe déjà pour tous les utilisateurs.
+whichInstallationShouldBeRemoved:
+  fr: Quelle installation veux-tu supprimer ?
+whichInstallationRemove:
+  fr: "Liquid Dynamic Island est installé pour cet utilisateur et pour tous les utilisateurs.\nChoisis l'installation à supprimer."

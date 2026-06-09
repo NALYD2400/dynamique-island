@@ -119,6 +119,16 @@ namespace LiquidCore {
         [PreserveSig] int GetMute([MarshalAs(UnmanagedType.Bool)] out bool pbMute);
     }
 
+    [ComImport]
+    [Guid("C02216F6-8C67-4B5B-9D00-D008E73E0064")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    internal interface IAudioMeterInformation {
+        [PreserveSig] int GetPeakValue(out float pfPeak);
+        [PreserveSig] int GetMeteringChannelCount(out int pnChannelCount);
+        [PreserveSig] int GetChannelsPeakValues(int u32ChannelCount, [Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 0)] float[] afPeakValues);
+        [PreserveSig] int QueryHardwareSupport(out int pdwHardwareSupportMask);
+    }
+
     public class AudioSessionInfo {
         public uint pid { get; set; }
         public string name { get; set; } = "";
@@ -128,6 +138,13 @@ namespace LiquidCore {
         public bool muted { get; set; }
         public int state { get; set; }
         public bool active { get; set; }
+    }
+
+    public class AudioPeakInfo {
+        public float peak { get; set; }
+        public float left { get; set; }
+        public float right { get; set; }
+        public int channels { get; set; }
     }
 
     public class SmtcResponse {
@@ -677,6 +694,15 @@ namespace LiquidCore {
                         Console.WriteLine("[]");
                         Console.Error.WriteLine("Error listing audio: " + ex.Message);
                     }
+                } else if (line == "meter") {
+                    try {
+                        var peak = GetAudioPeakInfo();
+                        string json = JsonSerializer.Serialize(peak);
+                        Console.WriteLine(json);
+                    } catch (Exception ex) {
+                        Console.WriteLine("{\"peak\":0,\"left\":0,\"right\":0,\"channels\":0}");
+                        Console.Error.WriteLine("Error getting audio meter: " + ex.Message);
+                    }
                 } else if (line == "getmaster") {
                     try {
                         float master = GetMasterVolume();
@@ -931,6 +957,62 @@ namespace LiquidCore {
         }
 
         // --- WASAPI Audio Session Implementations ---
+        private static AudioPeakInfo GetAudioPeakInfo() {
+            AudioPeakInfo? consolePeak = TryGetAudioPeakInfo(0);
+            if (consolePeak != null) return consolePeak;
+            return TryGetAudioPeakInfo(1) ?? new AudioPeakInfo();
+        }
+
+        private static AudioPeakInfo? TryGetAudioPeakInfo(int role) {
+            IMMDeviceEnumerator? deviceEnumerator = null;
+            IMMDevice? speakers = null;
+            IAudioMeterInformation? meter = null;
+
+            try {
+                deviceEnumerator = new MMDeviceEnumerator() as IMMDeviceEnumerator;
+                if (deviceEnumerator == null) return null;
+
+                int res = deviceEnumerator.GetDefaultAudioEndpoint(0, role, out speakers);
+                if (res != 0 || speakers == null) return null;
+
+                object o;
+                var guid = typeof(IAudioMeterInformation).GUID;
+                speakers.Activate(ref guid, 23, IntPtr.Zero, out o);
+                meter = o as IAudioMeterInformation;
+                if (meter == null) return null;
+
+                float peak = 0f;
+                meter.GetPeakValue(out peak);
+
+                int channelCount = 0;
+                meter.GetMeteringChannelCount(out channelCount);
+                float left = peak;
+                float right = peak;
+
+                if (channelCount > 0) {
+                    float[] channels = new float[channelCount];
+                    if (meter.GetChannelsPeakValues(channelCount, channels) == 0 && channels.Length > 0) {
+                        left = channels[0];
+                        right = channels.Length > 1 ? channels[1] : channels[0];
+                        peak = Math.Max(peak, channels.Max());
+                    }
+                }
+
+                return new AudioPeakInfo {
+                    peak = Math.Clamp(peak, 0f, 1f),
+                    left = Math.Clamp(left, 0f, 1f),
+                    right = Math.Clamp(right, 0f, 1f),
+                    channels = channelCount
+                };
+            } catch {
+                return null;
+            } finally {
+                if (meter != null) Marshal.ReleaseComObject(meter);
+                if (speakers != null) Marshal.ReleaseComObject(speakers);
+                if (deviceEnumerator != null) Marshal.ReleaseComObject(deviceEnumerator);
+            }
+        }
+
         private static List<AudioSessionInfo> GetAudioSessions() {
             var result = new List<AudioSessionInfo>();
             // Try Console endpoint first, then Multimedia
@@ -1376,14 +1458,15 @@ namespace LiquidCore {
 
         // --- WinRT SMTC Media Control Implementations ---
         private static async Task<SmtcResponse> PollSmtcAsync() {
-            if (!await EnsureSmtcManagerAsync()) {
+            if (!await EnsureSmtcManagerAsync() || _sessionManager == null) {
                 return BuildFallbackMediaResponse();
             }
 
-            var session = _sessionManager.GetCurrentSession();
+            var sessionManager = _sessionManager;
+            var session = sessionManager.GetCurrentSession();
             if (session == null || session.GetPlaybackInfo()?.PlaybackStatus != GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing) {
                 try {
-                    var sessions = _sessionManager.GetSessions();
+                    var sessions = sessionManager.GetSessions();
                     if (sessions != null && sessions.Count > 0) {
                         foreach (var s in sessions) {
                             var status = s.GetPlaybackInfo()?.PlaybackStatus;
@@ -1487,7 +1570,7 @@ namespace LiquidCore {
         private enum SmtcCommand { Toggle, Play, Pause, Next, Prev }
 
         private static async Task<bool> SendSmtcCommandAsync(SmtcCommand cmd) {
-            if (!await EnsureSmtcManagerAsync()) return false;
+            if (!await EnsureSmtcManagerAsync() || _sessionManager == null) return false;
             var session = _sessionManager.GetCurrentSession();
             if (session == null) return false;
 
@@ -1511,7 +1594,7 @@ namespace LiquidCore {
         }
 
         private static async Task<bool> SendSmtcSeekCommandAsync(long targetMs) {
-            if (!await EnsureSmtcManagerAsync()) return false;
+            if (!await EnsureSmtcManagerAsync() || _sessionManager == null) return false;
             var session = _sessionManager.GetCurrentSession();
             if (session == null) return false;
 

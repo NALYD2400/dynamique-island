@@ -270,6 +270,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const layoutUpBtn = document.getElementById('btn-layout-up');
     const layoutDownBtn = document.getElementById('btn-layout-down');
     const layoutCenterBtn = document.getElementById('btn-layout-center');
+    const updateCard = document.getElementById('update-card');
+    const updateIcon = document.getElementById('update-icon');
+    const updateTitle = document.getElementById('update-title');
+    const updateDesc = document.getElementById('update-desc');
+    const updateStatusBadge = document.getElementById('update-status-badge');
+    const updateCurrentVersion = document.getElementById('update-current-version');
+    const updateAvailableVersion = document.getElementById('update-available-version');
+    const updateProgressFill = document.getElementById('update-progress-fill');
+    const updateCheckBtn = document.getElementById('btn-update-check');
+    const updateDownloadBtn = document.getElementById('btn-update-download');
+    const updateInstallBtn = document.getElementById('btn-update-install');
 
     // Close Window
     document.getElementById('btn-close-settings').addEventListener('click', () => {
@@ -297,6 +308,115 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById(tabId).classList.remove('hidden');
         });
     });
+
+    function setUpdateBusy(isBusy) {
+        [updateCheckBtn, updateDownloadBtn, updateInstallBtn].forEach((btn) => {
+            if (btn) btn.dataset.busy = isBusy ? 'true' : 'false';
+        });
+    }
+
+    function renderUpdateStatus(status = {}) {
+        if (!updateCard) return;
+
+        const state = status.state || 'idle';
+        const progress = Math.max(0, Math.min(100, Number(status.progress || 0)));
+        const availableVersion = status.availableVersion || '';
+        const currentVersion = status.currentVersion || '-';
+
+        const updateCopies = {
+            idle: {
+                icon: 'ph-shield-check',
+                badge: 'Manuel',
+                title: 'Mises à jour manuelles',
+                desc: 'Liquid Dynamic Island vérifie les versions, mais ne télécharge rien sans ton clic.'
+            },
+            dev: {
+                icon: 'ph-code',
+                badge: 'Mode dev',
+                title: 'Updater désactivé en développement',
+                desc: 'Le contrôle des mises à jour sera actif dans la version installée.'
+            },
+            checking: {
+                icon: 'ph-arrows-clockwise',
+                badge: 'Recherche',
+                title: 'Vérification en cours',
+                desc: 'On regarde si une nouvelle version est disponible.'
+            },
+            'up-to-date': {
+                icon: 'ph-check-circle',
+                badge: 'À jour',
+                title: 'Tu as la dernière version',
+                desc: 'Aucune mise à jour disponible pour le moment.'
+            },
+            available: {
+                icon: 'ph-download-simple',
+                badge: 'Disponible',
+                title: `Version ${availableVersion || 'récente'} disponible`,
+                desc: 'La mise à jour est prête à être téléchargée. Elle ne sera pas installée automatiquement.'
+            },
+            downloading: {
+                icon: 'ph-cloud-arrow-down',
+                badge: `${progress}%`,
+                title: 'Téléchargement en cours',
+                desc: 'La mise à jour se prépare. Tu pourras lancer l’installation ensuite.'
+            },
+            downloaded: {
+                icon: 'ph-rocket-launch',
+                badge: 'Prête',
+                title: `Version ${availableVersion || 'récente'} prête`,
+                desc: 'La mise à jour est téléchargée. Clique sur Installer quand tu veux redémarrer l’application.'
+            },
+            installing: {
+                icon: 'ph-rocket-launch',
+                badge: 'Installation',
+                title: 'Installation de la mise à jour',
+                desc: 'Liquid Dynamic Island va redémarrer pour appliquer la nouvelle version.'
+            },
+            error: {
+                icon: 'ph-warning-circle',
+                badge: 'Erreur',
+                title: 'Vérification impossible',
+                desc: status.error || 'La mise à jour n’a pas pu être vérifiée pour le moment.'
+            }
+        };
+        const copy = updateCopies[state] || updateCopies.idle;
+
+        updateCard.classList.remove('is-active', 'is-available', 'is-downloading', 'is-downloaded', 'is-error');
+        if (['checking', 'available', 'downloading', 'downloaded', 'installing'].includes(state)) updateCard.classList.add('is-active');
+        if (state === 'available') updateCard.classList.add('is-available');
+        if (state === 'downloading') updateCard.classList.add('is-downloading');
+        if (state === 'downloaded') updateCard.classList.add('is-downloaded');
+        if (state === 'error') updateCard.classList.add('is-error');
+
+        if (updateIcon) updateIcon.className = `ph-fill ${copy.icon}`;
+        if (updateTitle) updateTitle.textContent = copy.title;
+        if (updateDesc) updateDesc.textContent = copy.desc;
+        if (updateStatusBadge) updateStatusBadge.textContent = copy.badge;
+        if (updateCurrentVersion) updateCurrentVersion.textContent = currentVersion;
+        if (updateAvailableVersion) updateAvailableVersion.textContent = availableVersion || 'Aucune';
+        if (updateProgressFill) updateProgressFill.style.width = `${state === 'available' ? 0 : progress}%`;
+
+        if (updateCheckBtn) updateCheckBtn.disabled = !status.canCheck || state === 'checking' || state === 'downloading' || state === 'installing';
+        if (updateDownloadBtn) updateDownloadBtn.disabled = !status.canDownload;
+        if (updateInstallBtn) updateInstallBtn.disabled = !status.canInstall || state === 'installing';
+        setUpdateBusy(state === 'checking' || state === 'downloading' || state === 'installing');
+    }
+
+    async function invokeUpdateAction(channel) {
+        try {
+            setUpdateBusy(true);
+            const status = await ipcRenderer.invoke(channel);
+            renderUpdateStatus(status);
+        } catch (err) {
+            renderUpdateStatus({
+                state: 'error',
+                error: err?.message || 'Action impossible',
+                currentVersion: updateCurrentVersion ? updateCurrentVersion.textContent : '-'
+            });
+        } finally {
+            setUpdateBusy(false);
+        }
+    }
 
     function emitConfig() {
         const glowColor = document.getElementById('color-glow').value;
@@ -797,6 +917,16 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('viz-color-grada').addEventListener('input', emitConfig);
     document.getElementById('viz-color-gradb').addEventListener('input', emitConfig);
 
+    if (selectVizAnalysisMode) {
+        selectVizAnalysisMode.addEventListener('change', () => {
+            clicker.playClick();
+            if (vizSensitivityContainer) {
+                vizSensitivityContainer.classList.toggle('hidden', selectVizAnalysisMode.value === 'simulation');
+            }
+            emitConfig();
+        });
+    }
+
     if (rangeLayoutScale) {
         rangeLayoutScale.addEventListener('input', (e) => {
             layoutState.scale = Number(e.target.value) / 100;
@@ -1184,6 +1314,36 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Execute load
     loadSettings();
+    renderUpdateStatus({ state: 'idle' });
+    ipcRenderer.invoke('get-update-status')
+        .then(renderUpdateStatus)
+        .catch(() => renderUpdateStatus({ state: 'error', error: 'Statut de mise à jour indisponible' }));
+
+    ipcRenderer.on('update-status-changed', (event, status) => {
+        renderUpdateStatus(status);
+    });
+
+    if (updateCheckBtn) {
+        updateCheckBtn.addEventListener('click', () => {
+            clicker.playClick();
+            invokeUpdateAction('check-for-updates-manual');
+        });
+    }
+
+    if (updateDownloadBtn) {
+        updateDownloadBtn.addEventListener('click', () => {
+            clicker.playClick();
+            invokeUpdateAction('download-update-manual');
+        });
+    }
+
+    if (updateInstallBtn) {
+        updateInstallBtn.addEventListener('click', () => {
+            clicker.playClick();
+            invokeUpdateAction('install-downloaded-update');
+        });
+    }
+
     if (autoStartToggle) {
         ipcRenderer.invoke('get-auto-start').then(enabled => {
             autoStartToggle.checked = Boolean(enabled);
