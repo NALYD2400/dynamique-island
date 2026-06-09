@@ -13,6 +13,19 @@
     transition: transform 0.25s ease;
 }
 
+#dynamic-island,
+#dynamic-island * {
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+#dynamic-island input,
+#dynamic-island textarea,
+#dynamic-island [contenteditable="true"] {
+    -webkit-user-select: text;
+    user-select: text;
+}
+
 #layout-drag-surface {
     display: none;
 }

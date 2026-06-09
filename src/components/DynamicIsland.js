@@ -389,6 +389,7 @@ export class DynamicIsland {
         this._lastRenderedTrack = null;
         this._lastTrackId = null;
         this._isNewTrackSignal = false;
+        this._pendingCoverAnimationTrackKey = "";
         this._layoutConfig = JSON.parse(localStorage.getItem('liquid_layout_config') || '{"scale":1}');
         this._layoutEditMode = false;
         this._layoutEditArmTimeout = null;
@@ -398,6 +399,12 @@ export class DynamicIsland {
         this.audioSessions = [];
         this.isScrubbingMixer = false;
         this.scrubbingPid = null;
+        this._transitionInProgress = false;
+        this._transitionToken = 0;
+        this._controlSliderCleanup = null;
+        this._mediaControlPendingUntil = 0;
+        this._mediaControlExpectedIsPlaying = null;
+        this._mediaControlPendingTrackKey = "";
         this._isTransitioning = false; // Flag to prevent layout reflow lag during size transitions
 
         this.renderIdle();
@@ -800,18 +807,27 @@ export class DynamicIsland {
             return nextArt;
         }
 
+        const preloadTrackKey = data.trackKey || getMusicHistoryKey(data);
         this.preloadMediaArt(nextArt, () => {
             const activeArt = getRawDisplayMediaArt(this.musicData);
             if (activeArt !== nextArt) return;
+            const activeTrackKey = this.musicData ? (this.musicData.trackKey || getMusicHistoryKey(this.musicData)) : "";
+            if (preloadTrackKey && activeTrackKey && preloadTrackKey !== activeTrackKey) return;
 
-            const previousArt = this._lastStableDisplayArt;
             this._lastStableDisplayArt = nextArt;
             this.musicData = {
                 ...this.musicData,
                 displayCover: nextArt,
-                previousDisplayCover: previousArt && previousArt !== nextArt ? previousArt : ""
+                previousDisplayCover: "",
+                animateCover: false
             };
-            this._lastRenderedTrack = null;
+            this._isNewTrackSignal = false;
+            if (this._pendingCoverAnimationTrackKey === activeTrackKey) {
+                this._pendingCoverAnimationTrackKey = "";
+            }
+            if (this._lastRenderedTrack) {
+                this._lastRenderedTrack.cover = nextArt;
+            }
 
             if (this.isExpanded && this.mode === 'music') {
                 this.renderMusic();
@@ -1440,19 +1456,15 @@ export class DynamicIsland {
                 this.closeContextMenu();
 
                 if (action === 'music') {
-                    this.setMode('music');
-                    if (!this.isExpanded) this.toggleExpand();
+                    this.openExpandedMode('music');
                 } else if (action === 'control') {
-                    this.setMode('control');
-                    if (!this.isExpanded) this.toggleExpand();
+                    this.openExpandedMode('control');
                 } else if (action === 'mixer') {
-                    this.setMode('mixer');
-                    if (!this.isExpanded) this.toggleExpand();
+                    this.openExpandedMode('mixer');
                 } else if (action === 'settings') {
                     this.setMode('settings');
-                    if (!this.isExpanded) this.toggleExpand();
                 } else if (action === 'play') {
-                    window.spotifyControl(this.isPlaying ? 'pause' : 'play');
+                    window.spotifyControl('toggle');
                 } else if (action === 'next') {
                     window.spotifyControl('next');
                 } else if (action === 'prev') {
@@ -1811,29 +1823,42 @@ export class DynamicIsland {
 
 
     async transitionState(updateFn) {
+        if (this._transitionInProgress) return;
+
+        this._transitionInProgress = true;
+        const transitionToken = ++this._transitionToken;
         this.el.classList.add('animating');
 
-        // 1. Wait for the content to fully fade out (opacity 0)
-        await new Promise(r => setTimeout(r, 90));
+        try {
+            // 1. Wait for the content to fully fade out (opacity 0)
+            await new Promise(r => setTimeout(r, 90));
 
-        // 2. Set transition flag to prevent heavy HTML injection during scaling
-        this._isTransitioning = true;
+            if (transitionToken !== this._transitionToken) return;
 
-        // 3. Perform size change (updates parent size classes, starting the CSS width/height morph)
-        updateFn();
+            // 2. Set transition flag to prevent heavy HTML injection during scaling
+            this._isTransitioning = true;
 
-        // 4. Wait for the morphing animation to be 70% complete (200ms is the sweet spot!)
-        await new Promise(r => setTimeout(r, 200));
+            // 3. Perform size change (updates parent size classes, starting the CSS width/height morph)
+            updateFn();
 
-        // 5. Clear transition flag and render the complete, heavy HTML content
-        this._isTransitioning = false;
-        this.renderContent();
+            // 4. Wait for the morphing animation to be 70% complete (200ms is the sweet spot!)
+            await new Promise(r => setTimeout(r, 200));
 
-        // 6. Wait a tiny bit for the DOM tree to settle and paint
-        await new Promise(r => setTimeout(r, 40));
+            if (transitionToken !== this._transitionToken) return;
 
-        // 7. Remove the 'animating' class, fading in the new content elegantly
-        this.el.classList.remove('animating');
+            // 5. Clear transition flag and render the complete, heavy HTML content
+            this._isTransitioning = false;
+            this.renderContent();
+
+            // 6. Wait a tiny bit for the DOM tree to settle and paint
+            await new Promise(r => setTimeout(r, 40));
+        } finally {
+            if (transitionToken === this._transitionToken) {
+                this._isTransitioning = false;
+                this._transitionInProgress = false;
+                this.el.classList.remove('animating');
+            }
+        }
     }
 
     toggleExpand() {
@@ -1890,42 +1915,55 @@ export class DynamicIsland {
         }
     }
 
+    openExpandedMode(mode) {
+        this.transitionState(() => {
+            this.mode = mode;
+            this.isExpanded = true;
+            this.renderContent();
+        });
+    }
+
     launchShortcut(command) {
         if (!command) return;
         try {
             if (typeof require !== 'undefined') {
                 const { shell } = require('electron');
-                const { exec, execFile } = require('child_process');
+                const { execFile } = require('child_process');
+                const path = require('path');
                 const rawCommand = String(command).trim();
                 if (rawCommand.startsWith('liquid:')) {
                     this.runInternalShortcut(rawCommand);
                     return;
                 }
+
+                if (/[\r\n]/.test(rawCommand)) {
+                    console.warn('Rejected shortcut with unsafe characters:', rawCommand);
+                    return;
+                }
+
                 const isWindowsPath = /^[a-zA-Z]:[\\/]/.test(rawCommand);
-                const isProtocolTarget = /^[a-zA-Z][a-zA-Z\d+.-]*:/.test(rawCommand) && !isWindowsPath;
+                const protocolMatch = rawCommand.match(/^([a-zA-Z][a-zA-Z\d+.-]*):/);
+                const protocol = protocolMatch ? protocolMatch[1].toLowerCase() : '';
+                const allowedProtocols = new Set(['http', 'https', 'mailto', 'ms-settings', 'spotify']);
+                const systemRoot = process.env.SystemRoot || 'C:\\Windows';
+                const allowedExecutables = {
+                    'explorer.exe': path.join(systemRoot, 'explorer.exe'),
+                    'taskmgr.exe': path.join(systemRoot, 'System32', 'taskmgr.exe'),
+                    'calc.exe': path.join(systemRoot, 'System32', 'calc.exe'),
+                    'cmd.exe': path.join(systemRoot, 'System32', 'cmd.exe'),
+                    'notepad.exe': path.join(systemRoot, 'System32', 'notepad.exe'),
+                    'mspaint.exe': path.join(systemRoot, 'System32', 'mspaint.exe'),
+                    'snippingtool.exe': path.join(systemRoot, 'System32', 'SnippingTool.exe')
+                };
 
                 if (isWindowsPath) {
-                    shell.openPath(rawCommand).then(result => {
-                        if (result) {
-                            execFile(rawCommand, (err) => {
-                                if (err) {
-                                    exec(`start "" "${rawCommand}"`);
-                                }
-                            });
-                        }
-                    }).catch(() => {
-                        exec(`start "" "${rawCommand}"`);
-                    });
-                } else if (rawCommand.startsWith('http://') || rawCommand.startsWith('https://') || isProtocolTarget) {
-                    shell.openExternal(rawCommand).catch(() => {
-                        exec(`start "" "${rawCommand}"`);
-                    });
+                    shell.openPath(rawCommand);
+                } else if (protocol && allowedProtocols.has(protocol)) {
+                    shell.openExternal(rawCommand);
+                } else if (allowedExecutables[rawCommand.toLowerCase()]) {
+                    execFile(allowedExecutables[rawCommand.toLowerCase()], [], { windowsHide: false });
                 } else {
-                    exec(rawCommand, (err) => {
-                        if (err) {
-                            exec(`start "" "${rawCommand}"`);
-                        }
-                    });
+                    console.warn('Rejected unsupported shortcut command:', rawCommand);
                 }
             }
         } catch (e) {
@@ -2090,6 +2128,10 @@ export class DynamicIsland {
             clearInterval(this.statsInterval);
             this.statsInterval = null;
         }
+        if (this._controlSliderCleanup) {
+            this._controlSliderCleanup();
+            this._controlSliderCleanup = null;
+        }
 
         this._lastRenderedTrack = null; // Force updateMusic to re-sync state on next poll
 
@@ -2232,7 +2274,8 @@ export class DynamicIsland {
         const musicData = this.musicData || { title: "Aucune lecture", artist: "Système", cover: "", isPlaying: false };
         const effectiveNpArt = getDisplayMediaArt(musicData);
         const hasCover = effectiveNpArt && effectiveNpArt.length > 0;
-        const flipClass = (this._isNewTrackSignal) ? 'flip-active' : '';
+        const controlTrackKey = musicData.trackKey || getMusicHistoryKey(musicData);
+        const flipClass = this._pendingCoverAnimationTrackKey && this._pendingCoverAnimationTrackKey === controlTrackKey ? 'flip-active' : '';
         const npCoverHtml = hasCover
             ? `<img id="ic-np-cover-img" src="${effectiveNpArt}" class="ic-np-cover ${flipClass}">`
             : `<div id="ic-np-cover-img" class="ic-np-cover-fallback ${flipClass}"><i class="ph-fill ph-music-note"></i></div>`;
@@ -2433,7 +2476,7 @@ export class DynamicIsland {
                             </div>
                             <div class="ic-np-controls">
                                 <button class="ic-np-btn" onclick="event.stopPropagation(); window.spotifyControl('prev')"><i class="ph-fill ph-skip-back"></i></button>
-                                <button class="ic-np-btn play" id="ic-np-play-btn-val" onclick="event.stopPropagation(); window.spotifyControl('${musicData.isPlaying ? 'pause' : 'play'}')"><i class="ph-fill ph-${musicData.isPlaying ? 'pause' : 'play'}"></i></button>
+                                <button class="ic-np-btn play" id="ic-np-play-btn-val" onclick="event.stopPropagation(); window.spotifyControl('toggle')"><i class="ph-fill ph-${musicData.isPlaying ? 'pause' : 'play'}"></i></button>
                                 <button class="ic-np-btn" onclick="event.stopPropagation(); window.spotifyControl('next')"><i class="ph-fill ph-skip-forward"></i></button>
                             </div>
                         </div>
@@ -2481,6 +2524,8 @@ export class DynamicIsland {
 
         // Helper to bind vertical sliders dragging with mouse support
         const bindVerticalSlider = (sliderEl, onChange) => {
+            if (!sliderEl) return () => {};
+
             let isDragging = false;
 
             const updateFromEvent = (e) => {
@@ -2490,35 +2535,47 @@ export class DynamicIsland {
                 onChange(pct);
             };
 
-            sliderEl.addEventListener('mousedown', (e) => {
+            const onMouseDown = (e) => {
                 e.stopPropagation();
                 e.preventDefault();
                 isDragging = true;
                 sliderEl.classList.add('active');
                 updateFromEvent(e);
-            });
+            };
 
-            document.addEventListener('mousemove', (e) => {
+            const onMouseMove = (e) => {
                 if (isDragging) {
                     e.stopPropagation();
                     e.preventDefault();
                     updateFromEvent(e);
                 }
-            });
+            };
 
-            document.addEventListener('mouseup', (e) => {
+            const onMouseUp = (e) => {
                 if (isDragging) {
                     e.stopPropagation();
                     e.preventDefault();
                     isDragging = false;
                     sliderEl.classList.remove('active');
                 }
-            });
+            };
+
+            sliderEl.addEventListener('mousedown', onMouseDown);
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+
+            return () => {
+                isDragging = false;
+                sliderEl.classList.remove('active');
+                sliderEl.removeEventListener('mousedown', onMouseDown);
+                document.removeEventListener('mousemove', onMouseMove);
+                document.removeEventListener('mouseup', onMouseUp);
+            };
         };
 
         // Bind Volume Vertical Slider
         const volSlider = container.querySelector('#ic-volume-slider');
-        bindVerticalSlider(volSlider, (val) => {
+        this._controlSliderCleanup = bindVerticalSlider(volSlider, (val) => {
             if (typeof require !== 'undefined') {
                 const { ipcRenderer } = require('electron');
                 ipcRenderer.invoke('set-system-volume', val);
@@ -3148,13 +3205,15 @@ export class DynamicIsland {
         </div>` : '';
         const isFavorite = this.isCurrentMusicFavorite();
 
-        const flipClass = (this._isNewTrackSignal) ? 'flip-active' : '';
+        const currentRenderTrackKey = data.trackKey || getMusicHistoryKey(data);
+        const shouldAnimateCover = Boolean(this._pendingCoverAnimationTrackKey && this._pendingCoverAnimationTrackKey === currentRenderTrackKey);
+        const flipClass = shouldAnimateCover ? 'flip-active' : '';
         let coverHtml;
         const appIcon = getFallbackIcon(data.appId, data.title, data.artist, data.windowTitle);
         const preferServiceIcon = shouldPreferServiceIcon(data.appId, data.title, data.artist);
         const isDisplayServiceArt = appIcon && displayArt === appIcon;
         const displayArtStyle = isDisplayServiceArt ? getServiceArtStyle('large') : '';
-        const previousDisplayArt = data.previousDisplayCover && data.previousDisplayCover !== displayArt ? data.previousDisplayCover : '';
+        const previousDisplayArt = shouldAnimateCover && data.previousDisplayCover && data.previousDisplayCover !== displayArt ? data.previousDisplayCover : '';
 
         if (displayArt && displayArt.length > 0) {
             const currentImg = `<img src="${escapeHtml(displayArt)}" class="album-art-img album-art-current" style="${displayArtStyle}" alt="Album">`;
@@ -3205,7 +3264,7 @@ export class DynamicIsland {
         </div>
         <div class="music-controls">
           <button class="control-btn-music" onclick="event.stopPropagation(); window.spotifyControl('prev')"><i class="ph-fill ph-skip-back"></i></button>
-          <button class="control-btn-music play-btn" onclick="event.stopPropagation(); window.spotifyControl(window.island.isPlaying ? 'pause' : 'play')">
+          <button class="control-btn-music play-btn" onclick="event.stopPropagation(); window.spotifyControl('toggle')">
             <i class="ph-fill ${data.isPlaying ? 'ph-pause' : 'ph-play'}"></i>
           </button>
           <button class="control-btn-music" onclick="event.stopPropagation(); window.spotifyControl('next')"><i class="ph-fill ph-skip-forward"></i></button>
@@ -3248,6 +3307,15 @@ export class DynamicIsland {
                 }
             }
         }
+
+        if (shouldAnimateCover && this._pendingCoverAnimationTrackKey === currentRenderTrackKey) {
+            this._pendingCoverAnimationTrackKey = "";
+        }
+        if (this.musicData) {
+            this.musicData.animateCover = false;
+            this.musicData.previousDisplayCover = "";
+        }
+        this._isNewTrackSignal = false;
     }
 
     renderMusicSearch() {
@@ -4135,6 +4203,76 @@ export class DynamicIsland {
         }, 850);
     }
 
+    getEstimatedMediaProgress() {
+        if (!this.musicData) return 0;
+
+        const duration = Number(this.musicData.duration) || 0;
+        const baseProgress = Number(this.musicData.progress) || 0;
+        if (!this.isPlaying) {
+            return duration ? Math.min(duration, Math.max(0, baseProgress)) : Math.max(0, baseProgress);
+        }
+
+        const elapsed = Math.max(0, Date.now() - (this.lastMediaUpdate || Date.now()));
+        const estimated = baseProgress + elapsed;
+        return duration ? Math.min(duration, Math.max(0, estimated)) : Math.max(0, estimated);
+    }
+
+    updateProgressVisual(progress, duration = this.musicData?.duration || 0) {
+        const safeDuration = Number(duration) || 0;
+        const safeProgress = Math.max(0, Number(progress) || 0);
+        const pct = safeDuration ? Math.min(100, (safeProgress / safeDuration) * 100) : 0;
+
+        const fill = this.el.querySelector('#music-progress-fill');
+        const timeEl = this.el.querySelector('#music-current-time');
+        if (fill) {
+            fill.style.width = `${pct}%`;
+            const bar = fill.closest('.progress-bar');
+            if (bar) bar.style.setProperty('--progress-pct', `${pct}%`);
+        }
+        if (timeEl) {
+            timeEl.innerText = formatTime(safeProgress);
+        }
+
+        if (!this.isExpanded && localStorage.getItem('liquid_idle_compact_mode') === 'progress') {
+            const chipTime = this.el.querySelector('.idle-metric-chip span');
+            if (chipTime) chipTime.innerText = formatTime(safeProgress);
+        }
+    }
+
+    applyOptimisticPlaybackState(nextPlaying, holdMs = 6500) {
+        const expected = Boolean(nextPlaying);
+        const stableProgress = this.getEstimatedMediaProgress();
+
+        this._mediaControlPendingUntil = Date.now() + holdMs;
+        this._mediaControlExpectedIsPlaying = expected;
+        this._mediaControlPendingTrackKey = this.musicData ? (this.musicData.trackKey || getMusicHistoryKey(this.musicData)) : "";
+
+        this.isPlaying = expected;
+        if (this.musicData) {
+            this.musicData.progress = stableProgress;
+            this.musicData.isPlaying = expected;
+        }
+        this.lastMediaUpdate = Date.now();
+        this.updateProgressVisual(stableProgress);
+        this.updatePlaybackVisualState(expected);
+    }
+
+    updatePlaybackVisualState(isPlaying) {
+        const active = Boolean(isPlaying);
+        if (this.el) {
+            this.el.classList.toggle('playing-music-glow', active);
+        }
+        document.querySelectorAll('.play-btn i, #ic-np-play-btn-val i').forEach((icon) => {
+            icon.className = `ph-fill ph-${active ? 'pause' : 'play'}`;
+        });
+    }
+
+    clearOptimisticPlaybackState() {
+        this._mediaControlPendingUntil = 0;
+        this._mediaControlExpectedIsPlaying = null;
+        this._mediaControlPendingTrackKey = "";
+    }
+
     updateMixerScrub(e) {
         if (!this.activeMixerSlider || !this.isScrubbingMixer) return;
         
@@ -4182,32 +4320,41 @@ export class DynamicIsland {
     }
 
     async toggleSessionMute(pid, mustMute) {
-        const session = this.audioSessions.find(s => s.pid === pid);
-        if (!session) return;
+        const grouped = this.getGroupedSessions(this.audioSessions || []);
+        const group = grouped.find(item => item.pid === pid || (Array.isArray(item.pids) && item.pids.includes(pid)));
+        const pids = group && Array.isArray(group.pids) && group.pids.length > 0 ? group.pids : [pid];
+        const sessions = this.audioSessions.filter(s => pids.includes(s.pid));
+        if (sessions.length === 0) return;
         
         if (!this._previousSessionVolumes) {
             this._previousSessionVolumes = {};
         }
         
-        let targetVolume = 0;
+        let targetVolume = Math.round(group?.volume || sessions[0]?.volume || 70);
         if (mustMute) {
-            this._previousSessionVolumes[pid] = session.volume > 0 ? session.volume : 70;
-            targetVolume = 0;
+            for (const session of sessions) {
+                this._previousSessionVolumes[session.pid] = session.volume > 0 ? session.volume : targetVolume || 70;
+            }
         } else {
-            targetVolume = this._previousSessionVolumes[pid] || 70;
+            targetVolume = this._previousSessionVolumes[pid] || targetVolume || 70;
         }
         
-        session.volume = targetVolume;
-        session.muted = mustMute;
+        for (const session of sessions) {
+            session.muted = mustMute;
+            if (!mustMute && session.volume <= 0) {
+                session.volume = this._previousSessionVolumes[session.pid] || targetVolume;
+            }
+        }
         
         const row = this.content.querySelector(`[data-pid="${pid}"]`)?.closest('.mixer-session-row, .ic-mixer-row');
         if (row) {
             const slider = row.querySelector('.mixer-volume-slider, .ic-mixer-slider');
             const badge = row.querySelector('.mixer-app-vol-badge, .ic-mixer-vol');
             const muteBtn = row.querySelector('.mixer-mute-btn, .ic-mixer-mute');
+            const visibleVolume = mustMute ? 0 : targetVolume;
             
-            if (slider) slider.value = targetVolume;
-            if (badge) badge.innerText = `${targetVolume}%`;
+            if (slider) slider.value = visibleVolume;
+            if (badge) badge.innerText = `${visibleVolume}%`;
             if (muteBtn) {
                 if (mustMute) {
                     muteBtn.classList.add('muted');
@@ -4215,10 +4362,23 @@ export class DynamicIsland {
                     row.classList.add('muted');
                 } else {
                     muteBtn.classList.remove('muted');
-                    muteBtn.innerHTML = `<i class="ph-fill ${targetVolume < 50 ? 'ph-speaker-low' : 'ph-speaker-high'}"></i>`;
+                    muteBtn.innerHTML = `<i class="ph-fill ${visibleVolume < 50 ? 'ph-speaker-low' : 'ph-speaker-high'}"></i>`;
                     row.classList.remove('muted');
                 }
             }
+        }
+
+        const { ipcRenderer } = (typeof window !== 'undefined' && window.require) ? window.require('electron') : { ipcRenderer: null };
+        if (!ipcRenderer) return;
+
+        try {
+            await Promise.all(pids.map(targetPid => ipcRenderer.invoke('set-session-muted', { pid: targetPid, muted: mustMute })));
+            if (!mustMute && targetVolume > 0) {
+                await Promise.all(pids.map(targetPid => ipcRenderer.invoke('set-session-volume', { pid: targetPid, volume: targetVolume })));
+            }
+        } catch (e) {
+            console.error('Error toggling session mute:', e);
+            this.updateAudioSessions();
         }
     }
 
@@ -4592,18 +4752,65 @@ export class DynamicIsland {
             data.progress = this.musicData.progress;
             data.duration = this.musicData.duration;
         }
+        if (this._mediaControlExpectedIsPlaying !== null && Date.now() < this._mediaControlPendingUntil) {
+            const pendingTrackKey = this._mediaControlPendingTrackKey;
+            const incomingTrackKey = data.trackKey || getMusicHistoryKey(data);
+            const currentTrackKey = this.musicData ? (this.musicData.trackKey || getMusicHistoryKey(this.musicData)) : "";
+            const sameTrack = !pendingTrackKey || !incomingTrackKey || pendingTrackKey === incomingTrackKey || currentTrackKey === incomingTrackKey;
+
+            if (sameTrack) {
+                const stableProgress = this.getEstimatedMediaProgress();
+                data.isPlaying = this._mediaControlExpectedIsPlaying;
+                data.progress = stableProgress;
+                if (this.musicData?.duration) {
+                    data.duration = this.musicData.duration;
+                }
+            } else {
+                this.clearOptimisticPlaybackState();
+            }
+        } else if (this._mediaControlExpectedIsPlaying !== null) {
+            this.clearOptimisticPlaybackState();
+        }
 
         const previousDisplayArt = this.musicData ? getDisplayMediaArt(this.musicData) : "";
-        const effectiveArt = this.getStableDisplayArt(data);
-        data.displayCover = effectiveArt;
-        data.previousDisplayCover = previousDisplayArt && previousDisplayArt !== effectiveArt ? previousDisplayArt : "";
-        const trackChanged = !this._lastRenderedTrack ||
-            this._lastRenderedTrack.title !== data.title ||
-            this._lastRenderedTrack.artist !== data.artist ||
-            this._lastRenderedTrack.cover !== effectiveArt ||
-            this._lastRenderedTrack.isPlaying !== data.isPlaying;
+        const currentTrackKey = this.musicData ? (this.musicData.trackKey || getMusicHistoryKey(this.musicData)) : "";
+        const incomingTrackKey = data.trackKey || getMusicHistoryKey(data);
+        const fallbackSameIdentity = this.musicData &&
+            (this.musicData.title || "") === (data.title || "") &&
+            (this.musicData.artist || "") === (data.artist || "");
+        const sameTrackIdentity = Boolean(currentTrackKey && incomingTrackKey)
+            ? currentTrackKey === incomingTrackKey
+            : fallbackSameIdentity;
+        const realTrackIdentityChanged = Boolean(this.musicData && currentTrackKey && incomingTrackKey && currentTrackKey !== incomingTrackKey);
+        const incomingPlaybackChanged = this.musicData && this.musicData.isPlaying !== data.isPlaying;
+        const playbackGuardActive = this._mediaControlExpectedIsPlaying !== null && Date.now() < this._mediaControlPendingUntil;
+        const shouldFreezeCover = sameTrackIdentity && previousDisplayArt && (incomingPlaybackChanged || playbackGuardActive);
+        let effectiveArt = shouldFreezeCover
+            ? previousDisplayArt
+            : this.getStableDisplayArt(data);
 
-        if (trackChanged) {
+        data.displayCover = effectiveArt;
+        const renderIdentityChanged = !this._lastRenderedTrack ||
+            this._lastRenderedTrack.title !== data.title ||
+            this._lastRenderedTrack.artist !== data.artist;
+        const coverChanged = !this._lastRenderedTrack ||
+            this._lastRenderedTrack.cover !== effectiveArt;
+        const trackChanged = renderIdentityChanged || (!shouldFreezeCover && coverChanged);
+        const playbackChanged = !this._lastRenderedTrack ||
+            this._lastRenderedTrack.isPlaying !== data.isPlaying;
+        const shouldAnimateCover = realTrackIdentityChanged &&
+            !playbackGuardActive &&
+            previousDisplayArt &&
+            effectiveArt &&
+            previousDisplayArt !== effectiveArt;
+
+        data.previousDisplayCover = shouldAnimateCover ? previousDisplayArt : "";
+        data.animateCover = shouldAnimateCover;
+        if (shouldAnimateCover) {
+            this._pendingCoverAnimationTrackKey = incomingTrackKey;
+        }
+
+        if (trackChanged || playbackChanged) {
             this._lastRenderedTrack = {
                 title: data.title,
                 artist: data.artist,
@@ -4612,19 +4819,15 @@ export class DynamicIsland {
             };
         }
 
-        const isNewTrack = !this._lastTrackId || 
-            this._lastTrackId.title !== data.title || 
-            this._lastTrackId.artist !== data.artist;
+        const isNewTrack = realTrackIdentityChanged || !this._lastTrackId;
 
         if (isNewTrack) {
             this._lastTrackId = {
                 title: data.title,
                 artist: data.artist
             };
-            this._isNewTrackSignal = true;
-        } else {
-            this._isNewTrackSignal = false;
         }
+        this._isNewTrackSignal = shouldAnimateCover;
 
         this.musicData = data;
         this.isPlaying = data.isPlaying;
@@ -4634,14 +4837,7 @@ export class DynamicIsland {
             this.addMusicHistoryItem(data);
         }
 
-        // Toggle reactive neon glow pulse depending on playback state
-        if (this.el) {
-            if (data.isPlaying) {
-                this.el.classList.add('playing-music-glow');
-            } else {
-                this.el.classList.remove('playing-music-glow');
-            }
-        }
+        this.updatePlaybackVisualState(data.isPlaying);
 
         // Enforce active cover artwork and colors synchronously for instant transition!
         this.syncGlobalCoverAesthetics();
@@ -4656,7 +4852,7 @@ export class DynamicIsland {
             if (npTitle) npTitle.innerText = data.title || "Sans titre";
             if (npArtist) npArtist.innerText = data.artist || "Artiste inconnu";
             if (npPlayBtn) {
-                npPlayBtn.setAttribute('onclick', `event.stopPropagation(); window.spotifyControl('${data.isPlaying ? 'pause' : 'play'}')`);
+                npPlayBtn.setAttribute('onclick', `event.stopPropagation(); window.spotifyControl('toggle')`);
                 npPlayBtn.innerHTML = `<i class="ph-fill ph-${data.isPlaying ? 'pause' : 'play'}"></i>`;
             }
             if (npCover) {
@@ -4710,6 +4906,8 @@ export class DynamicIsland {
             if (this.isScrubbing) return; // Do not re-render DOM while user is actively dragging the scrubber!
             if (trackChanged) {
                 this.renderMusic();
+            } else if (playbackChanged) {
+                this.updatePlaybackVisualState(data.isPlaying);
             }
         } else if (this.isExpanded && this.mode === 'music-history') {
             if (trackChanged) {

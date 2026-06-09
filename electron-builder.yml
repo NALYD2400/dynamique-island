@@ -39,10 +39,9 @@ nsis:
   multiLanguageInstaller: false
   displayLanguageSelector: false
   runAfterFinish: true
-  artifactName: "${productName}-${version}-Setup-${arch}.${ext}"
+  artifactName: "Liquid.Dynamic.Island-${version}-Setup-${arch}.${ext}"
 
 publish:
   provider: github
-  owner: "dylanrobert"
-  repo: "dynamique-island-2"
-
+  owner: "NALYD2400"
+  repo: "dynamique-island"

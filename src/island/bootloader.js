@@ -3,6 +3,7 @@ import { ThemeService } from '../services/ThemeService.js';
 import { visualizerService } from '../services/AudioVisualizerService.js';
 
 const { ipcRenderer } = window.require('electron');
+let mediaControlSyncToken = 0;
 
 // 1. BOOTSTRAP LEGACY GLOBAL APIs FOR 100% PARITY
 window.wm = {
@@ -20,10 +21,29 @@ window.wm = {
 
 window.spotifyControl = async (action) => {
     try {
-        ipcRenderer.send('spotify-control', action);
-        // Sync media state quickly
+        const cleanAction = String(action || '').trim().toLowerCase();
+        let actionToSend = action;
+        const isPlaybackAction = ['toggle', 'play', 'pause'].includes(cleanAction);
+        const syncToken = isPlaybackAction ? ++mediaControlSyncToken : mediaControlSyncToken;
+
+        if (window.island && isPlaybackAction) {
+            const nextPlaying = cleanAction === 'toggle' ? !window.island.isPlaying : cleanAction === 'play';
+            actionToSend = nextPlaying ? 'play' : 'pause';
+            if (typeof window.island.applyOptimisticPlaybackState === 'function') {
+                window.island.applyOptimisticPlaybackState(nextPlaying);
+            }
+        }
+
+        ipcRenderer.send('spotify-control', actionToSend);
+        // Browser players can lag behind SMTC after pause; resync several times.
         if (window.island && window.island.updateMediaState) {
-            setTimeout(() => window.island.updateMediaState(), 100);
+            [120, 450, 1200, 3200, 6800].forEach((delay) => {
+                setTimeout(() => {
+                    if (!isPlaybackAction || syncToken === mediaControlSyncToken) {
+                        window.island.updateMediaState();
+                    }
+                }, delay);
+            });
         }
     } catch (e) {
         console.error(e);

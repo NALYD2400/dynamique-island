@@ -181,7 +181,15 @@ namespace LiquidCore {
         private const int SPIF_UPDATEINIFILE = 0x01;
         private const int SPIF_SENDCHANGE = 0x02;
 
+        private static bool IsSafeTextArg(string value) {
+            return !string.IsNullOrWhiteSpace(value) &&
+                   value.Length <= 2048 &&
+                   value.IndexOf('\r') < 0 &&
+                   value.IndexOf('\n') < 0;
+        }
+
         private static void SetWallpaper(string path) {
+            if (!IsSafeTextArg(path)) return;
             SystemParametersInfo(SPI_SETDESKWALLPAPER, 0, path, SPIF_UPDATEINIFILE | SPIF_SENDCHANGE);
         }
 
@@ -235,6 +243,7 @@ namespace LiquidCore {
 
         private static void SetWallpaperWithBlur(string imagePath, int blurRadius) {
             try {
+                if (!IsSafeTextArg(imagePath)) return;
                 if (!File.Exists(imagePath)) return;
 
                 using (Bitmap original = new Bitmap(imagePath)) {
@@ -746,6 +755,8 @@ namespace LiquidCore {
                     } catch (Exception ex) {
                         Console.WriteLine("{\"error\":\"" + ex.Message.Replace("\"", "'") + "\"}");
                     }
+                } else if (line == "toggle") {
+                    _ = Task.Run(async () => await SendSmtcCommandAsync(SmtcCommand.Toggle));
                 } else if (line == "play") {
                     _ = Task.Run(async () => await SendSmtcCommandAsync(SmtcCommand.Play));
                 } else if (line == "pause") {
@@ -771,9 +782,11 @@ namespace LiquidCore {
                             if (action == "status") {
                                 string state = await GetWifiStateAsync();
                                 Console.WriteLine(state);
-                            } else {
+                            } else if (action == "on" || action == "off") {
                                 string res = await SetWifiStateAsync(action == "on");
                                 Console.WriteLine(res);
+                            } else {
+                                Console.WriteLine("error");
                             }
                         } else {
                             Console.WriteLine("error");
@@ -789,9 +802,11 @@ namespace LiquidCore {
                             if (action == "status") {
                                 string state = await GetBluetoothStateAsync();
                                 Console.WriteLine(state);
-                            } else {
+                            } else if (action == "on" || action == "off") {
                                 string res = await SetBluetoothStateAsync(action == "on");
                                 Console.WriteLine(res);
+                            } else {
+                                Console.WriteLine("error");
                             }
                         } else {
                             Console.WriteLine("error");
@@ -807,9 +822,11 @@ namespace LiquidCore {
                             if (action == "status") {
                                 string state = GetDndState();
                                 Console.WriteLine(state);
-                            } else {
+                            } else if (action == "on" || action == "off") {
                                 string res = SetDndState(action == "on");
                                 Console.WriteLine(res);
+                            } else {
+                                Console.WriteLine("error");
                             }
                         } else {
                             Console.WriteLine("error");
@@ -1060,7 +1077,7 @@ namespace LiquidCore {
 
         private static string GetFileIconData(string filePath) {
             try {
-                if (string.IsNullOrWhiteSpace(filePath)) return "";
+                if (!IsSafeTextArg(filePath)) return "";
                 
                 string expanded = Environment.ExpandEnvironmentVariables(filePath);
                 if (!File.Exists(expanded)) {
@@ -1392,12 +1409,6 @@ namespace LiquidCore {
                 var timelineProperties = session.GetTimelineProperties();
 
                 bool isPlaying = playbackInfo != null && playbackInfo.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing;
-                if (!isPlaying) {
-                    var fallback = BuildFallbackMediaResponse();
-                    if (fallback.status == "success" && fallback.isPlaying) {
-                        return fallback;
-                    }
-                }
 
                 string title = props?.Title ?? "Sans titre";
                 string artist = props?.Artist ?? "Artiste inconnu";
@@ -1473,7 +1484,7 @@ namespace LiquidCore {
             }
         }
 
-        private enum SmtcCommand { Play, Pause, Next, Prev }
+        private enum SmtcCommand { Toggle, Play, Pause, Next, Prev }
 
         private static async Task<bool> SendSmtcCommandAsync(SmtcCommand cmd) {
             if (!await EnsureSmtcManagerAsync()) return false;
@@ -1482,6 +1493,8 @@ namespace LiquidCore {
 
             try {
                 switch (cmd) {
+                    case SmtcCommand.Toggle:
+                        return await session.TryTogglePlayPauseAsync();
                     case SmtcCommand.Play:
                         return await session.TryPlayAsync();
                     case SmtcCommand.Pause:

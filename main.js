@@ -43,12 +43,69 @@ let mediaAdvanceGuard = {
     previousCover: "",
     previousTrackKey: ""
 };
+let mediaPlaybackGuardUntil = 0;
+let mediaPlaybackExpectedIsPlaying = null;
 let lastNoMediaDiagnosticAt = 0;
 let lastMediaLogSignature = "";
 let activeWindowCache = {
     at: 0,
     info: null
 };
+
+const TRUSTED_PERMISSION_SET = new Set(['media', 'notifications']);
+const CORE_TEXT_ARG_MAX_LENGTH = 2048;
+const MAX_CORE_COMMAND_QUEUE_LENGTH = 128;
+
+function getEventUrl(event) {
+    return event?.senderFrame?.url || event?.sender?.getURL?.() || "";
+}
+
+function isTrustedSender(event) {
+    const sender = event?.sender;
+    const url = getEventUrl(event);
+    return Boolean(isTrustedWebContents(sender) && url.startsWith('file://'));
+}
+
+function isTrustedWebContents(webContents) {
+    return Boolean(
+        (mainWindow && !mainWindow.isDestroyed() && mainWindow.webContents === webContents) ||
+        (settingsWindow && !settingsWindow.isDestroyed() && settingsWindow.webContents === webContents)
+    );
+}
+
+function ensureTrustedSender(event, fallback = null) {
+    if (isTrustedSender(event)) return { trusted: true, value: null };
+    logCoreMessage(`[Security] Rejected IPC from untrusted sender: ${getEventUrl(event) || 'unknown'}`);
+    return { trusted: false, value: fallback };
+}
+
+function hasUnsafeCoreText(value) {
+    return typeof value !== 'string' ||
+        value.length === 0 ||
+        value.length > CORE_TEXT_ARG_MAX_LENGTH ||
+        /[\r\n]/.test(value);
+}
+
+function clampInteger(value, min, max, fallback = null) {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) return fallback;
+    return Math.min(max, Math.max(min, Math.round(parsed)));
+}
+
+function normalizeToggleAction(action) {
+    const clean = String(action || '').trim().toLowerCase();
+    return ['on', 'off', 'status'].includes(clean) ? clean : null;
+}
+
+function normalizeMediaCommand(action) {
+    const clean = String(action || '').trim().toLowerCase();
+    if (['toggle', 'play', 'pause', 'next', 'prev'].includes(clean)) return clean;
+
+    const seekMatch = clean.match(/^seek\s+(\d{1,10})$/);
+    if (seekMatch) return `seek ${seekMatch[1]}`;
+
+    return null;
+}
 
 let originalWallpaper = "";
 let lastWallpaperCover = "";
@@ -167,6 +224,8 @@ async function updateWallpaper(cover) {
 }
 
 async function applyWallpaper(imagePath) {
+    if (hasUnsafeCoreText(imagePath)) return;
+
     try {
         if (wallpaperSyncStyle === 'sharp') {
             await sendCoreCommand(`wallpaper "${imagePath}"`);
@@ -181,7 +240,7 @@ async function applyWallpaper(imagePath) {
 }
 
 async function restoreOriginalWallpaper() {
-    if (originalWallpaper && fs.existsSync(originalWallpaper)) {
+    if (originalWallpaper && !hasUnsafeCoreText(originalWallpaper) && fs.existsSync(originalWallpaper)) {
         try {
             await sendCoreCommand(`wallpaper "${originalWallpaper}"`);
             lastWallpaperCover = "";
@@ -609,6 +668,11 @@ function pumpCoreCommandQueue() {
 
 async function sendCoreCommand(cmd, timeoutMs = 2000) {
     if (!coreWorker) return null;
+    if (hasUnsafeCoreText(String(cmd || ''))) return null;
+    if (coreCommandQueue.length >= MAX_CORE_COMMAND_QUEUE_LENGTH) {
+        logCoreMessage('[Core] Command queue overflow; dropping command');
+        return null;
+    }
 
     return new Promise((resolve) => {
         coreCommandQueue.push({ cmd, resolve, timeout: null, timeoutMs });
@@ -756,11 +820,11 @@ function createTray() {
             click: () => {
                 if (mainWindow && !mainWindow.isDestroyed()) {
                     if (mainWindow.isVisible()) {
-                        mainWindow.hide();
                         islandHiddenByShortcut = true;
+                        mainWindow.hide();
                     } else {
-                        mainWindow.showInactive();
                         islandHiddenByShortcut = false;
+                        mainWindow.showInactive();
                         enforceMainWindowTopmost('tray-show');
                     }
                 }
@@ -804,11 +868,11 @@ function createTray() {
     tray.on('double-click', () => {
         if (mainWindow && !mainWindow.isDestroyed()) {
             if (mainWindow.isVisible()) {
-                mainWindow.hide();
                 islandHiddenByShortcut = true;
+                mainWindow.hide();
             } else {
-                mainWindow.showInactive();
                 islandHiddenByShortcut = false;
+                mainWindow.showInactive();
                 enforceMainWindowTopmost('tray-doubleclick');
             }
         }
@@ -831,6 +895,14 @@ app.whenReady().then(() => {
 
     // Auto-approve and capture system sound loopback for visualizer reactiveness
     session.defaultSession.setDisplayMediaRequestHandler((request, callback) => {
+        const requestUrl = request?.frame?.url || request?.webContents?.getURL?.() || "";
+        const knownRequester = request?.webContents ? isTrustedWebContents(request.webContents) : true;
+        if (!requestUrl.startsWith('file://') || !knownRequester) {
+            logCoreMessage(`[Security] Rejected display capture request from ${requestUrl || 'unknown'}`);
+            callback({ error: 'Not allowed' });
+            return;
+        }
+
         desktopCapturer.getSources({ types: ['screen'] }).then((sources) => {
             if (sources.length > 0) {
                 callback({ video: sources[0], audio: sources[0] });
@@ -843,13 +915,14 @@ app.whenReady().then(() => {
         });
     });
 
-    // Auto-approve all permission requests (audio, display-capture, etc.)
     session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
-        callback(true);
+        const url = webContents?.getURL?.() || "";
+        callback(isTrustedWebContents(webContents) && url.startsWith('file://') && TRUSTED_PERMISSION_SET.has(permission));
     });
 
     session.defaultSession.setPermissionCheckHandler((webContents, permission, origin, details) => {
-        return true;
+        const url = webContents?.getURL?.() || origin || "";
+        return isTrustedWebContents(webContents) && url.startsWith('file://') && TRUSTED_PERMISSION_SET.has(permission);
     });
 
     app.on('activate', () => {
@@ -886,6 +959,7 @@ app.on('will-quit', (event) => {
 
 // IPC Pipeline Event listeners
 ipcMain.on('set-ignore-mouse', (event, ignore, options) => {
+    if (!isTrustedSender(event)) return;
     if (mainWindow && !mainWindow.isDestroyed()) {
         if (layoutEditMode && ignore) {
             return;
@@ -895,23 +969,28 @@ ipcMain.on('set-ignore-mouse', (event, ignore, options) => {
 });
 
 ipcMain.on('set-persistent-island', (event, enabled) => {
+    if (!isTrustedSender(event)) return;
     setIslandPersistentMode(enabled, 'ipc-setting');
 });
 
-ipcMain.on('exit-app', () => {
+ipcMain.on('exit-app', (event) => {
+    if (!isTrustedSender(event)) return;
     app.quit();
 });
 
-ipcMain.on('open-settings', () => {
+ipcMain.on('open-settings', (event) => {
+    if (!isTrustedSender(event)) return;
     createSettingsWindow();
 });
 
-ipcMain.on('close-settings', () => {
+ipcMain.on('close-settings', (event) => {
+    if (!isTrustedSender(event)) return;
     if (settingsWindow) settingsWindow.close();
 });
 
 // Config changed: relays parameters from Settings Window to Island Window
 ipcMain.on('config-changed', (event, config) => {
+    if (!isTrustedSender(event)) return;
     if (config) {
         const oldStyle = wallpaperSyncStyle;
         if (config.wallpaperSyncStyle !== undefined) wallpaperSyncStyle = config.wallpaperSyncStyle;
@@ -949,6 +1028,7 @@ ipcMain.on('config-changed', (event, config) => {
 
 // Wallpaper sync startup status relay
 ipcMain.on('wallpaper-sync-status', (event, enabled, style) => {
+    if (!isTrustedSender(event)) return;
     isWallpaperSyncEnabled = enabled;
     if (style) wallpaperSyncStyle = style;
     if (enabled && currentMedia && currentMedia.cover) {
@@ -956,7 +1036,10 @@ ipcMain.on('wallpaper-sync-status', (event, enabled, style) => {
     }
 });
 
-ipcMain.handle('get-layout-state', () => {
+ipcMain.handle('get-layout-state', (event) => {
+    const trust = ensureTrustedSender(event, null);
+    if (!trust.trusted) return trust.value;
+
     const workArea = screen.getPrimaryDisplay().workArea;
     return {
         layout: currentLayoutConfig,
@@ -971,6 +1054,7 @@ ipcMain.handle('get-layout-state', () => {
 });
 
 ipcMain.on('layout-config-changed', (event, layout) => {
+    if (!isTrustedSender(event)) return;
     currentLayoutConfig = clampLayoutConfigToDisplay({
         ...currentLayoutConfig,
         ...(layout || {})
@@ -979,27 +1063,36 @@ ipcMain.on('layout-config-changed', (event, layout) => {
     applyMainWindowLayout();
 });
 
-ipcMain.on('layout-reset', () => {
+ipcMain.on('layout-reset', (event) => {
+    if (!isTrustedSender(event)) return;
     currentLayoutConfig = clampLayoutConfigToDisplay(getDefaultLayoutConfig());
     saveLayoutConfig();
     applyMainWindowLayout();
 });
 
 ipcMain.on('set-layout-edit-mode', (event, enabled) => {
+    if (!isTrustedSender(event)) return;
     setLayoutEditModeState(enabled);
 });
 
 ipcMain.on('apply-profile', (event, profile) => {
+    if (!isTrustedSender(event)) return;
     if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('apply-profile', profile);
     }
 });
 
-ipcMain.handle('get-auto-start', () => {
+ipcMain.handle('get-auto-start', (event) => {
+    const trust = ensureTrustedSender(event, false);
+    if (!trust.trusted) return trust.value;
+
     return app.getLoginItemSettings().openAtLogin;
 });
 
 ipcMain.handle('set-auto-start', (event, enabled) => {
+    const trust = ensureTrustedSender(event, false);
+    if (!trust.trusted) return trust.value;
+
     try {
         app.setLoginItemSettings({
             openAtLogin: Boolean(enabled),
@@ -1014,6 +1107,7 @@ ipcMain.handle('set-auto-start', (event, enabled) => {
 
 // Trigger Notification: relays custom test alerts from Settings Window to Island Window
 ipcMain.on('trigger-notif', (event, data) => {
+    if (!isTrustedSender(event)) return;
     if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('trigger-notif', data);
     }
@@ -1021,6 +1115,7 @@ ipcMain.on('trigger-notif', (event, data) => {
 
 // Cover Color Changed: relays album art color from Island to Settings Window
 ipcMain.on('cover-color-changed', (event, colorData) => {
+    if (!isTrustedSender(event)) return;
     if (settingsWindow && !settingsWindow.isDestroyed()) {
         settingsWindow.webContents.send('cover-color-changed', colorData);
     }
@@ -1080,7 +1175,10 @@ async function fetchFallbackCover(title, artist) {
 }
 
 // Media state synchronization IPC handler
-ipcMain.handle('get-media-info', async () => {
+ipcMain.handle('get-media-info', async (event) => {
+    const trust = ensureTrustedSender(event, null);
+    if (!trust.trusted) return trust.value;
+
     if (!coreWorker) return null;
 
     try {
@@ -1089,6 +1187,18 @@ ipcMain.handle('get-media-info', async () => {
 
         const data = JSON.parse(line);
         if (data.status === 'no_media') {
+            const hasPreviousMedia = currentMedia &&
+                currentMedia.trackKey &&
+                currentMedia.title !== "Aucune lecture";
+
+            if (hasPreviousMedia && (mediaAdvanceGuard.until > Date.now() || mediaPlaybackGuardUntil > Date.now())) {
+                return {
+                    ...currentMedia,
+                    transientCover: currentMedia.transientCover || currentMedia.cover || "",
+                    source: currentMedia.source || data.source || ""
+                };
+            }
+
             if (Date.now() - lastNoMediaDiagnosticAt > 20000) {
                 lastNoMediaDiagnosticAt = Date.now();
                 logCoreDiagnostics('no_media');
@@ -1121,6 +1231,26 @@ ipcMain.handle('get-media-info', async () => {
             let windowTitle = "";
             const browserMedia = isBrowserApp(data.appId);
             const browserIconCover = browserMedia && isLikelyBrowserIconCover(cover);
+            const incomingDuration = Number(data.duration) || 0;
+            const incomingProgress = Number(data.progress) || 0;
+            const isWeakWasapiFallback = data.source === 'wasapi' && incomingDuration <= 0;
+            const hasRealCurrentMedia = currentMedia &&
+                currentMedia.trackKey &&
+                currentMedia.duration > 0 &&
+                currentMedia.title !== "Aucune lecture";
+
+            if (isWeakWasapiFallback && hasRealCurrentMedia && mediaPlaybackGuardUntil > Date.now()) {
+                return {
+                    ...currentMedia,
+                    isPlaying: mediaPlaybackExpectedIsPlaying ?? currentMedia.isPlaying,
+                    source: currentMedia.source || 'smtc'
+                };
+            }
+
+            if (hasRealCurrentMedia && mediaPlaybackGuardUntil > Date.now() && incomingDuration <= 0) {
+                data.duration = currentMedia.duration;
+                data.progress = currentMedia.progress;
+            }
 
             if (browserMedia && (!cover || browserIconCover)) {
                 const activeWindow = await getForegroundWindowInfoCached();
@@ -1154,9 +1284,8 @@ ipcMain.handle('get-media-info', async () => {
             if (
                 mediaAdvanceGuard.until > Date.now() &&
                 trackKey !== mediaAdvanceGuard.previousTrackKey &&
-                cover &&
                 mediaAdvanceGuard.previousCover &&
-                cover === mediaAdvanceGuard.previousCover
+                (!cover || cover === mediaAdvanceGuard.previousCover)
             ) {
                 transientCover = mediaAdvanceGuard.previousCover;
                 cover = "";
@@ -1188,8 +1317,8 @@ ipcMain.handle('get-media-info', async () => {
                 transientCover: cover ? "" : transientCover,
                 appId: data.appId || "",
                 isPlaying: data.isPlaying || false,
-                progress: data.progress || 0,
-                duration: data.duration || 0,
+                progress: Number(data.progress) || incomingProgress || 0,
+                duration: Number(data.duration) || incomingDuration || 0,
                 source: data.source || "",
                 trackKey: trackKey,
                 windowTitle: windowTitle
@@ -1205,21 +1334,38 @@ ipcMain.handle('get-media-info', async () => {
 
 // Media Command player controls
 ipcMain.on('spotify-control', (event, action) => {
-    if (action === 'next' || action === 'prev') {
+    if (!isTrustedSender(event)) return;
+
+    const safeAction = normalizeMediaCommand(action);
+    if (!safeAction) return;
+
+    if (safeAction === 'next' || safeAction === 'prev') {
         mediaAdvanceGuard = {
             until: Date.now() + 2500,
-            previousCover: currentMedia.cover || "",
+            previousCover: currentMedia.cover || currentMedia.transientCover || "",
             previousTrackKey: getMediaTrackKey(currentMedia.title, currentMedia.artist)
         };
+    } else if (safeAction === 'play' || safeAction === 'pause' || safeAction === 'toggle') {
+        mediaPlaybackGuardUntil = Date.now() + 6500;
+        if (safeAction === 'play') {
+            mediaPlaybackExpectedIsPlaying = true;
+        } else if (safeAction === 'pause') {
+            mediaPlaybackExpectedIsPlaying = false;
+        } else {
+            mediaPlaybackExpectedIsPlaying = currentMedia ? !currentMedia.isPlaying : null;
+        }
     }
 
     if (coreWorker) {
-        coreWorker.stdin.write(action + '\n');
+        coreWorker.stdin.write(safeAction + '\n');
     }
 });
 
 // IPC handler for loopback system audio capture (restricts to screen sources to allow audio)
-ipcMain.handle('get-audio-screen-source', async () => {
+ipcMain.handle('get-audio-screen-source', async (event) => {
+    const trust = ensureTrustedSender(event, null);
+    if (!trust.trusted) return trust.value;
+
     try {
         const sources = await desktopCapturer.getSources({ types: ['screen'] });
         return sources.length > 0 ? sources[0].id : null;
@@ -1230,7 +1376,10 @@ ipcMain.handle('get-audio-screen-source', async () => {
 });
 
 // IPC handler for screen mirroring/screencasting targets
-ipcMain.handle('get-desktop-sources', async () => {
+ipcMain.handle('get-desktop-sources', async (event) => {
+    const trust = ensureTrustedSender(event, []);
+    if (!trust.trusted) return trust.value;
+
     try {
         const sources = await desktopCapturer.getSources({
             types: ['window', 'screen'],
@@ -1250,7 +1399,12 @@ ipcMain.handle('get-desktop-sources', async () => {
 
 // IPC handler to retrieve the native high-fidelity Windows icon of a file or executable
 ipcMain.handle('get-file-icon', async (event, filePath) => {
+    const trust = ensureTrustedSender(event, "");
+    if (!trust.trusted) return trust.value;
+
     if (!coreWorker) return "";
+    if (hasUnsafeCoreText(filePath)) return "";
+
     try {
         const res = await sendCoreCommand(`geticon ${filePath}`);
         return res || "";
@@ -1260,7 +1414,10 @@ ipcMain.handle('get-file-icon', async (event, filePath) => {
 });
 
 // IPC handler to retrieve advanced native hardware telemetry
-ipcMain.handle('get-hardware-telemetry', async () => {
+ipcMain.handle('get-hardware-telemetry', async (event) => {
+    const trust = ensureTrustedSender(event, { cpuTemp: 42.0, gpuTemp: 45.0, netDown: 0.0, netUp: 0.0, diskRead: 0.0, diskWrite: 0.0 });
+    if (!trust.trusted) return trust.value;
+
     if (!coreWorker) return { cpuTemp: 42.0, gpuTemp: 45.0, netDown: 0.0, netUp: 0.0, diskRead: 0.0, diskWrite: 0.0 };
     try {
         const res = await sendCoreCommand('telemetry');
@@ -1273,8 +1430,14 @@ ipcMain.handle('get-hardware-telemetry', async () => {
 
 // C# Core volume control relays
 ipcMain.handle('set-system-volume', async (event, volume) => {
+    const trust = ensureTrustedSender(event, false);
+    if (!trust.trusted) return trust.value;
+
+    const safeVolume = clampInteger(volume, 0, 100, null);
+    if (safeVolume === null) return false;
+
     try {
-        await sendCoreCommand(`master ${Math.round(volume)}`);
+        await sendCoreCommand(`master ${safeVolume}`);
         return true;
     } catch (e) {
         console.error('Error setting master volume via core:', e);
@@ -1282,7 +1445,10 @@ ipcMain.handle('set-system-volume', async (event, volume) => {
     }
 });
 
-ipcMain.handle('get-system-volume', async () => {
+ipcMain.handle('get-system-volume', async (event) => {
+    const trust = ensureTrustedSender(event, 70);
+    if (!trust.trusted) return trust.value;
+
     try {
         const result = await sendCoreCommand('getmaster');
         if (result === null) return 70;
@@ -1294,7 +1460,10 @@ ipcMain.handle('get-system-volume', async () => {
 });
 
 // C# Core per-app session volume controls
-ipcMain.handle('get-audio-sessions', async () => {
+ipcMain.handle('get-audio-sessions', async (event) => {
+    const trust = ensureTrustedSender(event, []);
+    if (!trust.trusted) return trust.value;
+
     if (!coreWorker) return [];
     try {
         const line = await sendCoreCommand('list');
@@ -1306,10 +1475,18 @@ ipcMain.handle('get-audio-sessions', async () => {
     }
 });
 
-ipcMain.handle('set-session-volume', async (event, { pid, volume }) => {
+ipcMain.handle('set-session-volume', async (event, payload = {}) => {
+    const trust = ensureTrustedSender(event, false);
+    if (!trust.trusted) return trust.value;
+
     if (!coreWorker) return false;
+    const { pid, volume } = payload || {};
+    const safePid = clampInteger(pid, 1, 2147483647, null);
+    const safeVolume = clampInteger(volume, 0, 100, null);
+    if (safePid === null || safeVolume === null) return false;
+
     try {
-        const result = await sendCoreCommand(`set ${pid} ${Math.round(volume)}`);
+        const result = await sendCoreCommand(`set ${safePid} ${safeVolume}`);
         return result && result.trim() === 'ok';
     } catch (e) {
         console.error('Error setting session volume via core:', e);
@@ -1317,10 +1494,17 @@ ipcMain.handle('set-session-volume', async (event, { pid, volume }) => {
     }
 });
 
-ipcMain.handle('set-session-muted', async (event, { pid, muted }) => {
+ipcMain.handle('set-session-muted', async (event, payload = {}) => {
+    const trust = ensureTrustedSender(event, false);
+    if (!trust.trusted) return trust.value;
+
     if (!coreWorker) return false;
+    const { pid, muted } = payload || {};
+    const safePid = clampInteger(pid, 1, 2147483647, null);
+    if (safePid === null) return false;
+
     try {
-        const result = await sendCoreCommand(`mute ${pid} ${Boolean(muted)}`);
+        const result = await sendCoreCommand(`mute ${safePid} ${Boolean(muted)}`);
         return result && result.trim() === 'ok';
     } catch (e) {
         console.error('Error muting session via core:', e);
@@ -1328,7 +1512,10 @@ ipcMain.handle('set-session-muted', async (event, { pid, muted }) => {
     }
 });
 
-ipcMain.handle('get-active-window-info', async () => {
+ipcMain.handle('get-active-window-info', async (event) => {
+    const trust = ensureTrustedSender(event, { isFullscreen: false });
+    if (!trust.trusted) return trust.value;
+
     if (!coreWorker) return { isFullscreen: false };
     try {
         const result = await sendCoreCommand('activewindow');
@@ -1363,8 +1550,14 @@ function runPowerShellJson(command, fallback) {
 
 // Native OS Toggles System Controls
 ipcMain.handle('wifi-control', async (event, action) => {
+    const trust = ensureTrustedSender(event, 'error');
+    if (!trust.trusted) return trust.value;
+
+    const safeAction = normalizeToggleAction(action);
+    if (!safeAction) return 'error';
+
     try {
-        const result = await sendCoreCommand(`wifi ${action}`);
+        const result = await sendCoreCommand(`wifi ${safeAction}`);
         return result ? result.trim() : 'error';
     } catch (e) {
         console.error('Error in wifi-control IPC:', e);
@@ -1373,8 +1566,14 @@ ipcMain.handle('wifi-control', async (event, action) => {
 });
 
 ipcMain.handle('bluetooth-control', async (event, action) => {
+    const trust = ensureTrustedSender(event, 'error');
+    if (!trust.trusted) return trust.value;
+
+    const safeAction = normalizeToggleAction(action);
+    if (!safeAction) return 'error';
+
     try {
-        const result = await sendCoreCommand(`bluetooth ${action}`);
+        const result = await sendCoreCommand(`bluetooth ${safeAction}`);
         return result ? result.trim() : 'error';
     } catch (e) {
         console.error('Error in bluetooth-control IPC:', e);
@@ -1383,8 +1582,14 @@ ipcMain.handle('bluetooth-control', async (event, action) => {
 });
 
 ipcMain.handle('dnd-control', async (event, action) => {
+    const trust = ensureTrustedSender(event, 'error');
+    if (!trust.trusted) return trust.value;
+
+    const safeAction = normalizeToggleAction(action);
+    if (!safeAction) return 'error';
+
     try {
-        const result = await sendCoreCommand(`dnd ${action}`);
+        const result = await sendCoreCommand(`dnd ${safeAction}`);
         return result ? result.trim() : 'error';
     } catch (e) {
         console.error('Error in dnd-control IPC:', e);
@@ -1424,6 +1629,9 @@ function registerGlobalHotkey(shortcut) {
 }
 
 ipcMain.on('register-shortcut', (event, shortcut) => {
+    if (!isTrustedSender(event)) return;
+    if (hasUnsafeCoreText(String(shortcut || '')) || String(shortcut).length > 80) return;
+
     currentShortcut = shortcut;
     registerGlobalHotkey(shortcut);
 });
