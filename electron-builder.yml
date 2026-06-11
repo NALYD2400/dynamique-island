@@ -6,6 +6,7 @@ directories:
 asar: true
 files:
   - main.js
+  - preload.js
   - package.json
   - src/**/*
 extraResources:
