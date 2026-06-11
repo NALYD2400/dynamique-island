@@ -2,7 +2,7 @@ import { DynamicIsland } from '../components/DynamicIsland.js';
 import { ThemeService } from '../services/ThemeService.js';
 import { visualizerService } from '../services/AudioVisualizerService.js';
 
-const { ipcRenderer } = window.require('electron');
+const { ipcRenderer } = window.electronAPI;
 let mediaControlSyncToken = 0;
 
 // 1. BOOTSTRAP LEGACY GLOBAL APIs FOR 100% PARITY
@@ -67,6 +67,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const wallpaperSyncStyle = localStorage.getItem('liquid_wallpaper_sync_style') || 'blur';
     ipcRenderer.send('wallpaper-sync-status', isWallpaperSync, wallpaperSyncStyle);
 
+    const isAiAgentMonitor = localStorage.getItem('liquid_ai_agent_monitor') !== 'false';
+    ipcRenderer.send('ai-agent-monitor-status', isAiAgentMonitor);
+
     ipcRenderer.invoke('get-layout-state').then((state) => {
         if (!state || !window.island) return;
         if (state.layout) {
@@ -95,6 +98,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Listen to settings configurations IPC changes in real-time
     ipcRenderer.on('config-changed', (event, config) => {
+        if (config.aiAgentMonitor !== undefined) {
+            localStorage.setItem('liquid_ai_agent_monitor', config.aiAgentMonitor);
+        }
         // Save in localStorage so ThemeService and DynamicIsland can fetch them!
         if (config.glow) {
             localStorage.setItem('liquid_island_config', JSON.stringify(config.glow));
@@ -185,5 +191,17 @@ document.addEventListener('DOMContentLoaded', () => {
     ipcRenderer.on('layout-edit-mode-changed', (event, enabled) => {
         if (!window.island) return;
         window.island.setLayoutEditMode(Boolean(enabled));
+    });
+
+    ipcRenderer.on('ai-agent-event', (event, data) => {
+        if (window.island && typeof window.island.onAiAgentEvent === 'function') {
+            window.island.onAiAgentEvent(data);
+        }
+    });
+
+    ipcRenderer.on('ai-agent-timeout', (event, data) => {
+        if (window.island && typeof window.island.onAiAgentTimeout === 'function') {
+            window.island.onAiAgentTimeout(data);
+        }
     });
 });

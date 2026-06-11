@@ -23,18 +23,76 @@ namespace LiquidCore {
     [Guid("A95664D2-9614-4F35-A746-DE8DB63617E6")]
     [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
     internal interface IMMDeviceEnumerator {
-        int NotImpl1();
-        [PreserveSig]
-        int GetDefaultAudioEndpoint(int dataFlow, int role, out IMMDevice ppEndpoint);
+        [PreserveSig] int EnumAudioEndpoints(int dataFlow, int dwStateMask, out IMMDeviceCollection ppDevices);
+        [PreserveSig] int GetDefaultAudioEndpoint(int dataFlow, int role, out IMMDevice ppEndpoint);
+        [PreserveSig] int GetDevice([MarshalAs(UnmanagedType.LPWStr)] string pwstrId, out IMMDevice ppDevice);
     }
 
     [ComImport]
     [Guid("D666063F-1587-4E43-81F1-B948E807363F")]
     [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
     internal interface IMMDevice {
-        [PreserveSig]
-        int Activate(ref Guid iid, uint dwClsCtx, IntPtr pActivationParams, [MarshalAs(UnmanagedType.IUnknown)] out object ppInterface);
+        [PreserveSig] int Activate(ref Guid iid, uint dwClsCtx, IntPtr pActivationParams, [MarshalAs(UnmanagedType.IUnknown)] out object ppInterface);
+        [PreserveSig] int OpenPropertyStore(uint stgmAccess, out IPropertyStore ppProperties);
+        [PreserveSig] int GetId([MarshalAs(UnmanagedType.LPWStr)] out string ppstrId);
+        [PreserveSig] int GetState(out uint pdwState);
     }
+
+    [ComImport]
+    [Guid("0BD7A1BE-7A1A-44DB-8397-CC5392387B5E")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    internal interface IMMDeviceCollection {
+        [PreserveSig] int GetCount(out uint pcDevices);
+        [PreserveSig] int Item(uint nDevice, out IMMDevice ppDevice);
+    }
+
+    [ComImport]
+    [Guid("886d8eeb-8cf2-4446-8d02-cdba1dbdcf99")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    internal interface IPropertyStore {
+        [PreserveSig] int GetCount(out uint cProps);
+        [PreserveSig] int GetAt(uint iProp, out PropertyKey pkey);
+        [PreserveSig] int GetValue(ref PropertyKey key, out PropVariant pv);
+        [PreserveSig] int SetValue(ref PropertyKey key, ref PropVariant propvar);
+        [PreserveSig] int Commit();
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct PropertyKey {
+        public Guid fmtid;
+        public uint pid;
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    internal struct PropVariant {
+        [FieldOffset(0)] public ushort vt;
+        [FieldOffset(2)] public ushort wReserved1;
+        [FieldOffset(4)] public ushort wReserved2;
+        [FieldOffset(6)] public ushort wReserved3;
+        [FieldOffset(8)] public IntPtr pwszVal;
+    }
+
+    [ComImport]
+    [Guid("f8679f50-850a-41cf-9c72-430f290290c8")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    internal interface IPolicyConfig {
+        [PreserveSig] int GetMixFormat();
+        [PreserveSig] int GetDeviceFormat();
+        [PreserveSig] int ResetDeviceFormat();
+        [PreserveSig] int SetDeviceFormat();
+        [PreserveSig] int GetProcessingPeriod();
+        [PreserveSig] int SetProcessingPeriod();
+        [PreserveSig] int GetShareMode();
+        [PreserveSig] int SetShareMode();
+        [PreserveSig] int GetPropertyValue();
+        [PreserveSig] int SetPropertyValue();
+        [PreserveSig] int SetDefaultEndpoint([MarshalAs(UnmanagedType.LPWStr)] string wszDeviceId, uint eRole);
+        [PreserveSig] int SetEndpointVisibility([MarshalAs(UnmanagedType.LPWStr)] string wszDeviceId, int bVisible);
+    }
+
+    [ComImport]
+    [Guid("870AF99C-171D-4F9E-AF0D-E63DF40C2BC9")]
+    internal class PolicyConfigClient { }
 
     [ComImport]
     [Guid("77AA99A0-1BD6-484F-8BC7-2C654C9A9B6F")]
@@ -159,7 +217,16 @@ namespace LiquidCore {
         public string source { get; set; } = "";
     }
 
+    public class AudioDevice {
+        public string id { get; set; } = "";
+        public string name { get; set; } = "";
+        public bool isDefault { get; set; }
+    }
+
     class Program {
+        [DllImport("Ole32.dll", PreserveSig = false)]
+        internal static extern void PropVariantClear(ref PropVariant pvar);
+
         [StructLayout(LayoutKind.Sequential)]
         private struct RECT {
             public int Left;
@@ -608,6 +675,87 @@ namespace LiquidCore {
             }
         }
 
+        private static List<AudioDevice> GetAudioDevices(int dataFlow) {
+            var result = new List<AudioDevice>();
+            IMMDeviceEnumerator? deviceEnumerator = null;
+            IMMDeviceCollection? collection = null;
+            IMMDevice? defaultDevice = null;
+            
+            try {
+                deviceEnumerator = new MMDeviceEnumerator() as IMMDeviceEnumerator;
+                if (deviceEnumerator == null) return result;
+
+                string defaultId = "";
+                if (deviceEnumerator.GetDefaultAudioEndpoint(dataFlow, 0, out defaultDevice) == 0 && defaultDevice != null) {
+                    defaultDevice.GetId(out defaultId);
+                }
+
+                if (deviceEnumerator.EnumAudioEndpoints(dataFlow, 1, out collection) == 0 && collection != null) {
+                    uint count;
+                    collection.GetCount(out count);
+                    for (uint i = 0; i < count; i++) {
+                        IMMDevice? device = null;
+                        IPropertyStore? store = null;
+                        try {
+                            collection.Item(i, out device);
+                            if (device == null) continue;
+
+                            device.GetId(out string id);
+                            string friendlyName = "Inconnu";
+
+                            if (device.OpenPropertyStore(0, out store) == 0 && store != null) {
+                                var key = new PropertyKey {
+                                    fmtid = new Guid("a45c254e-df1c-4efd-8020-67d146a850e0"),
+                                    pid = 14
+                                };
+                                var pv = new PropVariant();
+                                if (store.GetValue(ref key, out pv) == 0 && pv.vt == 31) { // VT_LPWSTR = 31
+                                    friendlyName = Marshal.PtrToStringUni(pv.pwszVal) ?? "Inconnu";
+                                    PropVariantClear(ref pv);
+                                }
+                            }
+
+                            result.Add(new AudioDevice {
+                                id = id,
+                                name = friendlyName,
+                                isDefault = (id == defaultId)
+                            });
+                        } catch {
+                            // Suppress device item failures
+                        } finally {
+                            if (store != null) Marshal.ReleaseComObject(store);
+                            if (device != null) Marshal.ReleaseComObject(device);
+                        }
+                    }
+                }
+            } catch (Exception ex) {
+                Console.Error.WriteLine("Error enumerating audio devices: " + ex.Message);
+            } finally {
+                if (defaultDevice != null) Marshal.ReleaseComObject(defaultDevice);
+                if (collection != null) Marshal.ReleaseComObject(collection);
+                if (deviceEnumerator != null) Marshal.ReleaseComObject(deviceEnumerator);
+            }
+
+            return result;
+        }
+
+        private static bool SetDefaultAudioDevice(string deviceId) {
+            try {
+                if (string.IsNullOrWhiteSpace(deviceId)) return false;
+                var policyConfig = new PolicyConfigClient() as IPolicyConfig;
+                if (policyConfig == null) return false;
+
+                // Set default for Console (0), Multimedia (1), and Communications (2) roles
+                policyConfig.SetDefaultEndpoint(deviceId, 0);
+                policyConfig.SetDefaultEndpoint(deviceId, 1);
+                policyConfig.SetDefaultEndpoint(deviceId, 2);
+                return true;
+            } catch (Exception ex) {
+                Console.Error.WriteLine("Error setting default audio endpoint: " + ex.Message);
+                return false;
+            }
+        }
+
         // --- Bluetooth Controls ---
         private static async Task<string> SetBluetoothStateAsync(bool turnOn) {
             try {
@@ -910,6 +1058,33 @@ namespace LiquidCore {
                     } catch {
                         Console.WriteLine("");
                     }
+                } else if (line == "getdevices") {
+                    try {
+                        var devices = GetAudioDevices(0);
+                        Console.WriteLine(JsonSerializer.Serialize(devices));
+                    } catch (Exception ex) {
+                        Console.WriteLine("[]");
+                        Console.Error.WriteLine("Error listing devices: " + ex.Message);
+                    }
+                } else if (line == "getinputdevices") {
+                    try {
+                        var devices = GetAudioDevices(1);
+                        Console.WriteLine(JsonSerializer.Serialize(devices));
+                    } catch (Exception ex) {
+                        Console.WriteLine("[]");
+                        Console.Error.WriteLine("Error listing input devices: " + ex.Message);
+                    }
+                } else if (line.StartsWith("setdevice ")) {
+                    try {
+                        string deviceId = line.Substring(10).Trim();
+                        if (deviceId.StartsWith("\"") && deviceId.EndsWith("\"")) {
+                            deviceId = deviceId.Substring(1, deviceId.Length - 2);
+                        }
+                        bool success = SetDefaultAudioDevice(deviceId);
+                        Console.WriteLine(success ? "ok" : "error");
+                    } catch {
+                        Console.WriteLine("error");
+                    }
                 } else {
                     Console.WriteLine("unknown_command");
                 }
@@ -1133,6 +1308,9 @@ namespace LiquidCore {
             }
         }
 
+        private static readonly Dictionary<string, string> _processIconCache = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        private static readonly Dictionary<string, string> _fileIconCache = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
         private static string GetProcessIconData(Process process) {
             try {
                 string? exePath = null;
@@ -1142,14 +1320,26 @@ namespace LiquidCore {
                     return "";
                 }
 
-                if (string.IsNullOrWhiteSpace(exePath) || !File.Exists(exePath)) return "";
+                if (string.IsNullOrWhiteSpace(exePath)) return "";
+
+                lock (_processIconCache) {
+                    if (_processIconCache.TryGetValue(exePath, out string? cached)) {
+                        return cached;
+                    }
+                }
+
+                if (!File.Exists(exePath)) return "";
 
                 using (Icon? icon = Icon.ExtractAssociatedIcon(exePath)) {
                     if (icon == null) return "";
                     using (Bitmap bitmap = icon.ToBitmap())
                     using (MemoryStream stream = new MemoryStream()) {
                         bitmap.Save(stream, ImageFormat.Png);
-                        return "data:image/png;base64," + Convert.ToBase64String(stream.ToArray());
+                        string base64 = "data:image/png;base64," + Convert.ToBase64String(stream.ToArray());
+                        lock (_processIconCache) {
+                            _processIconCache[exePath] = base64;
+                        }
+                        return base64;
                     }
                 }
             } catch {
@@ -1162,6 +1352,13 @@ namespace LiquidCore {
                 if (!IsSafeTextArg(filePath)) return "";
                 
                 string expanded = Environment.ExpandEnvironmentVariables(filePath);
+                
+                lock (_fileIconCache) {
+                    if (_fileIconCache.TryGetValue(expanded, out string? cached)) {
+                        return cached;
+                    }
+                }
+
                 if (!File.Exists(expanded)) {
                     string system32Path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), filePath);
                     if (File.Exists(system32Path)) {
@@ -1182,12 +1379,22 @@ namespace LiquidCore {
 
                 if (!File.Exists(expanded)) return "";
 
+                lock (_fileIconCache) {
+                    if (_fileIconCache.TryGetValue(expanded, out string? cached)) {
+                        return cached;
+                    }
+                }
+
                 using (Icon? icon = Icon.ExtractAssociatedIcon(expanded)) {
                     if (icon == null) return "";
                     using (Bitmap bitmap = icon.ToBitmap())
                     using (MemoryStream stream = new MemoryStream()) {
                         bitmap.Save(stream, ImageFormat.Png);
-                        return "data:image/png;base64," + Convert.ToBase64String(stream.ToArray());
+                        string base64 = "data:image/png;base64," + Convert.ToBase64String(stream.ToArray());
+                        lock (_fileIconCache) {
+                            _fileIconCache[expanded] = base64;
+                        }
+                        return base64;
                     }
                 }
             } catch {

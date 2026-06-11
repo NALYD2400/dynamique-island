@@ -1,4 +1,4 @@
-const { ipcRenderer } = (typeof window !== 'undefined' && window.require) ? window.require('electron') : { ipcRenderer: null };
+const { ipcRenderer } = (typeof window !== 'undefined' && window.electronAPI) ? window.electronAPI : { ipcRenderer: null };
 
 export const SystemService = {
     async getStats() {

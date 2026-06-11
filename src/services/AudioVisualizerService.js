@@ -112,7 +112,7 @@ class AudioVisualizerService {
     }
 
     async _startNativeWasapiMeter() {
-        const { ipcRenderer } = window.require('electron');
+        const { ipcRenderer } = window.electronAPI;
         const meter = await ipcRenderer.invoke('get-audio-meter');
         this._meterTargetPeak = this._clamp01(Number(meter?.peak || 0));
         this._meterLeft = this._clamp01(Number(meter?.left ?? meter?.peak ?? 0));
@@ -127,7 +127,7 @@ class AudioVisualizerService {
     async _startLoopback() {
         let stream = null;
         try {
-            const { ipcRenderer } = window.require('electron');
+            const { ipcRenderer } = window.electronAPI;
             const sourceId = await ipcRenderer.invoke('get-audio-screen-source');
             if (sourceId) {
                 console.log('[Visualizer] Attempting getUserMedia loopback with source ID:', sourceId);
@@ -193,7 +193,7 @@ class AudioVisualizerService {
             this._meterLastPoll = now;
             this._meterPollInFlight = true;
             try {
-                const { ipcRenderer } = window.require('electron');
+                const { ipcRenderer } = window.electronAPI;
                 ipcRenderer.invoke('get-audio-meter').then((meter) => {
                     this._meterTargetPeak = this._clamp01(Number(meter?.peak || 0));
                     this._meterLeft = this._clamp01(Number(meter?.left ?? meter?.peak ?? 0));

@@ -892,8 +892,10 @@ function createMainWindow() {
         resizable: false,
         skipTaskbar: true, // Hidden from Alt-Tab
         webPreferences: {
-            nodeIntegration: true,
-            contextIsolation: false
+            nodeIntegration: false,
+            contextIsolation: true,
+            sandbox: true,
+            preload: path.join(__dirname, 'preload.js')
         }
     });
 
@@ -964,8 +966,10 @@ function createSettingsWindow() {
         resizable: false,
         alwaysOnTop: false,
         webPreferences: {
-            nodeIntegration: true,
-            contextIsolation: false
+            nodeIntegration: false,
+            contextIsolation: true,
+            sandbox: true,
+            preload: path.join(__dirname, 'preload.js')
         }
     });
 
@@ -1793,6 +1797,104 @@ ipcMain.handle('get-active-window-info', async (event) => {
     } catch (e) {
         console.error('Error getting active window info via core:', e);
         return { isFullscreen: false };
+    }
+});
+
+ipcMain.handle('get-audio-devices', async (event) => {
+    const trust = ensureTrustedSender(event, []);
+    if (!trust.trusted) return trust.value;
+
+    if (!coreWorker) return [];
+    try {
+        const line = await sendCoreCommand('getdevices');
+        if (!line) return [];
+        return JSON.parse(line);
+    } catch (e) {
+        console.error('Error getting audio devices via core:', e);
+        return [];
+    }
+});
+
+ipcMain.handle('get-audio-input-devices', async (event) => {
+    const trust = ensureTrustedSender(event, []);
+    if (!trust.trusted) return trust.value;
+
+    if (!coreWorker) return [];
+    try {
+        const line = await sendCoreCommand('getinputdevices');
+        if (!line) return [];
+        return JSON.parse(line);
+    } catch (e) {
+        console.error('Error getting audio input devices via core:', e);
+        return [];
+    }
+});
+
+ipcMain.handle('set-default-audio-device', async (event, deviceId) => {
+    const trust = ensureTrustedSender(event, false);
+    if (!trust.trusted) return trust.value;
+
+    if (!coreWorker) return false;
+    if (hasUnsafeCoreText(deviceId)) return false;
+
+    try {
+        const result = await sendCoreCommand(`setdevice "${deviceId}"`);
+        return result && result.trim() === 'ok';
+    } catch (e) {
+        console.error('Error setting default audio device via core:', e);
+        return false;
+    }
+});
+
+ipcMain.handle('launch-shortcut', async (event, command) => {
+    const trust = ensureTrustedSender(event, false);
+    if (!trust.trusted) return trust.value;
+
+    if (!command) return false;
+    const rawCommand = String(command).trim();
+
+    if (hasUnsafeCoreText(rawCommand)) return false;
+
+    // Safety checks
+    if (/[\r\n]/.test(rawCommand)) {
+        console.warn('Rejected shortcut with unsafe characters:', rawCommand);
+        return false;
+    }
+
+    const isWindowsPath = /^[a-zA-Z]:[\\/]/.test(rawCommand);
+    const protocolMatch = rawCommand.match(/^([a-zA-Z][a-zA-Z\d+.-]*):/);
+    const protocol = protocolMatch ? protocolMatch[1].toLowerCase() : '';
+    const allowedProtocols = new Set(['http', 'https', 'mailto', 'ms-settings', 'spotify']);
+    
+    const systemRoot = process.env.SystemRoot || 'C:\\Windows';
+    const allowedExecutables = {
+        'explorer.exe': path.join(systemRoot, 'explorer.exe'),
+        'taskmgr.exe': path.join(systemRoot, 'System32', 'taskmgr.exe'),
+        'calc.exe': path.join(systemRoot, 'System32', 'calc.exe'),
+        'cmd.exe': path.join(systemRoot, 'System32', 'cmd.exe'),
+        'notepad.exe': path.join(systemRoot, 'System32', 'notepad.exe'),
+        'mspaint.exe': path.join(systemRoot, 'System32', 'mspaint.exe'),
+        'snippingtool.exe': path.join(systemRoot, 'System32', 'SnippingTool.exe')
+    };
+
+    try {
+        if (isWindowsPath) {
+            shell.openPath(rawCommand);
+            return true;
+        } else if (protocol && allowedProtocols.has(protocol)) {
+            shell.openExternal(rawCommand);
+            return true;
+        } else if (allowedExecutables[rawCommand.toLowerCase()]) {
+            const { execFile } = require('child_process');
+            execFile(allowedExecutables[rawCommand.toLowerCase()], [], { windowsHide: false });
+            return true;
+        } else {
+            console.warn('Rejected unsupported shortcut command:', rawCommand);
+            return false;
+        }
+    } catch (e) {
+        console.error("Failed to launch shortcut in main:", rawCommand, e);
+        return false;
     }
 });
 

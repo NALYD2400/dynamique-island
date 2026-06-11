@@ -5307,3 +5307,189 @@ body.motion-vivid .inner-action-btn:hover {
     border-color: rgba(239, 68, 68, 0.4);
     color: #ef4444;
 }
+
+/* ========== Audio Device Selector Dropdown ========== */
+.device-select-btn:hover,
+.mic-select-btn:hover {
+    background: rgba(var(--neon-primary-rgb), 0.15);
+    border-color: rgba(var(--neon-primary-rgb), 0.4);
+    color: var(--neon-primary);
+    text-shadow: 0 0 8px rgba(var(--neon-primary-rgb), 0.6);
+    box-shadow: 0 4px 15px rgba(var(--neon-primary-rgb), 0.15);
+}
+
+.music-action-cluster .island-action-btn.active {
+    color: var(--neon-primary) !important;
+    background: rgba(var(--neon-primary-rgb), 0.16) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 0 8px rgba(var(--neon-primary-rgb), 0.35) !important;
+}
+
+.audio-device-dropdown {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border: none;
+    border-radius: 0;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(15px) scale(0.97);
+    transition: opacity 0.28s cubic-bezier(0.18, 0.95, 0.2, 1), transform 0.28s cubic-bezier(0.18, 0.95, 0.2, 1);
+    box-sizing: border-box;
+}
+
+.audio-device-dropdown.show {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0) scale(1);
+    box-shadow: none;
+}
+
+.mixer-body-wrapper:has(.audio-device-dropdown.show) .mixer-sessions-list {
+    display: none !important;
+}
+
+.audio-device-dropdown-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.audio-device-dropdown-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.audio-device-dropdown-close {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    padding: 4px;
+    display: inline-flex;
+    align-items: center;
+    border-radius: 50%;
+}
+
+.audio-device-dropdown-close:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.audio-device-list-container {
+    flex: 1;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.audio-device-list-container::-webkit-scrollbar {
+    width: 4px;
+}
+
+.audio-device-list-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.audio-device-list-container::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 99px;
+}
+
+.audio-device-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+    box-sizing: border-box;
+}
+
+.audio-device-item:hover {
+    background: rgba(var(--neon-primary-rgb), 0.06);
+    border-color: rgba(var(--neon-primary-rgb), 0.25);
+    transform: translateX(4px);
+}
+
+.audio-device-item.active {
+    background: rgba(var(--neon-primary-rgb), 0.12);
+    border-color: rgba(var(--neon-primary-rgb), 0.45);
+    box-shadow: 0 4px 15px rgba(var(--neon-primary-rgb), 0.1);
+}
+
+.audio-device-item.active .device-name {
+    color: var(--neon-primary);
+    font-weight: 700;
+    text-shadow: 0 0 8px rgba(var(--neon-primary-rgb), 0.35);
+}
+
+.audio-device-icon {
+    font-size: 16px;
+    color: rgba(255, 255, 255, 0.5);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: all 0.2s ease;
+}
+
+.audio-device-item:hover .audio-device-icon {
+    color: var(--neon-primary);
+    border-color: rgba(var(--neon-primary-rgb), 0.3);
+}
+
+.audio-device-item.active .audio-device-icon {
+    color: var(--neon-primary);
+    background: rgba(var(--neon-primary-rgb), 0.15);
+    border-color: rgba(var(--neon-primary-rgb), 0.4);
+    filter: drop-shadow(0 0 4px rgba(var(--neon-primary-rgb), 0.4));
+}
+
+.device-name {
+    flex: 1;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.88);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.device-active-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--neon-primary);
+    box-shadow: 0 0 8px var(--neon-primary);
+    opacity: 0;
+    transform: scale(0.5);
+    transition: all 0.24s cubic-bezier(0.18, 0.95, 0.2, 1);
+}
+
+.audio-device-item.active .device-active-dot {
+    opacity: 1;
+    transform: scale(1);
+}

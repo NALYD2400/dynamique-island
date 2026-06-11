@@ -3,6 +3,8 @@ import { SoundService } from '../services/SoundService.js';
 import { visualizerService } from '../services/AudioVisualizerService.js';
 import { ThemeService } from '../services/ThemeService.js';
 
+const ipcRenderer = (typeof window !== 'undefined' && window.electronAPI) ? window.electronAPI.ipcRenderer : null;
+
 const APP_LOGO_ART = '../assets/app-logo.png';
 
 function hexToRgb(hex) {
@@ -401,6 +403,10 @@ export class DynamicIsland {
         this.audioSessions = [];
         this.isScrubbingMixer = false;
         this.scrubbingPid = null;
+        this.audioDevices = [];
+        this.isAudioDeviceDropdownOpen = false;
+        this.audioInputDevices = [];
+        this.isMicDeviceDropdownOpen = false;
         this._transitionInProgress = false;
         this._transitionToken = 0;
         this._controlSliderCleanup = null;
@@ -419,9 +425,9 @@ export class DynamicIsland {
 
         // Register global keyboard shortcut listener on Electron main process at boot
         const startupShortcut = localStorage.getItem('liquid_island_shortcut') || 'Alt+I';
-        if (typeof window !== 'undefined' && window.require) {
+        if (ipcRenderer) {
             try {
-                const { ipcRenderer } = window.require('electron');
+                
                 ipcRenderer.send('register-shortcut', startupShortcut);
             } catch (err) {}
         }
@@ -626,7 +632,7 @@ export class DynamicIsland {
         ThemeService.applyIslandSettings();
         window.dispatchEvent(new CustomEvent('liquid-island-config-changed', { detail: glow }));
 
-        const { ipcRenderer } = (typeof window !== 'undefined' && window.require) ? window.require('electron') : { ipcRenderer: null };
+        
         if (ipcRenderer) {
             ipcRenderer.send('config-changed', normalizedConfig);
             try { ipcRenderer.send('register-shortcut', snapshot.shortcut || 'Alt+I'); } catch (e) {}
@@ -747,9 +753,9 @@ export class DynamicIsland {
             this.closeContextMenu();
             this.isExpanded = false;
             this.renderIdle();
-            if (typeof window !== 'undefined' && window.require) {
+            if (ipcRenderer) {
                 try {
-                    window.require('electron').ipcRenderer.send('set-ignore-mouse', false);
+                    ipcRenderer.send('set-ignore-mouse', false);
                 } catch (e) {}
             }
             document.body.classList.remove('layout-edit-armed');
@@ -1081,8 +1087,8 @@ export class DynamicIsland {
             e.stopPropagation();
             
             // Allow mouse capture
-            if (typeof window !== 'undefined' && window.require) {
-                window.require('electron').ipcRenderer.send('set-ignore-mouse', false);
+            if (ipcRenderer) {
+                ipcRenderer.send('set-ignore-mouse', false);
             }
             
             this.showContextMenu(e.clientX, e.clientY);
@@ -1320,8 +1326,8 @@ export class DynamicIsland {
             this._updateVizCanvas();
         });
         // --- Persistent Mode Logic ---
-        if (typeof window !== 'undefined' && window.require) {
-            const { ipcRenderer } = window.require('electron');
+        if (ipcRenderer) {
+            
 
             ipcRenderer.on('app-go-background', () => {
                 this.isBackgroundMode = true;
@@ -1342,14 +1348,14 @@ export class DynamicIsland {
 
             // Hit testing for click-through
             this.el.addEventListener('mouseenter', () => {
-                if (this.isBackgroundMode && (typeof window !== 'undefined' && window.require)) {
-                    window.require('electron').ipcRenderer.send('set-ignore-mouse', false);
+                if (this.isBackgroundMode && (ipcRenderer)) {
+                    ipcRenderer.send('set-ignore-mouse', false);
                 }
             });
 
             this.el.addEventListener('mouseleave', () => {
-                if (this.isBackgroundMode && (typeof window !== 'undefined' && window.require)) {
-                    window.require('electron').ipcRenderer.send('set-ignore-mouse', true, { forward: true });
+                if (this.isBackgroundMode && (ipcRenderer)) {
+                    ipcRenderer.send('set-ignore-mouse', true, { forward: true });
                 }
             });
 
@@ -1472,8 +1478,8 @@ export class DynamicIsland {
                 } else if (action === 'prev') {
                     window.spotifyControl('prev');
                 } else if (action === 'exit') {
-                    if (typeof window !== 'undefined' && window.require) {
-                        window.require('electron').ipcRenderer.send('exit-app');
+                    if (ipcRenderer) {
+                        ipcRenderer.send('exit-app');
                     }
                 }
             }
@@ -1522,9 +1528,9 @@ export class DynamicIsland {
     }
 
     syncPersistentSetting() {
-        if (typeof window !== 'undefined' && window.require) {
+        if (ipcRenderer) {
             const enabled = localStorage.getItem('liquid_island_persistent') === 'true';
-            window.require('electron').ipcRenderer.send('set-persistent-island', enabled);
+            ipcRenderer.send('set-persistent-island', enabled);
         }
     }
 
@@ -1583,9 +1589,9 @@ export class DynamicIsland {
         }
 
         // Broadcast cover color to the standalone settings window via IPC
-        if (typeof window !== 'undefined' && window.require) {
+        if (ipcRenderer) {
             try {
-                const { ipcRenderer } = window.require('electron');
+                
                 ipcRenderer.send('cover-color-changed', { 
                     primary: priHex, 
                     secondary: secHex, 
@@ -1654,9 +1660,9 @@ export class DynamicIsland {
         }
 
         // Broadcast restoration to standalone settings window
-        if (typeof window !== 'undefined' && window.require) {
+        if (ipcRenderer) {
             try {
-                const { ipcRenderer } = window.require('electron');
+                
                 ipcRenderer.send('cover-color-changed', { primary: colors.primary, secondary: colors.secondary, rgb: rgbStr });
             } catch (e) {}
         }
@@ -1777,9 +1783,9 @@ export class DynamicIsland {
                 
                 // Periodically refresh the master volume in real-time if the user is not actively dragging it
                 const volSlider = document.getElementById('ic-volume-slider');
-                if (volSlider && !volSlider.classList.contains('active') && typeof window !== 'undefined' && window.require) {
+                if (volSlider && !volSlider.classList.contains('active') && ipcRenderer) {
                     try {
-                        const { ipcRenderer } = window.require('electron');
+                        
                         ipcRenderer.invoke('get-system-volume').then(currentVol => {
                             if (currentVol !== undefined && currentVol !== null) {
                                 volSlider.style.setProperty('--slider-val-pct', `${Math.round(currentVol)}%`);
@@ -1797,7 +1803,7 @@ export class DynamicIsland {
 
     async updateMediaState() {
         try {
-            const { ipcRenderer } = (typeof window !== 'undefined' && window.require) ? window.require('electron') : { ipcRenderer: null };
+            
             if (!ipcRenderer) return;
 
             const mediaInfo = await ipcRenderer.invoke('get-media-info');
@@ -1910,9 +1916,9 @@ export class DynamicIsland {
         if (menu) {
             menu.remove();
         }
-        if (!this.isExpanded && !this._layoutEditMode && typeof window !== 'undefined' && window.require) {
+        if (!this.isExpanded && !this._layoutEditMode && ipcRenderer) {
             try {
-                window.require('electron').ipcRenderer.send('set-ignore-mouse', true, { forward: true });
+                ipcRenderer.send('set-ignore-mouse', true, { forward: true });
             } catch (e) {}
         }
     }
@@ -1925,48 +1931,17 @@ export class DynamicIsland {
         });
     }
 
-    launchShortcut(command) {
+    async launchShortcut(command) {
         if (!command) return;
         try {
-            if (typeof require !== 'undefined') {
-                const { shell } = require('electron');
-                const { execFile } = require('child_process');
-                const path = require('path');
-                const rawCommand = String(command).trim();
-                if (rawCommand.startsWith('liquid:')) {
-                    this.runInternalShortcut(rawCommand);
-                    return;
-                }
+            const rawCommand = String(command).trim();
+            if (rawCommand.startsWith('liquid:')) {
+                this.runInternalShortcut(rawCommand);
+                return;
+            }
 
-                if (/[\r\n]/.test(rawCommand)) {
-                    console.warn('Rejected shortcut with unsafe characters:', rawCommand);
-                    return;
-                }
-
-                const isWindowsPath = /^[a-zA-Z]:[\\/]/.test(rawCommand);
-                const protocolMatch = rawCommand.match(/^([a-zA-Z][a-zA-Z\d+.-]*):/);
-                const protocol = protocolMatch ? protocolMatch[1].toLowerCase() : '';
-                const allowedProtocols = new Set(['http', 'https', 'mailto', 'ms-settings', 'spotify']);
-                const systemRoot = process.env.SystemRoot || 'C:\\Windows';
-                const allowedExecutables = {
-                    'explorer.exe': path.join(systemRoot, 'explorer.exe'),
-                    'taskmgr.exe': path.join(systemRoot, 'System32', 'taskmgr.exe'),
-                    'calc.exe': path.join(systemRoot, 'System32', 'calc.exe'),
-                    'cmd.exe': path.join(systemRoot, 'System32', 'cmd.exe'),
-                    'notepad.exe': path.join(systemRoot, 'System32', 'notepad.exe'),
-                    'mspaint.exe': path.join(systemRoot, 'System32', 'mspaint.exe'),
-                    'snippingtool.exe': path.join(systemRoot, 'System32', 'SnippingTool.exe')
-                };
-
-                if (isWindowsPath) {
-                    shell.openPath(rawCommand);
-                } else if (protocol && allowedProtocols.has(protocol)) {
-                    shell.openExternal(rawCommand);
-                } else if (allowedExecutables[rawCommand.toLowerCase()]) {
-                    execFile(allowedExecutables[rawCommand.toLowerCase()], [], { windowsHide: false });
-                } else {
-                    console.warn('Rejected unsupported shortcut command:', rawCommand);
-                }
+            if (ipcRenderer) {
+                await ipcRenderer.invoke('launch-shortcut', rawCommand);
             }
         } catch (e) {
             console.error("Failed to launch shortcut:", command, e);
@@ -2011,9 +1986,11 @@ export class DynamicIsland {
     }
 
     setMode(mode) {
+        this.isAudioDeviceDropdownOpen = false;
+        this.isMicDeviceDropdownOpen = false;
         if (mode === 'settings') {
             try {
-                const { ipcRenderer } = window.require('electron');
+                
                 ipcRenderer.send('open-settings');
             } catch(e) {
                 console.error("Failed to open settings via IPC:", e);
@@ -2578,8 +2555,7 @@ export class DynamicIsland {
         // Bind Volume Vertical Slider
         const volSlider = container.querySelector('#ic-volume-slider');
         this._controlSliderCleanup = bindVerticalSlider(volSlider, (val) => {
-            if (typeof require !== 'undefined') {
-                const { ipcRenderer } = require('electron');
+            if (ipcRenderer) {
                 ipcRenderer.invoke('set-system-volume', val);
             }
         });
@@ -2591,8 +2567,7 @@ export class DynamicIsland {
                 key: 'liquid_wifi_enabled', 
                 isDefaultTrue: true, 
                 onToggle: async (state) => {
-                    if (typeof require !== 'undefined') {
-                        const { ipcRenderer } = require('electron');
+                    if (ipcRenderer) {
                         await ipcRenderer.invoke('wifi-control', state ? 'on' : 'off');
                     }
                 } 
@@ -2602,8 +2577,7 @@ export class DynamicIsland {
                 key: 'liquid_bluetooth_enabled', 
                 isDefaultTrue: true, 
                 onToggle: async (state) => {
-                    if (typeof require !== 'undefined') {
-                        const { ipcRenderer } = require('electron');
+                    if (ipcRenderer) {
                         await ipcRenderer.invoke('bluetooth-control', state ? 'on' : 'off');
                     }
                 } 
@@ -2613,8 +2587,7 @@ export class DynamicIsland {
                 key: 'liquid_dnd_enabled', 
                 isDefaultTrue: false, 
                 onToggle: async (state) => {
-                    if (typeof require !== 'undefined') {
-                        const { ipcRenderer } = require('electron');
+                    if (ipcRenderer) {
                         await ipcRenderer.invoke('dnd-control', state ? 'on' : 'off');
                     }
                 } 
@@ -2742,8 +2715,7 @@ export class DynamicIsland {
                     this.isExpanded = false;
                     this.renderContent();
 
-                    if (typeof require !== 'undefined') {
-                        const { ipcRenderer } = require('electron');
+                    if (ipcRenderer) {
                         ipcRenderer.send('exit-app'); // Clean shutdown via exit-app
                     }
                 };
@@ -2755,8 +2727,8 @@ export class DynamicIsland {
 
         // 3. ASYNCHRONOUS UPDATE OF DYNAMIC SYSTEM VALUES
         const updateAsyncSystemData = async () => {
-            if (typeof require === 'undefined') return;
-            const { ipcRenderer } = require('electron');
+            if (!ipcRenderer) return;
+            
 
             // System Volume
             try {
@@ -3859,8 +3831,8 @@ export class DynamicIsland {
 
 
     async adjustVolume(delta) {
-        if (typeof window !== 'undefined' && window.require) {
-            const { ipcRenderer } = window.require('electron');
+        if (ipcRenderer) {
+            
             try {
                 let current = await ipcRenderer.invoke('get-system-volume') || 50;
                 let next = Math.min(100, Math.max(0, current + delta));
@@ -4112,7 +4084,7 @@ export class DynamicIsland {
 
         this.updateCurrentMediaVolumeUI(this.getGroupedSessions(this.audioSessions || []));
 
-        const { ipcRenderer } = (typeof window !== 'undefined' && window.require) ? window.require('electron') : { ipcRenderer: null };
+        
         if (!ipcRenderer) return;
 
         for (const pid of pids) {
@@ -4122,7 +4094,7 @@ export class DynamicIsland {
 
     async updateAudioSessions() {
         try {
-            const { ipcRenderer } = (typeof window !== 'undefined' && window.require) ? window.require('electron') : { ipcRenderer: null };
+            
             if (!ipcRenderer) return;
 
             const sessions = await ipcRenderer.invoke('get-audio-sessions');
@@ -4147,7 +4119,7 @@ export class DynamicIsland {
     }
 
     async refreshCurrentMediaVolumeSession() {
-        const { ipcRenderer } = (typeof window !== 'undefined' && window.require) ? window.require('electron') : { ipcRenderer: null };
+        
         if (!ipcRenderer) return null;
 
         try {
@@ -4315,7 +4287,7 @@ export class DynamicIsland {
             session.muted = (clickPct === 0);
         }
         
-        const { ipcRenderer } = (typeof window !== 'undefined' && window.require) ? window.require('electron') : { ipcRenderer: null };
+        
         if (ipcRenderer) {
             ipcRenderer.invoke('set-session-volume', { pid, volume: clickPct });
         }
@@ -4370,7 +4342,7 @@ export class DynamicIsland {
             }
         }
 
-        const { ipcRenderer } = (typeof window !== 'undefined' && window.require) ? window.require('electron') : { ipcRenderer: null };
+        
         if (!ipcRenderer) return;
 
         try {
@@ -4381,6 +4353,202 @@ export class DynamicIsland {
         } catch (e) {
             console.error('Error toggling session mute:', e);
             this.updateAudioSessions();
+        }
+    }
+
+    async toggleAudioDeviceDropdown() {
+        this.isAudioDeviceDropdownOpen = !this.isAudioDeviceDropdownOpen;
+        const dropdown = this.content.querySelector('#audio-device-dropdown');
+        if (this.isAudioDeviceDropdownOpen) {
+            this.isMicDeviceDropdownOpen = false;
+            const micDropdown = this.content.querySelector('#mic-device-dropdown');
+            if (micDropdown) micDropdown.classList.remove('show');
+            const micBtn = this.content.querySelector('.mic-select-btn');
+            if (micBtn) micBtn.classList.remove('active');
+
+            await this.loadAudioDevices();
+            if (dropdown) dropdown.classList.add('show');
+            const outBtn = this.content.querySelector('.device-select-btn');
+            if (outBtn) outBtn.classList.add('active');
+        } else {
+            if (dropdown) dropdown.classList.remove('show');
+            const outBtn = this.content.querySelector('.device-select-btn');
+            if (outBtn) outBtn.classList.remove('active');
+        }
+    }
+
+    async toggleMicDeviceDropdown() {
+        this.isMicDeviceDropdownOpen = !this.isMicDeviceDropdownOpen;
+        const dropdown = this.content.querySelector('#mic-device-dropdown');
+        if (this.isMicDeviceDropdownOpen) {
+            this.isAudioDeviceDropdownOpen = false;
+            const audioDropdown = this.content.querySelector('#audio-device-dropdown');
+            if (audioDropdown) audioDropdown.classList.remove('show');
+            const outBtn = this.content.querySelector('.device-select-btn');
+            if (outBtn) outBtn.classList.remove('active');
+
+            await this.loadAudioInputDevices();
+            if (dropdown) dropdown.classList.add('show');
+            const micBtn = this.content.querySelector('.mic-select-btn');
+            if (micBtn) micBtn.classList.add('active');
+        } else {
+            if (dropdown) dropdown.classList.remove('show');
+            const micBtn = this.content.querySelector('.mic-select-btn');
+            if (micBtn) micBtn.classList.remove('active');
+        }
+    }
+
+    async loadAudioDevices(force = false) {
+        if (!ipcRenderer) return;
+        try {
+            if (!force && this.audioDevices && this.audioDevices.length > 0) {
+                this.renderAudioDevicesInDropdown();
+                return;
+            }
+            const devices = await ipcRenderer.invoke('get-audio-devices');
+            if (devices) {
+                this.audioDevices = devices;
+                this.renderAudioDevicesInDropdown();
+            }
+        } catch (e) {
+            console.error('Error loading audio devices:', e);
+        }
+    }
+
+    async loadAudioInputDevices(force = false) {
+        if (!ipcRenderer) return;
+        try {
+            if (!force && this.audioInputDevices && this.audioInputDevices.length > 0) {
+                this.renderMicDevicesInDropdown();
+                return;
+            }
+            const devices = await ipcRenderer.invoke('get-audio-input-devices');
+            if (devices) {
+                this.audioInputDevices = devices;
+                this.renderMicDevicesInDropdown();
+            }
+        } catch (e) {
+            console.error('Error loading audio input devices:', e);
+        }
+    }
+
+    renderAudioDevicesInDropdown() {
+        const devices = this.audioDevices || [];
+        const activeDevice = devices.find(d => d.isDefault);
+        
+        // Update header icon
+        const btnIcon = this.content.querySelector('.device-select-btn i');
+        if (btnIcon) {
+            let headerIcon = 'ph-speaker-high';
+            if (activeDevice) {
+                const lowerName = activeDevice.name.toLowerCase();
+                if (lowerName.includes('casque') || lowerName.includes('headphones') || lowerName.includes('headset') || lowerName.includes('earphone')) {
+                    headerIcon = 'ph-headphones';
+                } else if (lowerName.includes('speakers') || lowerName.includes('haut-parleurs') || lowerName.includes('haut parleur') || lowerName.includes('speaker')) {
+                    headerIcon = 'ph-speaker-high';
+                } else if (lowerName.includes('hdmi') || lowerName.includes('tv') || lowerName.includes('display') || lowerName.includes('moniteur') || lowerName.includes('nvidia') || lowerName.includes('intel') || lowerName.includes('amd')) {
+                    headerIcon = 'ph-monitor';
+                }
+            }
+            btnIcon.className = `ph-fill ${headerIcon}`;
+        }
+
+        // Render items list
+        const listContainer = this.content.querySelector('.audio-device-list-container');
+        if (listContainer) {
+            listContainer.innerHTML = devices.map(d => {
+                const lowerName = d.name.toLowerCase();
+                let icon = 'ph-speaker-low';
+                if (lowerName.includes('casque') || lowerName.includes('headphones') || lowerName.includes('headset') || lowerName.includes('earphone')) {
+                    icon = 'ph-headphones';
+                } else if (lowerName.includes('speakers') || lowerName.includes('haut-parleurs') || lowerName.includes('haut parleur') || lowerName.includes('speaker')) {
+                    icon = 'ph-speaker-high';
+                } else if (lowerName.includes('hdmi') || lowerName.includes('tv') || lowerName.includes('display') || lowerName.includes('moniteur') || lowerName.includes('nvidia') || lowerName.includes('intel') || lowerName.includes('amd')) {
+                    icon = 'ph-monitor';
+                }
+
+                const activeClass = d.isDefault ? 'active' : '';
+                return `
+                    <div class="audio-device-item ${activeClass}" onclick="event.stopPropagation(); window.island.selectAudioDevice('${escapeHtml(d.id)}')">
+                        <span class="audio-device-icon"><i class="ph-fill ${icon}"></i></span>
+                        <span class="device-name" title="${escapeHtml(d.name)}">${escapeHtml(d.name)}</span>
+                        <span class="device-active-dot"></span>
+                    </div>
+                `;
+            }).join('');
+        }
+    }
+
+     async selectAudioDevice(deviceId) {
+        if (!ipcRenderer) return;
+        try {
+            const success = await ipcRenderer.invoke('set-default-audio-device', deviceId);
+            if (success) {
+                const device = this.audioDevices.find(d => d.id === deviceId);
+                const name = device ? device.name : 'Périphérique audio';
+                this.showIslandFeedback(`Sortie : ${name}`, 'ph-speaker-high');
+                
+                await this.loadAudioDevices(true);
+                
+                setTimeout(() => {
+                    if (this.isAudioDeviceDropdownOpen) {
+                        this.toggleAudioDeviceDropdown();
+                    }
+                }, 300);
+            } else {
+                this.showIslandFeedback('Erreur de changement', 'ph-warning');
+            }
+        } catch (e) {
+            console.error('Error setting audio device:', e);
+            this.showIslandFeedback('Erreur', 'ph-warning');
+        }
+    }
+
+    renderMicDevicesInDropdown() {
+        const devices = this.audioInputDevices || [];
+        const listContainer = this.content.querySelector('.mic-device-list-container');
+        if (listContainer) {
+            listContainer.innerHTML = devices.map(d => {
+                const lowerName = d.name.toLowerCase();
+                let icon = 'ph-microphone';
+                if (lowerName.includes('headset') || lowerName.includes('casque') || lowerName.includes('écouteurs') || lowerName.includes('earphone')) {
+                    icon = 'ph-microphone-stage';
+                }
+
+                const activeClass = d.isDefault ? 'active' : '';
+                return `
+                    <div class="audio-device-item ${activeClass}" onclick="event.stopPropagation(); window.island.selectMicDevice('${escapeHtml(d.id)}')">
+                        <span class="audio-device-icon"><i class="ph-fill ${icon}"></i></span>
+                        <span class="device-name" title="${escapeHtml(d.name)}">${escapeHtml(d.name)}</span>
+                        <span class="device-active-dot"></span>
+                    </div>
+                `;
+            }).join('');
+        }
+    }
+
+    async selectMicDevice(deviceId) {
+        if (!ipcRenderer) return;
+        try {
+            const success = await ipcRenderer.invoke('set-default-audio-device', deviceId);
+            if (success) {
+                const device = this.audioInputDevices.find(d => d.id === deviceId);
+                const name = device ? device.name : 'Microphone';
+                this.showIslandFeedback(`Micro : ${name}`, 'ph-microphone');
+                
+                await this.loadAudioInputDevices(true);
+                
+                setTimeout(() => {
+                    if (this.isMicDeviceDropdownOpen) {
+                        this.toggleMicDeviceDropdown();
+                    }
+                }, 300);
+            } else {
+                this.showIslandFeedback('Erreur de changement', 'ph-warning');
+            }
+        } catch (e) {
+            console.error('Error setting mic device:', e);
+            this.showIslandFeedback('Erreur', 'ph-warning');
         }
     }
 
@@ -4444,19 +4612,89 @@ export class DynamicIsland {
             }).join('');
         }
 
+        // Determine active device icon for header
+        const activeDevice = this.audioDevices?.find(d => d.isDefault);
+        let headerIcon = 'ph-speaker-high';
+        if (activeDevice) {
+            const lowerName = activeDevice.name.toLowerCase();
+            if (lowerName.includes('casque') || lowerName.includes('headphones') || lowerName.includes('headset') || lowerName.includes('earphone')) {
+                headerIcon = 'ph-headphones';
+            } else if (lowerName.includes('speakers') || lowerName.includes('haut-parleurs') || lowerName.includes('haut parleur') || lowerName.includes('speaker')) {
+                headerIcon = 'ph-speaker-high';
+            } else if (lowerName.includes('hdmi') || lowerName.includes('tv') || lowerName.includes('display') || lowerName.includes('moniteur') || lowerName.includes('nvidia') || lowerName.includes('intel') || lowerName.includes('amd')) {
+                headerIcon = 'ph-monitor';
+            }
+        }
+
+        if (!this.audioDevices || this.audioDevices.length === 0) {
+            this.loadAudioDevices(false);
+        }
+        if (!this.audioInputDevices || this.audioInputDevices.length === 0) {
+            this.loadAudioInputDevices(false);
+        }
+
+        const activeOutBtnClass = this.isAudioDeviceDropdownOpen ? 'active' : '';
+        const activeMicBtnClass = this.isMicDeviceDropdownOpen ? 'active' : '';
+
         this.content.innerHTML = `
             <div class="mixer-container">
                 <div class="mixer-header">
                     <span class="mixer-title"><i class="ph-fill ph-sliders"></i> Mélangeur Audio</span>
-                    <button class="island-action-btn menu-btn" onclick="event.stopPropagation(); window.island.setMode('menu')" title="Menu des modules">
-                        <i class="ph-fill ph-squares-four"></i>
-                    </button>
+                    <div class="music-action-cluster">
+                        <button class="island-action-btn device-select-btn ${activeOutBtnClass}" onclick="event.stopPropagation(); window.island.toggleAudioDeviceDropdown()" title="Périphérique de sortie">
+                            <i class="ph-fill ${headerIcon}"></i>
+                        </button>
+                        <button class="island-action-btn mic-select-btn ${activeMicBtnClass}" onclick="event.stopPropagation(); window.island.toggleMicDeviceDropdown()" title="Entrée audio / Micro">
+                            <i class="ph-fill ph-microphone"></i>
+                        </button>
+                        <button class="island-action-btn menu-btn" onclick="event.stopPropagation(); window.island.setMode('menu')" title="Menu des modules">
+                            <i class="ph-fill ph-squares-four"></i>
+                        </button>
+                    </div>
                 </div>
-                <div class="mixer-sessions-list">
-                    ${listHtml}
+                <div class="mixer-body-wrapper" style="position: relative; flex: 1; display: flex; flex-direction: column; overflow: hidden;">
+                    <div class="mixer-sessions-list">
+                        ${listHtml}
+                    </div>
+                    
+                    <div class="audio-device-dropdown" id="audio-device-dropdown">
+                        <div class="audio-device-dropdown-header">
+                            <span class="audio-device-dropdown-title">Sortie Audio</span>
+                            <button class="audio-device-dropdown-close" onclick="event.stopPropagation(); window.island.toggleAudioDeviceDropdown()">
+                                <i class="ph-bold ph-x"></i>
+                            </button>
+                        </div>
+                        <div class="audio-device-list-container">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+
+                    <div class="audio-device-dropdown" id="mic-device-dropdown">
+                        <div class="audio-device-dropdown-header">
+                            <span class="audio-device-dropdown-title">Entrée Audio / Micro</span>
+                            <button class="audio-device-dropdown-close" onclick="event.stopPropagation(); window.island.toggleMicDeviceDropdown()">
+                                <i class="ph-bold ph-x"></i>
+                            </button>
+                        </div>
+                        <div class="audio-device-list-container mic-device-list-container">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
                 </div>
             </div>
         `;
+
+        if (this.isAudioDeviceDropdownOpen) {
+            const dropdown = this.content.querySelector('#audio-device-dropdown');
+            if (dropdown) dropdown.classList.add('show');
+            this.renderAudioDevicesInDropdown();
+        }
+
+        if (this.isMicDeviceDropdownOpen) {
+            const dropdown = this.content.querySelector('#mic-device-dropdown');
+            if (dropdown) dropdown.classList.add('show');
+            this.renderMicDevicesInDropdown();
+        }
     }
 
     updateMixerUI(sessions) {
@@ -4930,7 +5168,7 @@ export class DynamicIsland {
 
     async mirrorCurrentMedia() {
         if (!this.musicData) return;
-        const { ipcRenderer } = (typeof window !== 'undefined' && window.require) ? window.require('electron') : { ipcRenderer: null };
+        
         if (!ipcRenderer) return;
 
         const sources = await ipcRenderer.invoke('get-desktop-sources');
@@ -5233,7 +5471,7 @@ export class DynamicIsland {
             this._islandConfig = newConfig.glow;
             ThemeService.applyIslandSettings();
             window.dispatchEvent(new CustomEvent('liquid-island-config-changed', { detail: newConfig.glow }));
-            const { ipcRenderer } = (typeof window !== 'undefined' && window.require) ? window.require('electron') : { ipcRenderer: null };
+            
             if (ipcRenderer) ipcRenderer.send('config-changed', newConfig);
         };
 
@@ -5427,9 +5665,9 @@ export class DynamicIsland {
                     shortcutInput.value = finalShortcut;
                     localStorage.setItem('liquid_island_shortcut', finalShortcut);
                     
-                    if (typeof window !== 'undefined' && window.require) {
+                    if (ipcRenderer) {
                         try {
-                            const { ipcRenderer } = window.require('electron');
+                            
                             ipcRenderer.send('register-shortcut', finalShortcut);
                         } catch (err) {}
                     }
