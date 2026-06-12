@@ -1098,6 +1098,108 @@
             border-color: rgba(255,255,255,0.075);
         }
 
+        select.custom-select-hidden {
+            display: none !important;
+        }
+
+        .custom-select-container {
+            position: relative;
+            user-select: none;
+            font-family: var(--font-sans);
+            min-width: 140px;
+            -webkit-app-region: no-drag;
+        }
+
+        .custom-select-trigger {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 999px;
+            padding: 6px 16px;
+            color: #fff;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+            min-height: 30px;
+            box-sizing: border-box;
+        }
+
+        .custom-select-trigger:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(var(--neon-primary-rgb), 0.3);
+            box-shadow: 0 0 10px rgba(var(--neon-primary-rgb), 0.12);
+        }
+
+        .custom-select-container.open .custom-select-trigger {
+            border-color: var(--neon-primary);
+            box-shadow: 0 0 14px rgba(var(--neon-primary-rgb), 0.25);
+            background: rgba(255, 255, 255, 0.07);
+        }
+
+        .custom-select-trigger i {
+            font-size: 10px;
+            transition: transform 0.25s ease;
+            opacity: 0.7;
+        }
+
+        .custom-select-container.open .custom-select-trigger i {
+            transform: rotate(180deg);
+        }
+
+        .custom-select-options {
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            right: 0;
+            background: rgba(10, 10, 15, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.02);
+            z-index: 9999;
+            opacity: 0;
+            transform: translateY(-8px) scale(0.96);
+            pointer-events: none;
+            transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+            overflow: hidden;
+            padding: 4px;
+        }
+
+        .custom-select-container.open .custom-select-options {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            pointer-events: auto;
+        }
+
+        .custom-select-option {
+            padding: 8px 12px;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 11px;
+            font-weight: 500;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+        }
+
+        .custom-select-option:hover {
+            background: rgba(255, 255, 255, 0.06);
+            color: #fff;
+        }
+
+        .custom-select-option.selected {
+            background: rgba(var(--neon-primary-rgb), 0.15);
+            color: var(--neon-primary);
+            font-weight: 700;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+
         .premium-range {
             height: 5px;
             background: rgba(255,255,255,0.105);
@@ -1177,6 +1279,10 @@
                     <i class="ph-fill ph-squares-four"></i> Modules
                 </div>
             </nav>
+            <div class="sidebar-footer" style="margin-top: auto; font-size: 10px; color: var(--text-muted); opacity: 0.6; display: flex; align-items: center; gap: 6px; padding: 8px; border-radius: 10px; background: rgba(255, 255, 255, 0.025); border: 1px solid rgba(255, 255, 255, 0.04);">
+                <i class="ph ph-info"></i>
+                <span>Version <span id="sidebar-version-label">1.0.7</span></span>
+            </div>
         </aside>
         
         <!-- RIGHT CONTENT PANE -->
@@ -1337,7 +1443,7 @@
                                 </div>
                             </div>
                             <select id="viz-color-mode" class="theme-select">
-                                <option value="cyberpunk" selected>Dégradé Cyberpunk</option>
+                                <option value="cyberpunk" selected>Dégradé Liquide</option>
                                 <option value="cover">Synchro Pochette (Auto)</option>
                                 <option value="solid">Couleur unique fixe</option>
                                 <option value="gradient">Dégradé personnalisé</option>
@@ -1355,7 +1461,7 @@
                                 </div>
                                 <span id="val-visualizer-sensitivity" class="badge">2.5x</span>
                             </div>
-                            <input type="range" id="range-visualizer-sensitivity" min="10" max="60" step="5" value="25" class="premium-range">
+                            <input type="range" id="range-visualizer-sensitivity" min="10" max="250" step="5" value="25" class="premium-range">
                         </div>
                         
                         <div class="setting-item hidden" id="viz-solid-container">
@@ -1574,7 +1680,20 @@
                                 </div>
                                 <span id="val-layout-scale" class="badge">100%</span>
                             </div>
-                            <input type="range" id="range-layout-scale" min="65" max="110" value="100" class="premium-range">
+                            <input type="range" id="range-layout-scale" min="65" max="150" value="100" class="premium-range">
+                        </div>
+
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <div class="setting-icon-wrapper" style="background-color: #007aff;"><i class="ph-fill ph-desktop"></i></div>
+                                <div class="setting-details">
+                                    <span class="setting-label">Écran cible</span>
+                                    <span class="setting-desc">Sélectionnez le moniteur d'affichage de l'Island</span>
+                                </div>
+                            </div>
+                            <select id="select-target-display" class="theme-select">
+                                <option value="primary">Écran principal</option>
+                            </select>
                         </div>
 
                         <div class="layout-panel">
@@ -1741,7 +1860,52 @@
                             </div>
                             <select id="wallpaper-sync-style" class="theme-select">
                                 <option value="blur" selected>Flou Ambiant (Premium)</option>
+                                <option value="cinematic">Cinématique (Smart-Fill)</option>
                                 <option value="sharp">Pochette Nette (Originale)</option>
+                            </select>
+                        </div>
+
+                        <div class="setting-item" id="wallpaper-blur-intensity-container">
+                            <div class="setting-info">
+                                <div class="setting-icon-wrapper" style="background-color: #af52de;"><i class="ph-fill ph-sparkles"></i></div>
+                                <div class="setting-details">
+                                    <span class="setting-label">Intensité du flou fond d'écran</span>
+                                    <span class="setting-desc">Ajustez le niveau de flou (passes du filtre)</span>
+                                </div>
+                            </div>
+                            <select id="wallpaper-blur-intensity" class="theme-select">
+                                <option value="light">Léger (3 passes)</option>
+                                <option value="moderate" selected>Modéré (5 passes)</option>
+                                <option value="strong">Fort (8 passes)</option>
+                            </select>
+                        </div>
+
+                        <div class="setting-item range-type" id="wallpaper-darken-container">
+                            <div class="range-header">
+                                <div class="setting-info">
+                                    <div class="setting-icon-wrapper" style="background-color: #5856d6;"><i class="ph-fill ph-circle-half"></i></div>
+                                    <div class="setting-details">
+                                        <span class="setting-label">Assombrissement du fond d'écran</span>
+                                        <span class="setting-desc">Niveau d'obscurité appliqué sur l'image</span>
+                                    </div>
+                                </div>
+                                <span id="val-wallpaper-darken" class="badge">20%</span>
+                            </div>
+                            <input type="range" id="range-wallpaper-darken" min="0" max="50" value="20" class="premium-range">
+                        </div>
+
+                        <div class="setting-item" id="wallpaper-delay-container">
+                            <div class="setting-info">
+                                <div class="setting-icon-wrapper" style="background-color: #34c759;"><i class="ph-fill ph-hourglass"></i></div>
+                                <div class="setting-details">
+                                    <span class="setting-label">Délai anti-spam fond d'écran</span>
+                                    <span class="setting-desc">Évite les flashs lors du passage rapide de morceaux</span>
+                                </div>
+                            </div>
+                            <select id="wallpaper-delay" class="theme-select">
+                                <option value="0">Aucun</option>
+                                <option value="800" selected>Fluide (800ms)</option>
+                                <option value="1500">Lent (1.5s)</option>
                             </select>
                         </div>
                         

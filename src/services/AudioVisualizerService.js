@@ -27,6 +27,7 @@ class AudioVisualizerService {
         this._meterPollInFlight = false;
         this.currentMode = null;
         this._isLoopActive = false;
+        this._isActive = false;
     }
 
     /**
@@ -100,6 +101,7 @@ class AudioVisualizerService {
     }
 
     _startLoopIfNeeded() {
+        if (!this._isActive || this.subscribers.size === 0) return;
         if (this._isLoopActive) return;
         this._isLoopActive = true;
         if (this.currentMode === 'simulation' || this._fallbackMode) {
@@ -182,8 +184,28 @@ class AudioVisualizerService {
         this._startLoopIfNeeded();
     }
 
+    setActive(isActive) {
+        const nextActive = Boolean(isActive);
+        if (this._isActive === nextActive) return;
+
+        this._isActive = nextActive;
+
+        if (!nextActive) {
+            if (this._animFrame) {
+                cancelAnimationFrame(this._animFrame);
+                this._animFrame = null;
+            }
+            this._isLoopActive = false;
+            return;
+        }
+
+        if (this.isRunning) {
+            this._startLoopIfNeeded();
+        }
+    }
+
     _meterTick() {
-        if (!this.isRunning || this.currentMode !== 'real' || this._fallbackMode) {
+        if (!this.isRunning || !this._isActive || this.currentMode !== 'real' || this._fallbackMode) {
             this._isLoopActive = false;
             return;
         }
@@ -240,7 +262,7 @@ class AudioVisualizerService {
     }
 
     _tick() {
-        if (!this.isRunning || !this.analyser || this.currentMode !== 'real') {
+        if (!this.isRunning || !this._isActive || !this.analyser || this.currentMode !== 'real') {
             this._isLoopActive = false;
             return;
         }
@@ -268,7 +290,7 @@ class AudioVisualizerService {
     }
 
     _simTick() {
-        if (!this.isRunning || (this.currentMode !== 'simulation' && !this._fallbackMode)) {
+        if (!this.isRunning || !this._isActive || (this.currentMode !== 'simulation' && !this._fallbackMode)) {
             this._isLoopActive = false;
             return;
         }
@@ -330,6 +352,9 @@ class AudioVisualizerService {
      */
     subscribe(callback) {
         this.subscribers.add(callback);
+        if (this._isActive) {
+            this._startLoopIfNeeded();
+        }
         return () => this.subscribers.delete(callback);
     }
 
@@ -341,6 +366,11 @@ class AudioVisualizerService {
     setPlaybackState(isPlaying, bpm = 120) {
         this._simBPM = bpm;
         const targetAmplitude = isPlaying ? 0.85 : 0;
+
+        if (!this._isActive) {
+            this._simAmplitude = targetAmplitude;
+            return;
+        }
 
         if (isPlaying) {
             this._startLoopIfNeeded();

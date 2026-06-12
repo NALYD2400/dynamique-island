@@ -292,22 +292,36 @@ document.addEventListener('DOMContentLoaded', () => {
     const navItems = document.querySelectorAll('.nav-item');
     const tabContents = document.querySelectorAll('.tab-content');
 
+    function switchTab(tabId) {
+        const item = Array.from(navItems).find(nav => nav.getAttribute('data-tab') === tabId);
+        if (!item) return;
+        
+        // Remove active from all nav items
+        navItems.forEach(nav => nav.classList.remove('active'));
+        // Hide all tab contents
+        tabContents.forEach(tab => tab.classList.add('hidden'));
+
+        // Add active to clicked nav item
+        item.classList.add('active');
+        // Show corresponding tab content
+        const targetTab = document.getElementById(tabId);
+        if (targetTab) {
+            targetTab.classList.remove('hidden');
+        }
+        localStorage.setItem('liquid_last_tab', tabId);
+    }
+
     navItems.forEach(item => {
         item.addEventListener('click', () => {
             clicker.playClick();
-            
-            // Remove active from all nav items
-            navItems.forEach(nav => nav.classList.remove('active'));
-            // Hide all tab contents
-            tabContents.forEach(tab => tab.classList.add('hidden'));
-
-            // Add active to clicked nav item
-            item.classList.add('active');
-            // Show corresponding tab content
             const tabId = item.getAttribute('data-tab');
-            document.getElementById(tabId).classList.remove('hidden');
+            switchTab(tabId);
         });
     });
+
+    // Restore last active tab
+    const lastTab = localStorage.getItem('liquid_last_tab') || 'tab-appearance';
+    switchTab(lastTab);
 
     function setUpdateBusy(isBusy) {
         [updateCheckBtn, updateDownloadBtn, updateInstallBtn].forEach((btn) => {
@@ -396,6 +410,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (updateAvailableVersion) updateAvailableVersion.textContent = availableVersion || 'Aucune';
         if (updateProgressFill) updateProgressFill.style.width = `${state === 'available' ? 0 : progress}%`;
 
+        const sidebarVersionLabel = document.getElementById('sidebar-version-label');
+        if (sidebarVersionLabel && currentVersion && currentVersion !== '-') {
+            sidebarVersionLabel.textContent = currentVersion;
+        }
+
         if (updateCheckBtn) updateCheckBtn.disabled = !status.canCheck || state === 'checking' || state === 'downloading' || state === 'installing';
         if (updateDownloadBtn) updateDownloadBtn.disabled = !status.canDownload;
         if (updateInstallBtn) updateInstallBtn.disabled = !status.canInstall || state === 'installing';
@@ -455,12 +474,34 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const wallpaperSyncStyle = selectWallpaperStyle ? selectWallpaperStyle.value : 'blur';
+        const wallpaperBlurIntensity = document.getElementById('wallpaper-blur-intensity') ? document.getElementById('wallpaper-blur-intensity').value : 'moderate';
+        const wallpaperDarken = document.getElementById('range-wallpaper-darken') ? parseInt(document.getElementById('range-wallpaper-darken').value) : 20;
+        const wallpaperDelay = document.getElementById('wallpaper-delay') ? parseInt(document.getElementById('wallpaper-delay').value) : 800;
         const visualizerMode = selectVizAnalysisMode ? selectVizAnalysisMode.value : 'real';
 
         // Update visibility of conditional settings items
-        if (wallpaperStyleContainer && toggleWallpaperSync) {
-            wallpaperStyleContainer.classList.toggle('hidden', !toggleWallpaperSync.checked);
+        const isSyncEnabled = toggleWallpaperSync ? toggleWallpaperSync.checked : false;
+        if (wallpaperStyleContainer) {
+            wallpaperStyleContainer.classList.toggle('hidden', !isSyncEnabled);
         }
+        const blurIntensityContainer = document.getElementById('wallpaper-blur-intensity-container');
+        const darkenContainer = document.getElementById('wallpaper-darken-container');
+        const delayContainer = document.getElementById('wallpaper-delay-container');
+        if (delayContainer) {
+            delayContainer.classList.toggle('hidden', !isSyncEnabled);
+        }
+        const isBlurryStyle = wallpaperSyncStyle === 'blur' || wallpaperSyncStyle === 'cinematic';
+        if (blurIntensityContainer) {
+            blurIntensityContainer.classList.toggle('hidden', !isSyncEnabled || !isBlurryStyle);
+        }
+        if (darkenContainer) {
+            darkenContainer.classList.toggle('hidden', !isSyncEnabled || !isBlurryStyle);
+        }
+        const valWallpaperDarken = document.getElementById('val-wallpaper-darken');
+        if (valWallpaperDarken) {
+            valWallpaperDarken.innerText = `${wallpaperDarken}%`;
+        }
+
         if (vizSensitivityContainer && selectVizAnalysisMode) {
             vizSensitivityContainer.classList.toggle('hidden', selectVizAnalysisMode.value === 'simulation');
         }
@@ -475,6 +516,9 @@ document.addEventListener('DOMContentLoaded', () => {
             isIdleCoverBg: document.getElementById('toggle-idle-cover-bg').checked,
             isWallpaperSync: document.getElementById('toggle-wallpaper-sync').checked,
             wallpaperSyncStyle,
+            wallpaperBlurIntensity,
+            wallpaperDarken,
+            wallpaperDelay,
             visualizerMode,
             visualizerSensitivity,
             shortcut: shortcutInput.value,
@@ -529,6 +573,9 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('liquid_island_idle_cover_bg', document.getElementById('toggle-idle-cover-bg').checked);
         localStorage.setItem('liquid_wallpaper_sync', config.isWallpaperSync);
         localStorage.setItem('liquid_wallpaper_sync_style', config.wallpaperSyncStyle);
+        localStorage.setItem('liquid_wallpaper_blur_intensity', config.wallpaperBlurIntensity);
+        localStorage.setItem('liquid_wallpaper_darken', config.wallpaperDarken);
+        localStorage.setItem('liquid_wallpaper_delay', config.wallpaperDelay);
         localStorage.setItem('liquid_visualizer_mode', config.visualizerMode);
         localStorage.setItem('liquid_visualizer_sensitivity', config.visualizerSensitivity);
         localStorage.setItem('liquid_island_shortcut', config.shortcut);
@@ -632,6 +679,7 @@ document.addEventListener('DOMContentLoaded', () => {
         )).join('');
         const selectedProfile = getAllProfiles().find(profile => profile.id === profileSelect.value);
         if (profileDeleteBtn) profileDeleteBtn.disabled = !selectedProfile || selectedProfile.locked;
+        initCustomSelects();
     }
 
     function profileToSettings(profile) {
@@ -661,6 +709,9 @@ document.addEventListener('DOMContentLoaded', () => {
             idleCoverBg: document.getElementById('toggle-idle-cover-bg').checked,
             wallpaperSync: document.getElementById('toggle-wallpaper-sync').checked,
             wallpaperSyncStyle: selectWallpaperStyle ? selectWallpaperStyle.value : 'blur',
+            wallpaperBlurIntensity: document.getElementById('wallpaper-blur-intensity') ? document.getElementById('wallpaper-blur-intensity').value : 'moderate',
+            wallpaperDarken: document.getElementById('range-wallpaper-darken') ? parseInt(document.getElementById('range-wallpaper-darken').value) : 20,
+            wallpaperDelay: document.getElementById('wallpaper-delay') ? parseInt(document.getElementById('wallpaper-delay').value) : 800,
             visualizerMode: selectVizAnalysisMode ? selectVizAnalysisMode.value : 'real',
             visualizerSensitivity: rangeVisualizerSensitivity ? (rangeVisualizerSensitivity.value / 10) : 2.5,
             modules: {
@@ -724,6 +775,23 @@ document.addEventListener('DOMContentLoaded', () => {
         if (selectWallpaperStyle && effectiveSettings.wallpaperSyncStyle) {
             selectWallpaperStyle.value = effectiveSettings.wallpaperSyncStyle;
         }
+        const selectWpIntensity = document.getElementById('wallpaper-blur-intensity');
+        if (selectWpIntensity && effectiveSettings.wallpaperBlurIntensity) {
+            selectWpIntensity.value = effectiveSettings.wallpaperBlurIntensity;
+        }
+        const rangeWpDarken = document.getElementById('range-wallpaper-darken');
+        const valWpDarken = document.getElementById('val-wallpaper-darken');
+        if (rangeWpDarken && effectiveSettings.wallpaperDarken !== undefined) {
+            rangeWpDarken.value = effectiveSettings.wallpaperDarken;
+            if (valWpDarken) {
+                valWpDarken.innerText = `${effectiveSettings.wallpaperDarken}%`;
+            }
+        }
+        const selectWpDelay = document.getElementById('wallpaper-delay');
+        if (selectWpDelay && effectiveSettings.wallpaperDelay !== undefined) {
+            selectWpDelay.value = effectiveSettings.wallpaperDelay;
+        }
+
         if (selectVizAnalysisMode && effectiveSettings.visualizerMode) {
             selectVizAnalysisMode.value = effectiveSettings.visualizerMode;
         }
@@ -776,6 +844,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setActiveProfileUI(profileId);
         emitConfig();
         refreshProfileSelect();
+        syncCustomSelects();
     }
 
     function updateGlowModeVisibility() {
@@ -826,6 +895,19 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('toggle-cover-sync').checked = profile.coverSync;
         document.getElementById('toggle-idle-cover-bg').checked = profile.idleCoverBg;
         if (selectWallpaperStyle) selectWallpaperStyle.value = profile.wallpaperSyncStyle || 'blur';
+        const selectWpIntensity = document.getElementById('wallpaper-blur-intensity');
+        if (selectWpIntensity) selectWpIntensity.value = profile.wallpaperBlurIntensity || 'moderate';
+        const rangeWpDarken = document.getElementById('range-wallpaper-darken');
+        const valWpDarken = document.getElementById('val-wallpaper-darken');
+        if (rangeWpDarken) {
+            rangeWpDarken.value = profile.wallpaperDarken !== undefined ? profile.wallpaperDarken : 20;
+            if (valWpDarken) {
+                valWpDarken.innerText = `${rangeWpDarken.value}%`;
+            }
+        }
+        const selectWpDelay = document.getElementById('wallpaper-delay');
+        if (selectWpDelay) selectWpDelay.value = profile.wallpaperDelay !== undefined ? profile.wallpaperDelay : 800;
+
         if (selectVizAnalysisMode) selectVizAnalysisMode.value = profile.visualizerMode || 'real';
 
         document.getElementById('toggle-wallpaper-sync').checked = profile.wallpaperSync === true;
@@ -844,6 +926,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ipcRenderer.send('apply-profile', { key: profileKey, ...profile });
         ipcRenderer.invoke('set-system-volume', profile.volume).catch(() => {});
         ipcRenderer.invoke('dnd-control', profile.dnd ? 'on' : 'off').catch(() => {});
+        syncCustomSelects();
     }
 
     // Slider range binds
@@ -982,6 +1065,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (selectWallpaperStyle) {
         selectWallpaperStyle.addEventListener('change', () => {
+            clicker.playClick();
+            emitConfig();
+        });
+    }
+
+    const selectWpIntensity = document.getElementById('wallpaper-blur-intensity');
+    if (selectWpIntensity) {
+        selectWpIntensity.addEventListener('change', () => {
+            clicker.playClick();
+            emitConfig();
+        });
+    }
+
+    const rangeWpDarken = document.getElementById('range-wallpaper-darken');
+    const valWpDarken = document.getElementById('val-wallpaper-darken');
+    if (rangeWpDarken) {
+        rangeWpDarken.addEventListener('input', (e) => {
+            if (valWpDarken) {
+                valWpDarken.innerText = `${e.target.value}%`;
+            }
+            emitConfig();
+        });
+    }
+
+    const selectWpDelay = document.getElementById('wallpaper-delay');
+    if (selectWpDelay) {
+        selectWpDelay.addEventListener('change', () => {
             clicker.playClick();
             emitConfig();
         });
@@ -1285,6 +1395,21 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('toggle-wallpaper-sync').checked = localStorage.getItem('liquid_wallpaper_sync') === 'true';
         const wpStyle = localStorage.getItem('liquid_wallpaper_sync_style') || 'blur';
         if (selectWallpaperStyle) selectWallpaperStyle.value = wpStyle;
+
+        const savedWpIntensity = localStorage.getItem('liquid_wallpaper_blur_intensity') || 'moderate';
+        const selectWpIntensity = document.getElementById('wallpaper-blur-intensity');
+        if (selectWpIntensity) selectWpIntensity.value = savedWpIntensity;
+
+        const savedWpDarken = parseInt(localStorage.getItem('liquid_wallpaper_darken') || '20');
+        const rangeWpDarken = document.getElementById('range-wallpaper-darken');
+        if (rangeWpDarken) rangeWpDarken.value = savedWpDarken;
+        const valWpDarken = document.getElementById('val-wallpaper-darken');
+        if (valWpDarken) valWpDarken.innerText = `${savedWpDarken}%`;
+
+        const savedWpDelay = parseInt(localStorage.getItem('liquid_wallpaper_delay') || '800');
+        const selectWpDelay = document.getElementById('wallpaper-delay');
+        if (selectWpDelay) selectWpDelay.value = savedWpDelay;
+
         setActiveProfileUI(localStorage.getItem('liquid_active_profile') || 'custom');
         refreshProfileSelect();
         
@@ -1314,6 +1439,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Execute load
     loadSettings();
+    initCustomSelects();
     renderUpdateStatus({ state: 'idle' });
     ipcRenderer.invoke('get-update-status')
         .then(renderUpdateStatus)
@@ -1353,6 +1479,32 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    const targetDisplaySelect = document.getElementById('select-target-display');
+    async function populateDisplays() {
+        if (!targetDisplaySelect) return;
+        try {
+            const displays = await ipcRenderer.invoke('get-displays');
+            targetDisplaySelect.innerHTML = `
+                <option value="primary">Écran principal</option>
+                ${displays.map(d => `<option value="${escapeHtml(d.id)}">${escapeHtml(d.label)}</option>`).join('')}
+            `;
+            const targetId = layoutState.displayId || 'primary';
+            targetDisplaySelect.value = targetId;
+            initCustomSelects();
+        } catch (e) {
+            console.error("Failed to populate displays:", e);
+        }
+    }
+
+    if (targetDisplaySelect) {
+        targetDisplaySelect.addEventListener('change', (e) => {
+            clicker.playClick();
+            const val = e.target.value;
+            layoutState.displayId = val;
+            ipcRenderer.send('set-target-display', val);
+        });
+    }
+
     ipcRenderer.invoke('get-layout-state').then((state) => {
         if (!state) return;
         if (state.layout) {
@@ -1364,6 +1516,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         layoutState.editMode = Boolean(state.editMode);
         layoutState.display = state.display || null;
+        populateDisplays();
         refreshLayoutUI();
     }).catch(() => {});
 
@@ -1401,13 +1554,150 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('liquid_layout_config', JSON.stringify({
             x: layoutState.x,
             y: layoutState.y,
-            scale: layoutState.scale
+            scale: layoutState.scale,
+            displayId: layoutState.displayId
         }));
+        if (targetDisplaySelect && layoutState.displayId) {
+            targetDisplaySelect.value = layoutState.displayId;
+            syncCustomSelects();
+        }
         refreshLayoutUI();
     });
 
     ipcRenderer.on('layout-edit-mode-changed', (event, enabled) => {
         layoutState.editMode = Boolean(enabled);
         refreshLayoutUI();
+    });
+
+    function initCustomSelects() {
+        const selects = document.querySelectorAll('.theme-select');
+        selects.forEach(select => {
+            let container = select.__customContainer;
+            if (!container) {
+                // Hide native select
+                select.classList.add('custom-select-hidden');
+                
+                // Create container
+                container = document.createElement('div');
+                container.className = 'custom-select-container';
+                if (select.id) {
+                    container.id = select.id + '-custom-container';
+                }
+                
+                // Create trigger
+                const trigger = document.createElement('div');
+                trigger.className = 'custom-select-trigger';
+                const label = document.createElement('span');
+                const caret = document.createElement('i');
+                caret.className = 'ph-bold ph-caret-down';
+                trigger.appendChild(label);
+                trigger.appendChild(caret);
+                container.appendChild(trigger);
+                
+                // Create options list container
+                const optionsList = document.createElement('div');
+                optionsList.className = 'custom-select-options';
+                container.appendChild(optionsList);
+                
+                // Insert container after native select
+                select.parentNode.insertBefore(container, select.nextSibling);
+                
+                // Keep references
+                select.__customContainer = container;
+                select.__customTrigger = trigger;
+                select.__customLabel = label;
+                select.__customOptionsList = optionsList;
+                
+                // Toggle open/close on click
+                trigger.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const isOpen = container.classList.contains('open');
+                    
+                    // Close all other custom selects first
+                    document.querySelectorAll('.custom-select-container').forEach(c => {
+                        if (c !== container) c.classList.remove('open');
+                    });
+                    
+                    if (isOpen) {
+                        container.classList.remove('open');
+                    } else {
+                        container.classList.add('open');
+                    }
+                });
+            }
+            
+            // Clear existing custom options
+            const optionsList = select.__customOptionsList;
+            optionsList.innerHTML = '';
+            
+            // Rebuild options list from native select options
+            Array.from(select.options).forEach(opt => {
+                const optDiv = document.createElement('div');
+                optDiv.className = 'custom-select-option';
+                optDiv.innerText = opt.text;
+                optDiv.setAttribute('data-value', opt.value);
+                
+                if (opt.selected) {
+                    optDiv.classList.add('selected');
+                    select.__customLabel.innerText = opt.text;
+                }
+                
+                optDiv.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    select.value = opt.value;
+                    
+                    // Dispatch change event to trigger existing listeners
+                    const changeEvent = new Event('change', { bubbles: true });
+                    select.dispatchEvent(changeEvent);
+                    
+                    // Sync the styling of this select
+                    syncCustomSelects();
+                    
+                    // Close the dropdown
+                    container.classList.remove('open');
+                });
+                
+                optionsList.appendChild(optDiv);
+            });
+            
+            // Fallback: if no option was selected, select first one
+            const selectedOpt = Array.from(select.options).find(opt => opt.selected);
+            if (selectedOpt) {
+                select.__customLabel.innerText = selectedOpt.text;
+            } else if (select.options.length > 0) {
+                select.__customLabel.innerText = select.options[0].text;
+            }
+        });
+    }
+
+    function syncCustomSelects() {
+        const selects = document.querySelectorAll('.theme-select');
+        selects.forEach(select => {
+            const container = select.__customContainer;
+            if (!container) return;
+            
+            const value = select.value;
+            const selectedOpt = Array.from(select.options).find(opt => opt.value === value);
+            if (selectedOpt) {
+                select.__customLabel.innerText = selectedOpt.text;
+            }
+            
+            // Update active state in options list
+            const options = select.__customOptionsList.querySelectorAll('.custom-select-option');
+            options.forEach(optDiv => {
+                if (optDiv.getAttribute('data-value') === value) {
+                    optDiv.classList.add('selected');
+                } else {
+                    optDiv.classList.remove('selected');
+                }
+            });
+        });
+    }
+
+    // Close all custom selects when clicking outside
+    document.addEventListener('click', () => {
+        document.querySelectorAll('.custom-select-container').forEach(c => {
+            c.classList.remove('open');
+        });
     });
 });

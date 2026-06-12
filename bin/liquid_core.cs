@@ -265,6 +265,12 @@ namespace LiquidCore {
         private const int SPIF_UPDATEINIFILE = 0x01;
         private const int SPIF_SENDCHANGE = 0x02;
 
+        [DllImport("user32.dll")]
+        private static extern int GetSystemMetrics(int nIndex);
+
+        private const int SM_CXSCREEN = 0;
+        private const int SM_CYSCREEN = 1;
+
         private static bool IsSafeTextArg(string value) {
             return !string.IsNullOrWhiteSpace(value) &&
                    value.Length <= 2048 &&
@@ -325,38 +331,91 @@ namespace LiquidCore {
             return finalBmp;
         }
 
-        private static void SetWallpaperWithBlur(string imagePath, int blurRadius) {
+        private static Bitmap MultiPassBoxBlur(Bitmap bmp, int radius, int passes) {
+            passes = Math.Clamp(passes, 1, 15);
+            Bitmap current = (Bitmap)bmp.Clone();
+            for (int i = 0; i < passes; i++) {
+                Bitmap next = BoxBlur(current, radius);
+                current.Dispose();
+                current = next;
+            }
+            return current;
+        }
+
+        private static void SetWallpaperWithBlur(string imagePath, string style, int passes, int darkenPercent) {
             try {
                 if (!IsSafeTextArg(imagePath)) return;
                 if (!File.Exists(imagePath)) return;
 
-                using (Bitmap original = new Bitmap(imagePath)) {
-                    // 1. Create a tiny thumbnail for ambient light base (e.g. 32x32)
-                    int thumbWidth = 32;
-                    int thumbHeight = 32;
+                int targetWidth = GetSystemMetrics(SM_CXSCREEN);
+                int targetHeight = GetSystemMetrics(SM_CYSCREEN);
+                if (targetWidth <= 0) targetWidth = 1920;
+                if (targetHeight <= 0) targetHeight = 1080;
+
+                Bitmap original;
+                using (var fs = new FileStream(imagePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)) {
+                    using (var temp = new Bitmap(fs)) {
+                        original = new Bitmap(temp);
+                    }
+                }
+                using (original) {
+                    int thumbWidth = 200;
+                    int thumbHeight = 200;
                     using (Bitmap tiny = new Bitmap(thumbWidth, thumbHeight)) {
                         using (Graphics g = Graphics.FromImage(tiny)) {
                             g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBilinear;
                             g.DrawImage(original, 0, 0, thumbWidth, thumbHeight);
                         }
 
-                        // 2. Perform Box Blur on tiny image to smooth out colors
-                        using (Bitmap blurredTiny = BoxBlur(tiny, blurRadius)) {
-                            // 3. Upscale to widescreen resolution (1920x1080) for a flawless abstract gradient
-                            int targetWidth = 1920;
-                            int targetHeight = 1080;
+                        using (Bitmap blurredTiny = MultiPassBoxBlur(tiny, 3, passes)) {
                             using (Bitmap finalWallpaper = new Bitmap(targetWidth, targetHeight)) {
                                 using (Graphics g = Graphics.FromImage(finalWallpaper)) {
-                                    g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBilinear;
+                                    g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
                                     g.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
-                                    g.DrawImage(blurredTiny, 0, 0, targetWidth, targetHeight);
+
+                                    float brightness = 1.0f - (Math.Clamp(darkenPercent, 0, 50) / 100f);
+                                    var colorMatrix = new ColorMatrix(new float[][] {
+                                        new float[] {brightness, 0, 0, 0, 0},
+                                        new float[] {0, brightness, 0, 0, 0},
+                                        new float[] {0, 0, brightness, 0, 0},
+                                        new float[] {0, 0, 0, 1, 0},
+                                        new float[] {0, 0, 0, 0, 1}
+                                    });
+
+                                    using (ImageAttributes attributes = new ImageAttributes()) {
+                                        attributes.SetColorMatrix(colorMatrix, ColorMatrixFlag.Default, ColorAdjustType.Bitmap);
+                                        g.DrawImage(blurredTiny, new Rectangle(0, 0, targetWidth, targetHeight),
+                                            0, 0, blurredTiny.Width, blurredTiny.Height, GraphicsUnit.Pixel, attributes);
+                                    }
+
+                                    if (style == "cinematic") {
+                                        int coverSize = (int)(targetHeight * 0.6);
+                                        int coverX = (targetWidth - coverSize) / 2;
+                                        int coverY = (targetHeight - coverSize) / 2;
+
+                                        int shadowOffset = 4;
+                                        int shadowSize = 20;
+                                        for (int i = shadowSize; i > 0; i--) {
+                                            int alpha = (int)(8.0 * (1.0 - (double)i / shadowSize));
+                                            if (alpha > 0) {
+                                                using (SolidBrush shadowBrush = new SolidBrush(Color.FromArgb(alpha, 0, 0, 0))) {
+                                                    int sX = coverX + shadowOffset - i;
+                                                    int sY = coverY + shadowOffset - i;
+                                                    int sW = coverSize + (2 * i);
+                                                    int sH = coverSize + (2 * i);
+                                                    g.FillRectangle(shadowBrush, new Rectangle(sX, sY, sW, sH));
+                                                }
+                                            }
+                                        }
+
+                                        g.DrawImage(original, new Rectangle(coverX, coverY, coverSize, coverSize));
+                                    }
                                 }
 
-                                // Save to processed wallpaper file
                                 string dir = Path.GetDirectoryName(imagePath) ?? Path.GetTempPath();
-                                string tempWpPath = Path.Combine(dir, "processed_wallpaper.jpg");
-                                
-                                // Delete existing processed wallpaper if any
+                                string suffix = imagePath.Contains("_2.jpg") ? "_2" : "_1";
+                                string tempWpPath = Path.Combine(dir, "processed_wallpaper" + suffix + ".jpg");
+
                                 if (File.Exists(tempWpPath)) {
                                     try { File.Delete(tempWpPath); } catch {}
                                 }
@@ -369,7 +428,6 @@ namespace LiquidCore {
                 }
             } catch (Exception ex) {
                 Console.Error.WriteLine("Error blurring wallpaper: " + ex.Message);
-                // Fallback to normal wallpaper if blur fails
                 SetWallpaper(imagePath);
             }
         }
@@ -1029,12 +1087,29 @@ namespace LiquidCore {
                     }
                 } else if (line.StartsWith("wallpaperblur ")) {
                     try {
-                        string path = line.Substring(14).Trim();
-                        if (path.StartsWith("\"") && path.EndsWith("\"")) {
-                            path = path.Substring(1, path.Length - 2);
+                        // Parse wallpaperblur "path" style passes darken
+                        int firstQuote = line.IndexOf('"');
+                        int lastQuote = line.LastIndexOf('"');
+                        if (firstQuote >= 0 && lastQuote > firstQuote) {
+                            string path = line.Substring(firstQuote + 1, lastQuote - firstQuote - 1);
+                            string remaining = line.Substring(lastQuote + 1).Trim();
+                            
+                            string style = "blur";
+                            int passes = 5;
+                            int darken = 20;
+                            
+                            if (!string.IsNullOrEmpty(remaining)) {
+                                string[] parts = remaining.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                                if (parts.Length >= 1) style = parts[0].ToLower();
+                                if (parts.Length >= 2) int.TryParse(parts[1], out passes);
+                                if (parts.Length >= 3) int.TryParse(parts[2], out darken);
+                            }
+                            
+                            SetWallpaperWithBlur(path, style, passes, darken);
+                            Console.WriteLine("ok");
+                        } else {
+                            Console.WriteLine("error");
                         }
-                        SetWallpaperWithBlur(path, 3);
-                        Console.WriteLine("ok");
                     } catch (Exception ex) {
                         Console.WriteLine("error");
                         Console.Error.WriteLine("Error setting blurred wallpaper: " + ex.Message);

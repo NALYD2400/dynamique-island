@@ -20,6 +20,16 @@ function rgbToHex(r, g, b) {
     return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
 }
 
+function blendHexColors(baseHex, coverHex, coverWeight = 65) {
+    const base = hexToRgb(baseHex);
+    const cover = hexToRgb(coverHex);
+    const weight = Math.max(0, Math.min(100, coverWeight)) / 100;
+    const r = Math.round(base.r * (1 - weight) + cover.r * weight);
+    const g = Math.round(base.g * (1 - weight) + cover.g * weight);
+    const b = Math.round(base.b * (1 - weight) + cover.b * weight);
+    return rgbToHex(r, g, b);
+}
+
 
 // Fonction utilitaire pour convertir les millisecondes en 'MM:SS'
 function formatTime(ms) {
@@ -382,6 +392,10 @@ export class DynamicIsland {
         this._vizUnsub = null;
         this._vizCanvas = null;
         this._vizRaf = null;
+        this._mediaPollTimer = null;
+        this._smoothTimer = null;
+        this._mediaPollingActive = false;
+        this._smoothLoopActive = false;
 
         // Album art color sync state
         this._coverColors = null;
@@ -413,6 +427,8 @@ export class DynamicIsland {
         this._mediaControlPendingUntil = 0;
         this._mediaControlExpectedIsPlaying = null;
         this._mediaControlPendingTrackKey = "";
+        this._mediaStateRequestInFlight = false;
+        this._lastMixerRowCount = null;
         this._isTransitioning = false; // Flag to prevent layout reflow lag during size transitions
 
         this.renderIdle();
@@ -454,6 +470,18 @@ export class DynamicIsland {
             }
             this._updateVizCanvas();
         });
+
+        this.syncVisualizerActivity();
+    }
+
+    syncVisualizerActivity() {
+        const canvas = this._vizCanvas;
+        const hasVisibleCanvas = Boolean(canvas && canvas.isConnected && canvas.width > 0 && canvas.height > 0);
+        visualizerService.setActive(hasVisibleCanvas);
+
+        if (hasVisibleCanvas) {
+            this._updateVizCanvas();
+        }
     }
 
     applyLayoutConfig(layout) {
@@ -466,7 +494,7 @@ export class DynamicIsland {
         if (!container) return;
 
         const scale = Number(this._layoutConfig.scale);
-        const safeScale = Number.isFinite(scale) ? Math.min(1.1, Math.max(0.65, scale)) : 1;
+        const safeScale = Number.isFinite(scale) ? Math.min(1.5, Math.max(0.65, scale)) : 1;
         container.style.setProperty('--island-layout-scale', safeScale.toString());
     }
 
@@ -956,7 +984,10 @@ export class DynamicIsland {
 
     _updateVizCanvas() {
         const canvas = this._vizCanvas;
-        if (!canvas) return;
+        if (!canvas || !canvas.isConnected) {
+            this.syncVisualizerActivity();
+            return;
+        }
 
         const ctx = canvas.getContext('2d');
         const dpr = window.devicePixelRatio || 1;
@@ -1067,14 +1098,16 @@ export class DynamicIsland {
         // Dynamic glow sync with cover color if vizColorMode is 'cover'
         if (vizColorMode === 'cover' && this._coverColors && this._islandConfig.glowEnabled !== false) {
             const primaryHex = rgbToHex(this._coverColors.primary.r, this._coverColors.primary.g, this._coverColors.primary.b);
+            const primaryRgbStr = `${this._coverColors.primary.r}, ${this._coverColors.primary.g}, ${this._coverColors.primary.b}`;
             const size = this._islandConfig.glowDensity || 20;
             const island = document.getElementById('dynamic-island');
             if (island) {
-                island.style.setProperty('--island-glow-color', primaryHex + '80');
+                island.style.setProperty('--island-glow-color', primaryHex);
+                island.style.setProperty('--island-glow-rgb', primaryRgbStr);
                 if (this.musicData && this.musicData.isPlaying) {
                     island.style.boxShadow = '';
                 } else {
-                    island.style.boxShadow = `0 5px ${size}px ${primaryHex}80`;
+                    island.style.boxShadow = ThemeService.buildIslandShadow(size, primaryRgbStr, true);
                 }
             }
         }
@@ -1569,9 +1602,23 @@ export class DynamicIsland {
         const island = document.getElementById('dynamic-island');
         if (island && this._islandConfig.glowEnabled !== false) {
             const size = this._islandConfig.glowDensity || 20;
-            island.style.setProperty('--island-glow-color', priHex);
-            island.style.setProperty('--island-glow-rgb', priRgbStr);
-            island.style.boxShadow = ThemeService.buildIslandShadow(size, priRgbStr, true);
+            const glowMode = this._islandConfig.glowColorMode || 'mix';
+            const fixedColor = this._islandConfig.glowColor || '#00f3ff';
+            const canUseCover = localStorage.getItem('liquid_cover_color_sync') !== 'false';
+
+            let color = fixedColor;
+            if (canUseCover && glowMode === 'cover') {
+                color = priHex;
+            } else if (canUseCover && glowMode === 'mix') {
+                color = blendHexColors(fixedColor, priHex, this._islandConfig.glowBlend ?? 65);
+            }
+
+            const rgb = hexToRgb(color);
+            const rgbStr = `${rgb.r}, ${rgb.g}, ${rgb.b}`;
+
+            island.style.setProperty('--island-glow-color', color);
+            island.style.setProperty('--island-glow-rgb', rgbStr);
+            island.style.boxShadow = ThemeService.buildIslandShadow(size, rgbStr, true);
         }
 
         // Update blurred background layer for instant feedback in any mode
@@ -1635,13 +1682,21 @@ export class DynamicIsland {
         if (island) {
             const glowColor = this._islandConfig.glowColor || colors.primary;
             const size = this._islandConfig.glowDensity || 20;
+            const rgb = hexToRgb(glowColor);
+            const rgbStr = `${rgb.r}, ${rgb.g}, ${rgb.b}`;
+
+            island.style.setProperty('--island-glow-color', glowColor);
+            island.style.setProperty('--island-glow-rgb', rgbStr);
+
             if (this._islandConfig.glowEnabled !== false) {
-                island.style.setProperty('--island-glow-color', glowColor + '80');
                 if (this.musicData && this.musicData.isPlaying) {
                     island.style.boxShadow = '';
                 } else {
-                    island.style.boxShadow = `0 5px ${size}px ${glowColor}80`;
+                    island.style.boxShadow = ThemeService.buildIslandShadow(size, rgbStr, true);
                 }
+            } else {
+                island.style.setProperty('--island-glow-opacity', '0');
+                island.style.boxShadow = ThemeService.buildIslandShadow(0, '0, 243, 255', false);
             }
         }
 
@@ -1707,14 +1762,37 @@ export class DynamicIsland {
             this.onSecondTick();
         }, 1000);
 
+        // Métadonnées média plus réactives pour réduire la latence ressentie
+        // sur la pochette, donc aussi sur la synchro du fond d'écran.
+        this._mediaPollingActive = true;
+        const pollMedia = async () => {
+            if (!this._mediaPollingActive) return;
+            await this.updateMediaState();
+            if (!this._mediaPollingActive) return;
+            this._mediaPollTimer = setTimeout(pollMedia, this.getMediaPollDelay());
+        };
+        pollMedia();
+
+        // Premier sync immédiat au démarrage, sans attendre la première seconde.
         // For FPS tracking (only when needed for stats display)
         this._fpsInterval = null;
     }
 
+    getMediaPollDelay() {
+        const controlPending = this._mediaControlPendingUntil && this._mediaControlPendingUntil > Date.now();
+        if (this.isExpanded || this.isPlaying || controlPending) return 400;
+        return 1100;
+    }
+
     startProgressSmoothLoop() {
-        this._smoothInterval = setInterval(() => {
+        this._smoothLoopActive = true;
+        const tick = () => {
+            if (!this._smoothLoopActive) return;
             if (this.isExpanded && this.mode === 'music' && this.isPlaying && this.musicData) {
-                if (this.isScrubbing) return; // Skip updating progress visual during manual drag/scrub!
+                if (this.isScrubbing) {
+                    this._smoothTimer = setTimeout(tick, this.getProgressSmoothDelay());
+                    return;
+                }
                 const data = this.musicData;
                 const elapsed = Date.now() - (this.lastMediaUpdate || Date.now());
                 const currentProgress = Math.min(data.duration, (data.progress || 0) + elapsed);
@@ -1732,28 +1810,46 @@ export class DynamicIsland {
                 if (timeEl) timeEl.innerText = formatTime(currentProgress);
             } else if (!this.isExpanded && this.isPlaying && this.musicData && localStorage.getItem('liquid_idle_compact_mode') === 'progress') {
                 const chipTime = this.el.querySelector('.idle-metric-chip span');
-                if (!chipTime) return;
-                const data = this.musicData;
-                const elapsed = Date.now() - (this.lastMediaUpdate || Date.now());
-                const baseProgress = data.progress || 0;
-                const currentProgress = data.duration ? Math.min(data.duration, baseProgress + elapsed) : baseProgress;
-                chipTime.innerText = formatTime(currentProgress);
+                if (chipTime) {
+                    const data = this.musicData;
+                    const elapsed = Date.now() - (this.lastMediaUpdate || Date.now());
+                    const baseProgress = data.progress || 0;
+                    const currentProgress = data.duration ? Math.min(data.duration, baseProgress + elapsed) : baseProgress;
+                    chipTime.innerText = formatTime(currentProgress);
+                }
             }
-        }, 100);
+            if (this._smoothLoopActive) {
+                this._smoothTimer = setTimeout(tick, this.getProgressSmoothDelay());
+            }
+        };
+        tick();
+    }
+
+    getProgressSmoothDelay() {
+        const progressVisible =
+            (this.isExpanded && this.mode === 'music' && this.isPlaying && this.musicData) ||
+            (!this.isExpanded && this.isPlaying && this.musicData && localStorage.getItem('liquid_idle_compact_mode') === 'progress');
+        return progressVisible ? 100 : 500;
     }
 
     stopMainLoop() {
+        this._mediaPollingActive = false;
+        this._smoothLoopActive = false;
         if (this._mainInterval) {
             clearInterval(this._mainInterval);
             this._mainInterval = null;
+        }
+        if (this._mediaPollTimer) {
+            clearTimeout(this._mediaPollTimer);
+            this._mediaPollTimer = null;
         }
         if (this._fpsInterval) {
             clearInterval(this._fpsInterval);
             this._fpsInterval = null;
         }
-        if (this._smoothInterval) {
-            clearInterval(this._smoothInterval);
-            this._smoothInterval = null;
+        if (this._smoothTimer) {
+            clearTimeout(this._smoothTimer);
+            this._smoothTimer = null;
         }
     }
 
@@ -1795,16 +1891,13 @@ export class DynamicIsland {
                 }
             }
         }
-
-        // Media update every second is enough for meta, but for progress we might want more.
-        // Let's keep a separate 500ms call for media to keep progress bar smooth.
-        this.updateMediaState();
     }
 
     async updateMediaState() {
         try {
-            
+            if (this._mediaStateRequestInFlight) return;
             if (!ipcRenderer) return;
+            this._mediaStateRequestInFlight = true;
 
             const mediaInfo = await ipcRenderer.invoke('get-media-info');
             if (mediaInfo) {
@@ -1823,6 +1916,9 @@ export class DynamicIsland {
                 });
             }
         } catch (e) { }
+        finally {
+            this._mediaStateRequestInFlight = false;
+        }
     }
 
 
@@ -2102,6 +2198,49 @@ export class DynamicIsland {
     renderContent() {
         try { window.speechSynthesis.cancel(); } catch (e) {}
 
+        // Reset any inline sizing from dynamic modes (e.g. mixer/history autosize)
+        try {
+            if (this.isExpanded && this.mode === 'mixer') {
+                const grouped = this.getGroupedSessions ? this.getGroupedSessions(this.audioSessions || []) : [];
+                const count = grouped.length;
+                const visible = Math.max(1, Math.min(count || 1, 5));
+                const bodyTarget = count === 0 ? 120 : visible * 62;
+                let target = 15 + 20 + 26 + 12 + bodyTarget + 6; // padTop + padBottom + headerH + headerMb + bodyTarget + security
+                target = Math.max(260, Math.min(520, target));
+                this.el.style.height = `${Math.round(target)}px`;
+                this.el.style.width = '';
+            } else if (this.isExpanded && this.mode === 'music-history') {
+                this.musicHistory = this.loadMusicHistory ? this.loadMusicHistory() : (this.musicHistory || []);
+                const query = (this.musicHistoryQuery || '').trim().toLowerCase();
+                const historyFilter = this.getMusicHistoryFilter ? this.getMusicHistoryFilter() : 'all';
+                const matchesQuery = (item) => {
+                    if (!query) return true;
+                    return `${item.title || ''} ${item.artist || ''} ${item.providerLabel || ''} ${item.appId || ''}`.toLowerCase().includes(query);
+                };
+                const favorites = (this.musicHistory || []).filter(item => historyFilter !== 'recent' && item.favorite && matchesQuery(item));
+                const recent = (this.musicHistory || []).filter(item => historyFilter !== 'favorites' && !item.favorite && matchesQuery(item));
+
+                let listTarget = 120;
+                const totalCount = favorites.length + recent.length;
+                if (totalCount > 0) {
+                    const visibleRows = Math.min(totalCount, 5);
+                    const titleCount = (favorites.length > 0 ? 1 : 0) + (recent.length > 0 ? 1 : 0);
+                    listTarget = (visibleRows * 64) + (titleCount * 18) + 24;
+                }
+                let target = 14 + 16 + 32 + 30 + (12 * 2) + listTarget; // padTop + padBottom + headerH + searchFilterRowH + (gap * 2) + listTarget
+                target = Math.max(180, Math.min(520, target));
+                this.el.style.height = `${Math.round(target)}px`;
+                this.el.style.width = '';
+            } else {
+                this.el.style.height = '';
+                this.el.style.width = '';
+            }
+        } catch (e) {
+            console.error('Error estimating dynamic mode height:', e);
+            this.el.style.height = '';
+            this.el.style.width = '';
+        }
+
         // Clear any active real-time system stats update interval
         if (this.statsInterval) {
             clearInterval(this.statsInterval);
@@ -2132,6 +2271,7 @@ export class DynamicIsland {
             if (this._isTransitioning) {
                 this.content.innerHTML = '';
                 this._vizCanvas = null;
+                this.syncVisualizerActivity();
                 return;
             }
 
@@ -2154,6 +2294,7 @@ export class DynamicIsland {
             if (this._isTransitioning) {
                 this.content.innerHTML = '';
                 this._vizCanvas = null;
+                this.syncVisualizerActivity();
                 return;
             }
 
@@ -2167,6 +2308,8 @@ export class DynamicIsland {
 
         // Enforce active album artwork cover & colors across all screens!
         this.syncGlobalCoverAesthetics();
+
+        this.syncVisualizerActivity();
 
         // Ensure the visualizer responds to state changes
         this.updateMediaState();
@@ -3009,6 +3152,8 @@ export class DynamicIsland {
                     <span style="font-family: inherit; font-size: 12px; letter-spacing: 0.5px;">Liquid AI réfléchit...</span>
                 </div>
             `;
+            this._vizCanvas = null;
+            this.syncVisualizerActivity();
             return;
         }
 
@@ -3021,6 +3166,8 @@ export class DynamicIsland {
                     <span style="font-family: inherit; font-size: 12px; letter-spacing: 0.5px;">Exécute : ${label}...</span>
                 </div>
             `;
+            this._vizCanvas = null;
+            this.syncVisualizerActivity();
             return;
         }
 
@@ -3041,6 +3188,8 @@ export class DynamicIsland {
           </span>
         </div>
       `;
+            this._vizCanvas = null;
+            this.syncVisualizerActivity();
             return;
         }
 
@@ -3113,9 +3262,10 @@ export class DynamicIsland {
         <div class="island-idle-content" style="display: flex; align-items: center; justify-content: space-between; width: 100%; height: 100%; padding: 0 18px 0 8px;">
           ${idleInnerHtml}
         </div>
-      `;
+            `;
             // Wire canvas to visualizer
             this._vizCanvas = this.content.querySelector('.live-viz-canvas');
+            this.syncVisualizerActivity();
         } else {
             this.el.classList.remove('island-active-music');
             this.el.classList.remove('island-active-network');
@@ -3123,6 +3273,7 @@ export class DynamicIsland {
             this.el.style.boxShadow = ''; // Reset to CSS default
             this.content.innerHTML = '';
             this._vizCanvas = null;
+            this.syncVisualizerActivity();
             // Restore default settings glow
             ThemeService.applyIslandSettings();
         }
@@ -3258,6 +3409,7 @@ export class DynamicIsland {
 
         // Wire expanded canvas visualizer
         this._vizCanvas = showVisualizer ? this.content.querySelector('.music-viz-canvas') : null;
+        this.syncVisualizerActivity();
         this.refreshCurrentMediaVolumeSession();
 
 
@@ -3302,7 +3454,7 @@ export class DynamicIsland {
         this.content.innerHTML = `
       <div class="music-search-panel">
         <div class="music-search-header">
-          <button class="music-search-back" id="music-search-back" title="Retour lecteur">
+          <button class="island-action-btn music-search-back" id="music-search-back" title="Retour lecteur">
             <i class="ph-bold ph-arrow-left"></i>
           </button>
           <div class="music-search-heading">
@@ -3652,6 +3804,50 @@ export class DynamicIsland {
         this.renderMusicHistory();
     }
 
+    autoSizeMusicHistory() {
+        if (!this.isExpanded || this.mode !== 'music-history') return;
+
+        const panel = this.content?.querySelector?.('.music-history-panel');
+        const list = this.content?.querySelector?.('.music-history-list');
+        const header = this.content?.querySelector?.('.music-history-header');
+        const searchFilterRow = this.content?.querySelector?.('.music-history-search-filter-row');
+        if (!panel || !list || !header || !searchFilterRow) return;
+
+        const rows = Array.from(list.querySelectorAll('.music-history-row'));
+        const empty = list.querySelector('.music-history-empty');
+        const titles = Array.from(list.querySelectorAll('.music-history-section-title'));
+        const px = (v) => {
+            const n = parseFloat(v || '0');
+            return Number.isFinite(n) ? n : 0;
+        };
+
+        const panelStyle = getComputedStyle(panel);
+        const panelPadTop = px(panelStyle.paddingTop);
+        const panelPadBottom = px(panelStyle.paddingBottom);
+        const panelGap = px(panelStyle.gap);
+
+        const headerH = header.getBoundingClientRect().height || 0;
+        const searchFilterRowH = searchFilterRow.getBoundingClientRect().height || 0;
+
+        let listTarget = 120;
+        if (empty) {
+            listTarget = Math.min(140, empty.getBoundingClientRect().height || 120);
+        } else if (rows.length > 0) {
+            const fullScrollHeight = list.scrollHeight || 0;
+            const rowH = rows[0].getBoundingClientRect().height || 64;
+            const titleH = titles[0]?.getBoundingClientRect?.().height || 18;
+            const maxVisibleRows = 5;
+            const visibleRows = Math.min(rows.length, maxVisibleRows);
+            const maxVisibleTitles = Math.min(titles.length, 2);
+            const estimatedMax = (visibleRows * rowH) + (maxVisibleTitles * titleH) + 24;
+            listTarget = Math.min(fullScrollHeight, estimatedMax);
+        }
+
+        let target = panelPadTop + panelPadBottom + headerH + searchFilterRowH + (panelGap * 2) + listTarget;
+        target = Math.max(180, Math.min(520, target));
+        this.el.style.height = `${Math.round(target)}px`;
+    }
+
     renderMusicHistory() {
         this.musicHistory = this.loadMusicHistory();
         const query = (this.musicHistoryQuery || '').trim().toLowerCase();
@@ -3728,32 +3924,32 @@ export class DynamicIsland {
         this.content.innerHTML = `
       <div class="music-history-panel">
         <div class="music-history-header">
-          <button class="music-history-back" id="music-history-back" title="Retour lecteur">
+          <button class="island-action-btn music-history-back" id="music-history-back" title="Retour lecteur">
             <i class="ph-bold ph-arrow-left"></i>
           </button>
           <div class="music-history-heading">
             <span>Recently played</span>
-            <small>${topText}</small>
-            <small>${totalCount} morceau${totalCount > 1 ? 'x' : ''} · ${favoriteCount} favori${favoriteCount > 1 ? 's' : ''}</small>
           </div>
-          <button class="music-history-clear" id="music-history-clear" title="Vider">
+          <button class="island-action-btn music-history-clear" id="music-history-clear" title="Vider">
             <i class="ph-bold ph-trash"></i>
           </button>
         </div>
 
-        <div class="music-history-search">
-          <i class="ph-bold ph-magnifying-glass"></i>
-          <input id="music-history-search-input" type="text" value="${escapeHtml(this.musicHistoryQuery || '')}" placeholder="Rechercher un morceau">
-          ${(this.musicHistoryQuery || '').trim() ? '<button id="music-history-search-clear" title="Effacer"><i class="ph-bold ph-x"></i></button>' : ''}
-        </div>
+        <div class="music-history-search-filter-row">
+          <div class="music-history-search">
+            <i class="ph-bold ph-magnifying-glass"></i>
+            <input id="music-history-search-input" type="text" value="${escapeHtml(this.musicHistoryQuery || '')}" placeholder="Rechercher...">
+            ${(this.musicHistoryQuery || '').trim() ? '<button id="music-history-search-clear" title="Effacer"><i class="ph-bold ph-x"></i></button>' : ''}
+          </div>
 
-        <div class="music-history-filter">
-          ${historyFilterOptions.map(option => `
-            <button class="${historyFilter === option.key ? 'is-active' : ''}" data-filter="${option.key}">
-              <span>${option.label}</span>
-              <small>${option.count}</small>
-            </button>
-          `).join('')}
+          <div class="music-history-filter">
+            ${historyFilterOptions.map(option => `
+              <button class="${historyFilter === option.key ? 'is-active' : ''}" data-filter="${option.key}">
+                <span>${option.label}</span>
+                <small>${option.count}</small>
+              </button>
+            `).join('')}
+          </div>
         </div>
 
         <div class="music-history-list">
@@ -3826,13 +4022,12 @@ export class DynamicIsland {
                 this.openHistoryTrack(item, btn.dataset.action);
             });
         });
+
+        setTimeout(() => this.autoSizeMusicHistory(), 0);
     }
-
-
 
     async adjustVolume(delta) {
         if (ipcRenderer) {
-            
             try {
                 let current = await ipcRenderer.invoke('get-system-volume') || 50;
                 let next = Math.min(100, Math.max(0, current + delta));
@@ -4370,10 +4565,12 @@ export class DynamicIsland {
             if (dropdown) dropdown.classList.add('show');
             const outBtn = this.content.querySelector('.device-select-btn');
             if (outBtn) outBtn.classList.add('active');
+            this.autoSizeMixer();
         } else {
             if (dropdown) dropdown.classList.remove('show');
             const outBtn = this.content.querySelector('.device-select-btn');
             if (outBtn) outBtn.classList.remove('active');
+            this.autoSizeMixer();
         }
     }
 
@@ -4391,10 +4588,12 @@ export class DynamicIsland {
             if (dropdown) dropdown.classList.add('show');
             const micBtn = this.content.querySelector('.mic-select-btn');
             if (micBtn) micBtn.classList.add('active');
+            this.autoSizeMixer();
         } else {
             if (dropdown) dropdown.classList.remove('show');
             const micBtn = this.content.querySelector('.mic-select-btn');
             if (micBtn) micBtn.classList.remove('active');
+            this.autoSizeMixer();
         }
     }
 
@@ -4477,6 +4676,9 @@ export class DynamicIsland {
                 `;
             }).join('');
         }
+
+        // Ajuste la hauteur quand la liste sortie change
+        this.autoSizeMixer();
     }
 
      async selectAudioDevice(deviceId) {
@@ -4525,6 +4727,79 @@ export class DynamicIsland {
                 `;
             }).join('');
         }
+
+        // Ajuste la hauteur quand la liste micro change
+        this.autoSizeMixer();
+    }
+
+    autoSizeMixer() {
+        if (!this.isExpanded || this.mode !== 'mixer') return;
+
+        const container = this.content?.querySelector?.('.mixer-container');
+        if (!container) return;
+
+        const header = container.querySelector('.mixer-header');
+        const body = container.querySelector('.mixer-body-wrapper');
+        if (!header || !body) return;
+
+        const px = (v) => {
+            const n = parseFloat(v || '0');
+            return Number.isFinite(n) ? n : 0;
+        };
+
+        const padTop = px(getComputedStyle(container).paddingTop);
+        const padBottom = px(getComputedStyle(container).paddingBottom);
+        const headerMb = px(getComputedStyle(header).marginBottom);
+        const headerH = header.getBoundingClientRect().height || 0;
+
+        let bodyTarget = 140; // fallback safe
+
+        // 1) Dropdown devices (sortie / entrée)
+        if (this.isAudioDeviceDropdownOpen || this.isMicDeviceDropdownOpen) {
+            const dropdown = this.content.querySelector(this.isAudioDeviceDropdownOpen ? '#audio-device-dropdown' : '#mic-device-dropdown');
+            if (dropdown) {
+                const ddHeader = dropdown.querySelector('.audio-device-dropdown-header');
+                const list = dropdown.querySelector('.audio-device-list-container');
+                const items = list ? Array.from(list.querySelectorAll('.audio-device-item')) : [];
+
+                const ddHeaderH = ddHeader ? ddHeader.getBoundingClientRect().height : 0;
+                const ddHeaderMb = ddHeader ? px(getComputedStyle(ddHeader).marginBottom) : 0;
+
+                const itemH = items[0]?.getBoundingClientRect?.().height || 54;
+                const itemMb = items[0] ? px(getComputedStyle(items[0]).marginBottom) : 8;
+                const count = items.length;
+                const maxVisible = 8; // évite une fenêtre gigantesque si beaucoup de périphériques
+                const visible = Math.max(1, Math.min(count || 1, maxVisible));
+
+                const listH = count === 0 ? 110 : (visible * itemH) + ((visible - 1) * itemMb);
+                bodyTarget = ddHeaderH + ddHeaderMb + listH;
+            }
+        } else {
+            // 2) Liste des sessions (mélangeur)
+            const list = body.querySelector('.mixer-sessions-list');
+            const rows = list ? Array.from(list.querySelectorAll('.mixer-session-row')) : [];
+            const empty = list ? list.querySelector('.mixer-empty-state') : null;
+
+            if (empty) {
+                bodyTarget = empty.getBoundingClientRect().height || 120;
+            } else {
+                const rowH = rows[0]?.getBoundingClientRect?.().height || 62;
+                const count = rows.length;
+                const maxVisible = 5; // ton besoin: hauteur = nb de flux, jusqu'à 5
+                const visible = Math.max(1, Math.min(count || 1, maxVisible));
+                bodyTarget = visible * rowH;
+            }
+        }
+
+        // 3) Total height = padding + header + body + micro marge de sécurité
+        let target = padTop + padBottom + headerH + headerMb + bodyTarget + 6;
+
+        // Gardes-fous (évite un truc trop petit ou trop grand)
+        const minH = 260;
+        const maxH = 520;
+        target = Math.max(minH, Math.min(maxH, target));
+
+        this.el.style.height = `${Math.round(target)}px`;
     }
 
     async selectMicDevice(deviceId) {
@@ -4695,6 +4970,9 @@ export class DynamicIsland {
             if (dropdown) dropdown.classList.add('show');
             this.renderMicDevicesInDropdown();
         }
+
+        // Ajuste la hauteur après rendu (mixer / dropdowns)
+        setTimeout(() => this.autoSizeMixer(), 0);
     }
 
     updateMixerUI(sessions) {
@@ -4743,6 +5021,12 @@ export class DynamicIsland {
             
             row.className = `mixer-session-row ${isMuted ? 'muted' : ''}`;
         });
+
+        // Si le nombre de lignes change (ou au 1er rendu), recalcul de la hauteur
+        if (this._lastMixerRowCount !== sessions.length) {
+            this._lastMixerRowCount = sessions.length;
+            this.autoSizeMixer();
+        }
     }
 
     updateCompactMixerUI(sessions) {
@@ -5311,7 +5595,7 @@ export class DynamicIsland {
                                     <span class="inner-item-label">Couleurs</span>
                                     <select id="inner-viz-color-mode" class="inner-theme-select">
                                         <option value="cover" ${glow.vizColorMode === 'cover' ? 'selected' : ''}>Pochette</option>
-                                        <option value="cyberpunk" ${glow.vizColorMode === 'cyberpunk' ? 'selected' : ''}>Cyberpunk</option>
+                                        <option value="cyberpunk" ${glow.vizColorMode === 'cyberpunk' ? 'selected' : ''}>Dégradé Liquide</option>
                                         <option value="solid" ${glow.vizColorMode === 'solid' ? 'selected' : ''}>Couleur unique</option>
                                         <option value="gradient" ${glow.vizColorMode === 'gradient' ? 'selected' : ''}>Dégradé</option>
                                     </select>

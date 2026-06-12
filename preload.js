@@ -5,7 +5,7 @@ const VALID_SEND_CHANNELS = [
     'set-ignore-mouse', 'config-changed', 'layout-config-changed', 'layout-reset',
     'set-layout-edit-mode', 'apply-profile', 'close-settings', 'trigger-notif',
     'cover-color-changed', 'register-shortcut', 'exit-app', 'open-settings',
-    'set-persistent-island'
+    'set-persistent-island', 'set-target-display'
 ];
 
 const VALID_INVOKE_CHANNELS = [
@@ -16,7 +16,8 @@ const VALID_INVOKE_CHANNELS = [
     'set-system-volume', 'get-system-volume', 'get-audio-sessions',
     'set-session-volume', 'set-session-muted', 'get-active-window-info',
     'wifi-control', 'bluetooth-control', 'dnd-control', 'get-audio-devices',
-    'get-audio-input-devices', 'set-default-audio-device', 'launch-shortcut'
+    'get-audio-input-devices', 'set-default-audio-device', 'launch-shortcut',
+    'get-displays'
 ];
 
 const VALID_ON_CHANNELS = [

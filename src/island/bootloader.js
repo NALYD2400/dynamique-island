@@ -65,7 +65,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // Send the initial wallpaper sync status to the main process
     const isWallpaperSync = localStorage.getItem('liquid_wallpaper_sync') === 'true';
     const wallpaperSyncStyle = localStorage.getItem('liquid_wallpaper_sync_style') || 'blur';
-    ipcRenderer.send('wallpaper-sync-status', isWallpaperSync, wallpaperSyncStyle);
+    const wallpaperBlurIntensity = localStorage.getItem('liquid_wallpaper_blur_intensity') || 'moderate';
+    const wallpaperDarken = parseInt(localStorage.getItem('liquid_wallpaper_darken') || '20');
+    const wallpaperDelay = parseInt(localStorage.getItem('liquid_wallpaper_delay') || '800');
+    ipcRenderer.send('wallpaper-sync-status', {
+        enabled: isWallpaperSync,
+        style: wallpaperSyncStyle,
+        intensity: wallpaperBlurIntensity,
+        darken: wallpaperDarken,
+        delay: wallpaperDelay
+    });
 
     const isAiAgentMonitor = localStorage.getItem('liquid_ai_agent_monitor') !== 'false';
     ipcRenderer.send('ai-agent-monitor-status', isAiAgentMonitor);
@@ -132,11 +141,23 @@ document.addEventListener('DOMContentLoaded', () => {
         if (config.wallpaperSyncStyle !== undefined) {
             localStorage.setItem('liquid_wallpaper_sync_style', config.wallpaperSyncStyle);
         }
+        if (config.wallpaperBlurIntensity !== undefined) {
+            localStorage.setItem('liquid_wallpaper_blur_intensity', config.wallpaperBlurIntensity);
+        }
+        if (config.wallpaperDarken !== undefined) {
+            localStorage.setItem('liquid_wallpaper_darken', config.wallpaperDarken);
+        }
+        if (config.wallpaperDelay !== undefined) {
+            localStorage.setItem('liquid_wallpaper_delay', config.wallpaperDelay);
+        }
         if (config.visualizerMode !== undefined) {
             localStorage.setItem('liquid_visualizer_mode', config.visualizerMode);
             if (visualizerService) {
                 visualizerService.setMode(config.visualizerMode).catch(() => {});
             }
+        }
+        if (config.visualizerSensitivity !== undefined) {
+            localStorage.setItem('liquid_visualizer_sensitivity', config.visualizerSensitivity);
         }
         if (config.shortcut !== undefined) {
             localStorage.setItem('liquid_island_shortcut', config.shortcut);

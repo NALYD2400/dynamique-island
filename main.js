@@ -196,7 +196,9 @@ function configureUpdater() {
 }
 
 async function checkForUpdatesManual() {
-    if (!app.isPackaged) {
+    // En dev (electron .), electron-updater cherche un fichier `app-update.yml` et spamme des erreurs.
+    // `process.defaultApp` est l'indicateur le plus fiable d'un lancement "dev-like".
+    if (!app.isPackaged || process.defaultApp) {
         return setUpdateStatus({
             state: 'dev',
             error: '',
@@ -293,8 +295,10 @@ function normalizeMediaCommand(action) {
 
 let originalWallpaper = "";
 let lastWallpaperCover = "";
+let pendingWallpaperCover = null;
 let isWallpaperSyncEnabled = false;
 let wallpaperSyncStyle = "blur";
+let wallpaperFileIndex = 1;
 
 function isTempWallpaper(wpPath) {
     if (!wpPath) return true;
@@ -302,8 +306,8 @@ function isTempWallpaper(wpPath) {
     const userDataPath = path.normalize(app.getPath('userData')).toLowerCase();
     
     if (normalizedWp.includes(userDataPath)) return true;
-    if (normalizedWp.includes('current_wallpaper.jpg')) return true;
-    if (normalizedWp.includes('processed_wallpaper.jpg')) return true;
+    if (normalizedWp.includes('current_wallpaper')) return true;
+    if (normalizedWp.includes('processed_wallpaper')) return true;
     if (normalizedWp.includes('liquid-dynamic-island')) return true;
     if (normalizedWp.includes('liquid dynamic island')) return true;
     
@@ -368,21 +372,51 @@ async function storeOriginalWallpaper() {
     }
 }
 
+let wallpaperBlurIntensity = "moderate";
+let wallpaperDarken = 20;
+let wallpaperDelay = 800;
+let wallpaperDebounceTimer = null;
+
 async function updateWallpaper(cover) {
     if (!isWallpaperSyncEnabled) return;
 
     if (!cover) {
         // Restore original wallpaper if empty
         if (lastWallpaperCover) {
+            if (wallpaperDebounceTimer) {
+                clearTimeout(wallpaperDebounceTimer);
+                wallpaperDebounceTimer = null;
+            }
+            pendingWallpaperCover = null;
             await restoreOriginalWallpaper();
         }
         return;
     }
 
     if (cover === lastWallpaperCover) return;
+    if (cover === pendingWallpaperCover) return;
 
+    pendingWallpaperCover = cover;
+
+    if (wallpaperDebounceTimer) {
+        clearTimeout(wallpaperDebounceTimer);
+    }
+
+    const delay = Math.max(0, wallpaperDelay);
+    if (delay === 0) {
+        await executeWallpaperUpdate(cover);
+    } else {
+        wallpaperDebounceTimer = setTimeout(async () => {
+            await executeWallpaperUpdate(cover);
+            wallpaperDebounceTimer = null;
+        }, delay);
+    }
+}
+
+async function executeWallpaperUpdate(cover) {
     try {
-        const tempPath = path.join(app.getPath('userData'), 'current_wallpaper.jpg');
+        wallpaperFileIndex = wallpaperFileIndex === 1 ? 2 : 1;
+        const tempPath = path.join(app.getPath('userData'), `current_wallpaper_${wallpaperFileIndex}.jpg`);
         
         if (cover.startsWith('data:image/')) {
             // Base64 image
@@ -391,6 +425,7 @@ async function updateWallpaper(cover) {
             fs.writeFileSync(tempPath, buffer);
             await applyWallpaper(tempPath);
             lastWallpaperCover = cover;
+            pendingWallpaperCover = null;
         } else if (cover.startsWith('http://') || cover.startsWith('https://')) {
             // URL image
             const response = await electronNet.fetch(cover);
@@ -400,10 +435,12 @@ async function updateWallpaper(cover) {
                 fs.writeFileSync(tempPath, buffer);
                 await applyWallpaper(tempPath);
                 lastWallpaperCover = cover;
+                pendingWallpaperCover = null;
             }
         }
     } catch (e) {
         logCoreMessage(`[Wallpaper Sync] Failed to update wallpaper: ${e.message}`);
+        pendingWallpaperCover = null;
     }
 }
 
@@ -415,8 +452,15 @@ async function applyWallpaper(imagePath) {
             await sendCoreCommand(`wallpaper "${imagePath}"`);
             logCoreMessage(`[Wallpaper Sync] Applied sharp wallpaper: ${imagePath}`);
         } else {
-            await sendCoreCommand(`wallpaperblur "${imagePath}"`);
-            logCoreMessage(`[Wallpaper Sync] Applied blurred wallpaper: ${imagePath}`);
+            const style = wallpaperSyncStyle === 'cinematic' ? 'cinematic' : 'blur';
+            let passes = 5;
+            if (wallpaperBlurIntensity === 'light') passes = 3;
+            else if (wallpaperBlurIntensity === 'strong') passes = 8;
+            
+            const darken = clampInteger(wallpaperDarken, 0, 50, 20);
+            
+            await sendCoreCommand(`wallpaperblur "${imagePath}" ${style} ${passes} ${darken}`);
+            logCoreMessage(`[Wallpaper Sync] Applied blurred/cinematic wallpaper: ${imagePath} style=${style} passes=${passes} darken=${darken}`);
         }
     } catch (e) {
         logCoreMessage(`[Wallpaper Sync] Failed to apply wallpaper command: ${e.message}`);
@@ -424,14 +468,18 @@ async function applyWallpaper(imagePath) {
 }
 
 async function restoreOriginalWallpaper() {
-    if (originalWallpaper && !hasUnsafeCoreText(originalWallpaper) && fs.existsSync(originalWallpaper)) {
-        try {
+    try {
+        if (originalWallpaper && !hasUnsafeCoreText(originalWallpaper) && fs.existsSync(originalWallpaper)) {
             await sendCoreCommand(`wallpaper "${originalWallpaper}"`);
-            lastWallpaperCover = "";
             logCoreMessage('[Wallpaper Sync] Restored original wallpaper');
-        } catch (e) {
-            logCoreMessage(`[Wallpaper Sync] Failed to restore original wallpaper: ${e.message}`);
+        } else {
+            logCoreMessage('[Wallpaper Sync] Original wallpaper path missing or invalid, skipping restore command');
         }
+    } catch (e) {
+        logCoreMessage(`[Wallpaper Sync] Failed to restore original wallpaper: ${e.message}`);
+    } finally {
+        lastWallpaperCover = "";
+        pendingWallpaperCover = null;
     }
 }
 
@@ -442,10 +490,10 @@ async function handleWallpaperSyncChange(enabled) {
     if (wasEnabled && !enabled) {
         // Just disabled: restore the original wallpaper!
         await restoreOriginalWallpaper();
-    } else if (!wasEnabled && enabled && currentMedia && currentMedia.cover) {
+    } else if (!wasEnabled && enabled && currentMedia && (currentMedia.cover || currentMedia.transientCover)) {
         // Just enabled: sync immediately!
         await storeOriginalWallpaper();
-        await updateWallpaper(currentMedia.cover);
+        await updateWallpaper(currentMedia.cover || currentMedia.transientCover);
     }
 }
 
@@ -454,7 +502,30 @@ function logCoreMessage(message) {
     console.log(line);
 
     try {
-        fs.appendFileSync(path.join(app.getPath('userData'), 'liquid-core.log'), line + '\n', 'utf8');
+        const logPath = path.join(app.getPath('userData'), 'liquid-core.log');
+        let shouldRotate = false;
+        try {
+            const stats = fs.statSync(logPath);
+            if (stats.size > 5 * 1024 * 1024) { // 5 MB
+                shouldRotate = true;
+            }
+        } catch (e) {
+            // Ignore (file doesn't exist yet)
+        }
+
+        if (shouldRotate) {
+            try {
+                const oldLogPath = logPath + '.old';
+                if (fs.existsSync(oldLogPath)) {
+                    fs.unlinkSync(oldLogPath);
+                }
+                fs.renameSync(logPath, oldLogPath);
+            } catch (err) {
+                // Ignore rename failures (e.g. locked)
+            }
+        }
+
+        fs.appendFileSync(logPath, line + '\n', 'utf8');
     } catch (e) {
         // Logging must never break the overlay.
     }
@@ -548,7 +619,8 @@ const ISLAND_WINDOW_BASE = {
 let currentLayoutConfig = {
     x: null,
     y: 10,
-    scale: 1
+    scale: 1,
+    displayId: 'primary'
 };
 let layoutEditMode = false;
 let suppressLayoutMoveSync = false;
@@ -560,7 +632,20 @@ function getLayoutConfigPath() {
 function clampScale(value) {
     const numeric = Number(value);
     if (!Number.isFinite(numeric)) return 1;
-    return Math.min(1.1, Math.max(0.65, numeric));
+    return Math.min(1.5, Math.max(0.65, numeric));
+}
+
+function getTargetDisplay() {
+    try {
+        const displays = screen.getAllDisplays();
+        if (currentLayoutConfig && currentLayoutConfig.displayId && currentLayoutConfig.displayId !== 'primary') {
+            const found = displays.find(d => String(d.id) === String(currentLayoutConfig.displayId));
+            if (found) return found;
+        }
+    } catch (e) {
+        console.warn('[Layout] Failed to get target display:', e.message);
+    }
+    return screen.getPrimaryDisplay();
 }
 
 function getDefaultLayoutConfig() {
@@ -569,7 +654,8 @@ function getDefaultLayoutConfig() {
     return {
         x: Math.round(workArea.x + ((workArea.width - ISLAND_WINDOW_BASE.width) / 2)),
         y: workArea.y - 30,
-        scale: 1
+        scale: 1,
+        displayId: display.id.toString()
     };
 }
 
@@ -578,19 +664,26 @@ function normalizeLayoutConfig(layout = {}) {
     return {
         x: Number.isFinite(Number(layout.x)) ? Number(layout.x) : defaults.x,
         y: Number.isFinite(Number(layout.y)) ? Number(layout.y) : defaults.y,
-        scale: clampScale(layout.scale)
+        scale: clampScale(layout.scale),
+        displayId: layout.displayId || defaults.displayId
     };
 }
 
 function clampLayoutConfigToDisplay(layout) {
-    const display = screen.getPrimaryDisplay();
-    const workArea = display.workArea;
     const normalized = normalizeLayoutConfig(layout);
-    const maxX = workArea.x + workArea.width - ISLAND_WINDOW_BASE.width;
-    const maxY = workArea.y + workArea.height - ISLAND_WINDOW_BASE.height;
+    const display = getTargetDisplay();
+    const workArea = display.workArea;
+    
+    const scale = normalized.scale || 1;
+    const w = Math.round(ISLAND_WINDOW_BASE.width * scale);
+    const h = Math.round(ISLAND_WINDOW_BASE.height * scale);
+
+    const maxX = workArea.x + workArea.width - w;
+    const maxY = workArea.y + workArea.height - h;
 
     normalized.x = Math.min(Math.max(normalized.x, workArea.x), Math.max(workArea.x, maxX));
     normalized.y = Math.min(Math.max(normalized.y, workArea.y - 40), Math.max(workArea.y - 40, maxY));
+    normalized.displayId = layout.displayId || display.id.toString();
     return normalized;
 }
 
@@ -630,12 +723,17 @@ function applyMainWindowLayout() {
     if (!mainWindow || mainWindow.isDestroyed()) return;
     currentLayoutConfig = clampLayoutConfigToDisplay(currentLayoutConfig);
     suppressLayoutMoveSync = true;
+    
+    const scale = currentLayoutConfig.scale || 1;
+    mainWindow.webContents.setZoomFactor(scale);
+    
     mainWindow.setBounds({
         x: Math.round(currentLayoutConfig.x),
         y: Math.round(currentLayoutConfig.y),
-        width: ISLAND_WINDOW_BASE.width,
-        height: ISLAND_WINDOW_BASE.height
+        width: Math.round(ISLAND_WINDOW_BASE.width * scale),
+        height: Math.round(ISLAND_WINDOW_BASE.height * scale)
     }, false);
+    
     setTimeout(() => {
         suppressLayoutMoveSync = false;
     }, 0);
@@ -743,8 +841,20 @@ function setLayoutEditModeState(enabled) {
 app.commandLine.appendSwitch('disable-gpu');
 app.commandLine.appendSwitch('enable-transparent-visuals');
 
+let coreReconnectTimer = null;
+
 // 1. SPAWN BACKGROUND AUDIO & MEDIA CORE (C# BINARY)
 function startCoreWorker() {
+    if (coreWorker) {
+        logCoreMessage('[Core] startCoreWorker called, but coreWorker is already running. Ignoring.');
+        return;
+    }
+
+    if (coreReconnectTimer) {
+        clearTimeout(coreReconnectTimer);
+        coreReconnectTimer = null;
+    }
+
     const coreExePath = app.isPackaged
         ? path.join(process.resourcesPath, 'bin', 'liquid_core.exe')
         : path.join(__dirname, 'bin', 'liquid_core.exe');
@@ -788,7 +898,9 @@ function startCoreWorker() {
     coreWorker.on('exit', (code, signal) => {
         logCoreMessage(`[Core] Background helper exited with code ${code}, signal ${signal || 'none'}`);
         cleanupCore();
-        setTimeout(startCoreWorker, 3000); // Auto reconnect
+        if (!coreReconnectTimer) {
+            coreReconnectTimer = setTimeout(startCoreWorker, 3000); // Auto reconnect
+        }
     });
 
     coreWorker.on('error', (err) => {
@@ -880,10 +992,11 @@ async function logCoreDiagnostics(reason) {
 // 2. CREATE FLOATING OVERLAY WINDOW (THE ISLAND)
 function createMainWindow() {
     currentLayoutConfig = clampLayoutConfigToDisplay(currentLayoutConfig);
+    const initialScale = currentLayoutConfig.scale || 1;
 
     mainWindow = new BrowserWindow({
-        width: ISLAND_WINDOW_BASE.width,
-        height: ISLAND_WINDOW_BASE.height,
+        width: Math.round(ISLAND_WINDOW_BASE.width * initialScale),
+        height: Math.round(ISLAND_WINDOW_BASE.height * initialScale),
         x: Math.round(currentLayoutConfig.x),
         y: Math.round(currentLayoutConfig.y),
         frame: false,
@@ -906,6 +1019,10 @@ function createMainWindow() {
     mainWindow.loadFile(path.join(__dirname, 'src', 'island', 'index.html'));
 
     mainWindow.webContents.on('did-finish-load', () => {
+        // Réapplique le layout complet après chargement.
+        // Sans ça, un scale sauvegardé (ex: 150%) peut laisser des bornes de fenêtre
+        // incohérentes au relancement, ce qui coupe visuellement l'overlay.
+        applyMainWindowLayout();
         broadcastLayoutConfig();
     });
 
@@ -947,6 +1064,10 @@ function createMainWindow() {
         saveLayoutConfig();
         broadcastLayoutConfig();
     });
+
+    // Important: applique le zoom + les bounds dès la création pour éviter
+    // un premier frame à la mauvaise taille avant le did-finish-load.
+    applyMainWindowLayout();
 }
 
 // 3. CREATE STANDALONE GLASS CONFIG WINDOW (SETTINGS)
@@ -991,16 +1112,21 @@ function createSettingsWindow() {
 
 // 3.5 CREATE SYSTEM TRAY
 function getTrayIconPath() {
-    const candidates = app.isPackaged
-        ? [
-            path.join(process.resourcesPath, 'tray', 'icon.ico'),
-            path.join(process.resourcesPath, 'icon.ico')
-        ]
-        : [
-            path.join(__dirname, 'build', 'icon.ico')
-        ];
+    const devCandidates = [
+        path.join(__dirname, 'build', 'icon.ico')
+    ];
 
-    return candidates.find(candidate => fs.existsSync(candidate)) || null;
+    const packagedCandidates = [
+        path.join(process.resourcesPath, 'tray', 'icon.ico'),
+        path.join(process.resourcesPath, 'icon.ico')
+    ];
+
+    // Fallback croisé: en cas de détection packagée/dev atypique, on essaye les deux.
+    const candidates = app.isPackaged
+        ? [...packagedCandidates, ...devCandidates]
+        : [...devCandidates, ...packagedCandidates];
+
+    return candidates.find(candidate => candidate && fs.existsSync(candidate)) || null;
 }
 
 function createTray() {
@@ -1039,6 +1165,7 @@ function createTray() {
         },
         {
             label: 'Réglages',
+            accelerator: 'CmdOrCtrl+,',
             click: () => {
                 createSettingsWindow();
             }
@@ -1094,7 +1221,8 @@ app.whenReady().then(() => {
     createMainWindow();
     createTray();
 
-    if (app.isPackaged) {
+    // Évite les erreurs electron-updater en mode dev (electron .)
+    if (app.isPackaged && !process.defaultApp) {
         setTimeout(() => {
             checkForUpdatesManual().catch(err => {
                 console.error('[Updater] Error checking for updates:', err);
@@ -1251,11 +1379,21 @@ ipcMain.on('config-changed', (event, config) => {
     if (!isTrustedSender(event)) return;
     if (config) {
         const oldStyle = wallpaperSyncStyle;
+        const oldIntensity = wallpaperBlurIntensity;
+        const oldDarken = wallpaperDarken;
+        const oldDelay = wallpaperDelay;
+
         if (config.wallpaperSyncStyle !== undefined) wallpaperSyncStyle = config.wallpaperSyncStyle;
+        if (config.wallpaperBlurIntensity !== undefined) wallpaperBlurIntensity = config.wallpaperBlurIntensity;
+        if (config.wallpaperDarken !== undefined) wallpaperDarken = config.wallpaperDarken;
+        if (config.wallpaperDelay !== undefined) wallpaperDelay = config.wallpaperDelay;
         
         if (config.isWallpaperSync !== undefined) {
             const enabledChanged = isWallpaperSyncEnabled !== !!config.isWallpaperSync;
-            const styleChanged = oldStyle !== wallpaperSyncStyle;
+            const styleChanged = oldStyle !== wallpaperSyncStyle || 
+                                 oldIntensity !== wallpaperBlurIntensity || 
+                                 oldDarken !== wallpaperDarken ||
+                                 oldDelay !== wallpaperDelay;
             
             isWallpaperSyncEnabled = !!config.isWallpaperSync;
             
@@ -1264,16 +1402,18 @@ ipcMain.on('config-changed', (event, config) => {
                     if (enabledChanged) {
                         restoreOriginalWallpaper();
                     }
-                } else if (currentMedia && currentMedia.cover) {
+                } else if (currentMedia && (currentMedia.cover || currentMedia.transientCover)) {
+                    const activeCover = currentMedia.cover || currentMedia.transientCover;
                     if (enabledChanged) {
-                        storeOriginalWallpaper().then(() => {
-                            lastWallpaperCover = "";
-                            updateWallpaper(currentMedia.cover);
-                        });
+                        storeOriginalWallpaper(); // Run in background, do not block wallpaper update!
+                        lastWallpaperCover = "";
+                        pendingWallpaperCover = null;
+                        updateWallpaper(activeCover);
                     } else {
                         // Clear the cache so updateWallpaper forces a background refresh using the new style
                         lastWallpaperCover = "";
-                        updateWallpaper(currentMedia.cover);
+                        pendingWallpaperCover = null;
+                        updateWallpaper(activeCover);
                     }
                 }
             }
@@ -1285,12 +1425,20 @@ ipcMain.on('config-changed', (event, config) => {
 });
 
 // Wallpaper sync startup status relay
-ipcMain.on('wallpaper-sync-status', (event, enabled, style) => {
+ipcMain.on('wallpaper-sync-status', (event, status, style) => {
     if (!isTrustedSender(event)) return;
-    isWallpaperSyncEnabled = enabled;
-    if (style) wallpaperSyncStyle = style;
-    if (enabled && currentMedia && currentMedia.cover) {
-        updateWallpaper(currentMedia.cover);
+    if (status && typeof status === 'object') {
+        isWallpaperSyncEnabled = !!status.enabled;
+        if (status.style !== undefined) wallpaperSyncStyle = status.style;
+        if (status.intensity !== undefined) wallpaperBlurIntensity = status.intensity;
+        if (status.darken !== undefined) wallpaperDarken = status.darken;
+        if (status.delay !== undefined) wallpaperDelay = status.delay;
+    } else {
+        isWallpaperSyncEnabled = !!status;
+        if (style) wallpaperSyncStyle = style;
+    }
+    if (isWallpaperSyncEnabled && currentMedia && (currentMedia.cover || currentMedia.transientCover)) {
+        updateWallpaper(currentMedia.cover || currentMedia.transientCover);
     }
 });
 
@@ -1298,7 +1446,8 @@ ipcMain.handle('get-layout-state', (event) => {
     const trust = ensureTrustedSender(event, null);
     if (!trust.trusted) return trust.value;
 
-    const workArea = screen.getPrimaryDisplay().workArea;
+    const display = getTargetDisplay();
+    const workArea = display.workArea;
     return {
         layout: currentLayoutConfig,
         editMode: layoutEditMode,
@@ -1309,6 +1458,44 @@ ipcMain.handle('get-layout-state', (event) => {
             height: workArea.height
         }
     };
+});
+
+ipcMain.handle('get-displays', (event) => {
+    const trust = ensureTrustedSender(event, []);
+    if (!trust.trusted) return trust.value;
+
+    try {
+        return screen.getAllDisplays().map((d) => {
+            return {
+                id: d.id.toString(),
+                label: `${d.label || 'Moniteur'} (${Math.round(d.bounds.width)}x${Math.round(d.bounds.height)})`,
+                bounds: d.bounds,
+                scaleFactor: d.scaleFactor
+            };
+        });
+    } catch (e) {
+        console.warn('[IPC] Failed to list displays:', e.message);
+        return [];
+    }
+});
+
+ipcMain.on('set-target-display', (event, displayId) => {
+    if (!isTrustedSender(event)) return;
+    
+    currentLayoutConfig.displayId = displayId;
+    
+    // Center the island on the new display
+    const targetDisplay = getTargetDisplay();
+    const workArea = targetDisplay.workArea;
+    const scale = currentLayoutConfig.scale || 1;
+    const w = Math.round(ISLAND_WINDOW_BASE.width * scale);
+    
+    currentLayoutConfig.x = Math.round(workArea.x + ((workArea.width - w) / 2));
+    currentLayoutConfig.y = workArea.y - 30;
+    
+    currentLayoutConfig = clampLayoutConfigToDisplay(currentLayoutConfig);
+    saveLayoutConfig();
+    applyMainWindowLayout();
 });
 
 ipcMain.on('layout-config-changed', (event, layout) => {
@@ -1382,6 +1569,16 @@ ipcMain.on('cover-color-changed', (event, colorData) => {
 const coverCache = new Map();
 let lastSearchedTrack = "";
 
+function setInCoverCache(key, value) {
+    if (coverCache.size >= 200 && !coverCache.has(key)) {
+        const firstKey = coverCache.keys().next().value;
+        if (firstKey !== undefined) {
+            coverCache.delete(firstKey);
+        }
+    }
+    coverCache.set(key, value);
+}
+
 async function fetchFallbackCover(title, artist) {
     const cacheKey = `${artist} - ${title}`.toLowerCase();
     if (coverCache.has(cacheKey)) {
@@ -1397,9 +1594,9 @@ async function fetchFallbackCover(title, artist) {
         if (response.ok) {
             const data = await response.json();
             if (data.data && data.data.length > 0) {
-                const coverUrl = data.data[0].album.cover_medium || data.data[0].album.cover_big;
+                const coverUrl = data.data[0].album.cover_xl || data.data[0].album.cover_big;
                 if (coverUrl) {
-                    coverCache.set(cacheKey, coverUrl);
+                    setInCoverCache(cacheKey, coverUrl);
                     console.log(`[Cover Fallback] Found cover on Deezer for ${cacheKey}: ${coverUrl}`);
                     return coverUrl;
                 }
@@ -1417,8 +1614,8 @@ async function fetchFallbackCover(title, artist) {
             if (data.results && data.results.length > 0) {
                 const coverUrl = data.results[0].artworkUrl100 || data.results[0].artworkUrl60;
                 if (coverUrl) {
-                    const highResCover = coverUrl.replace('100x100bb', '500x500bb');
-                    coverCache.set(cacheKey, highResCover);
+                    const highResCover = coverUrl.replace(/100x100bb|60x60bb/, '3000x3000bb');
+                    setInCoverCache(cacheKey, highResCover);
                     console.log(`[Cover Fallback] Found cover on iTunes for ${cacheKey}: ${highResCover}`);
                     return highResCover;
                 }
@@ -1428,7 +1625,7 @@ async function fetchFallbackCover(title, artist) {
         // Ignore iTunes fail
     }
 
-    coverCache.set(cacheKey, "");
+    setInCoverCache(cacheKey, "");
     return "";
 }
 
