@@ -2332,7 +2332,7 @@ export class DynamicIsland {
                 <div class="search-bar-integrated">
                     <i class="ph-bold ph-magnifying-glass search-icon-integrated"></i>
                     <input type="text" id="island-search-input" placeholder="Rechercher..." autofocus>
-                    <button class="island-close-search" onclick="window.dispatchEvent(new CustomEvent('liquid-search-close'))">
+                    <button class="island-close-search" onclick="window.dispatchEvent(new CustomEvent('liquid-search-close'))" aria-label="Fermer la recherche" title="Fermer">
                         <i class="ph-bold ph-x"></i>
                     </button>
                 </div>
@@ -2597,9 +2597,9 @@ export class DynamicIsland {
                                 <span class="ic-np-artist" id="ic-np-artist-val">${escapeHtml(musicData.artist)}</span>
                             </div>
                             <div class="ic-np-controls">
-                                <button class="ic-np-btn" onclick="event.stopPropagation(); window.spotifyControl('prev')"><i class="ph-fill ph-skip-back"></i></button>
-                                <button class="ic-np-btn play" id="ic-np-play-btn-val" onclick="event.stopPropagation(); window.spotifyControl('toggle')"><i class="ph-fill ph-${musicData.isPlaying ? 'pause' : 'play'}"></i></button>
-                                <button class="ic-np-btn" onclick="event.stopPropagation(); window.spotifyControl('next')"><i class="ph-fill ph-skip-forward"></i></button>
+                                <button class="ic-np-btn" onclick="event.stopPropagation(); window.spotifyControl('prev')" aria-label="Précédent" title="Précédent"><i class="ph-fill ph-skip-back"></i></button>
+                                <button class="ic-np-btn play" id="ic-np-play-btn-val" onclick="event.stopPropagation(); window.spotifyControl('toggle')" aria-label="${musicData.isPlaying ? 'Pause' : 'Lecture'}" title="${musicData.isPlaying ? 'Pause' : 'Lecture'}"><i class="ph-fill ph-${musicData.isPlaying ? 'pause' : 'play'}"></i></button>
+                                <button class="ic-np-btn" onclick="event.stopPropagation(); window.spotifyControl('next')" aria-label="Suivant" title="Suivant"><i class="ph-fill ph-skip-forward"></i></button>
                             </div>
                         </div>
 
@@ -3388,11 +3388,11 @@ export class DynamicIsland {
           ` : ''}
         </div>
         <div class="music-controls">
-          <button class="control-btn-music" onclick="event.stopPropagation(); window.spotifyControl('prev')"><i class="ph-fill ph-skip-back"></i></button>
-          <button class="control-btn-music play-btn" onclick="event.stopPropagation(); window.spotifyControl('toggle')">
+          <button class="control-btn-music" onclick="event.stopPropagation(); window.spotifyControl('prev')" aria-label="Précédent" title="Précédent"><i class="ph-fill ph-skip-back"></i></button>
+          <button class="control-btn-music play-btn" onclick="event.stopPropagation(); window.spotifyControl('toggle')" aria-label="${data.isPlaying ? 'Pause' : 'Lecture'}" title="${data.isPlaying ? 'Pause' : 'Lecture'}">
             <i class="ph-fill ${data.isPlaying ? 'ph-pause' : 'ph-play'}"></i>
           </button>
-          <button class="control-btn-music" onclick="event.stopPropagation(); window.spotifyControl('next')"><i class="ph-fill ph-skip-forward"></i></button>
+          <button class="control-btn-music" onclick="event.stopPropagation(); window.spotifyControl('next')" aria-label="Suivant" title="Suivant"><i class="ph-fill ph-skip-forward"></i></button>
         </div>
         <div class="progress-bar" style="--progress-pct: ${pct}%">
           <div class="progress-fill" id="music-progress-fill" style="width: ${pct}%"></div>
@@ -4879,7 +4879,7 @@ export class DynamicIsland {
                                 <input type="range" class="mixer-volume-slider" data-pid="${s.pid}" min="0" max="100" value="${activeVol}">
                             </div>
                         </div>
-                        <button class="mixer-mute-btn ${btnMutedClass}" data-pid="${s.pid}">
+                        <button class="mixer-mute-btn ${btnMutedClass}" data-pid="${s.pid}" aria-label="${s.muted ? 'Activer le son' : 'Couper le son'}" title="${s.muted ? 'Activer le son' : 'Couper le son'}">
                             <i class="ph-fill ${muteIcon}"></i>
                         </button>
                     </div>
@@ -4935,7 +4935,7 @@ export class DynamicIsland {
                     <div class="audio-device-dropdown" id="audio-device-dropdown">
                         <div class="audio-device-dropdown-header">
                             <span class="audio-device-dropdown-title">Sortie Audio</span>
-                            <button class="audio-device-dropdown-close" onclick="event.stopPropagation(); window.island.toggleAudioDeviceDropdown()">
+                            <button class="audio-device-dropdown-close" onclick="event.stopPropagation(); window.island.toggleAudioDeviceDropdown()" aria-label="Fermer" title="Fermer">
                                 <i class="ph-bold ph-x"></i>
                             </button>
                         </div>
@@ -4947,7 +4947,7 @@ export class DynamicIsland {
                     <div class="audio-device-dropdown" id="mic-device-dropdown">
                         <div class="audio-device-dropdown-header">
                             <span class="audio-device-dropdown-title">Entrée Audio / Micro</span>
-                            <button class="audio-device-dropdown-close" onclick="event.stopPropagation(); window.island.toggleMicDeviceDropdown()">
+                            <button class="audio-device-dropdown-close" onclick="event.stopPropagation(); window.island.toggleMicDeviceDropdown()" aria-label="Fermer" title="Fermer">
                                 <i class="ph-bold ph-x"></i>
                             </button>
                         </div>
@@ -5527,7 +5527,7 @@ export class DynamicIsland {
             <div class="island-settings-container">
                 <div class="island-settings-header">
                     <div class="island-settings-title"><i class="ph-fill ph-gear"></i> Réglages</div>
-                    <button class="ic-close" onclick="event.stopPropagation(); window.island.setMode('menu')"><i class="ph ph-arrow-left" style="font-size: 14px;"></i></button>
+                    <button class="ic-close" onclick="event.stopPropagation(); window.island.setMode('menu')" aria-label="Retour au menu" title="Retour"><i class="ph ph-arrow-left" style="font-size: 14px;"></i></button>
                 </div>
                 <div class="settings-tabbar">
                     ${settingsTabs.map(tab => `
