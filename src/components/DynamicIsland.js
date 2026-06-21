@@ -1100,14 +1100,26 @@ export class DynamicIsland {
             const primaryHex = rgbToHex(this._coverColors.primary.r, this._coverColors.primary.g, this._coverColors.primary.b);
             const primaryRgbStr = `${this._coverColors.primary.r}, ${this._coverColors.primary.g}, ${this._coverColors.primary.b}`;
             const size = this._islandConfig.glowDensity || 20;
-            const island = document.getElementById('dynamic-island');
+            const island = this.el;
             if (island) {
-                island.style.setProperty('--island-glow-color', primaryHex);
-                island.style.setProperty('--island-glow-rgb', primaryRgbStr);
-                if (this.musicData && this.musicData.isPlaying) {
-                    island.style.boxShadow = '';
-                } else {
-                    island.style.boxShadow = ThemeService.buildIslandShadow(size, primaryRgbStr, true);
+                const isPlaying = this.musicData ? this.musicData.isPlaying : false;
+                if (this._lastVizGlowPrimaryHex !== primaryHex ||
+                    this._lastVizGlowPrimaryRgbStr !== primaryRgbStr ||
+                    this._lastVizGlowSize !== size ||
+                    this._lastVizGlowPlaying !== isPlaying) {
+
+                    this._lastVizGlowPrimaryHex = primaryHex;
+                    this._lastVizGlowPrimaryRgbStr = primaryRgbStr;
+                    this._lastVizGlowSize = size;
+                    this._lastVizGlowPlaying = isPlaying;
+
+                    island.style.setProperty('--island-glow-color', primaryHex);
+                    island.style.setProperty('--island-glow-rgb', primaryRgbStr);
+                    if (isPlaying) {
+                        island.style.boxShadow = '';
+                    } else {
+                        island.style.boxShadow = ThemeService.buildIslandShadow(size, primaryRgbStr, true);
+                    }
                 }
             }
         }

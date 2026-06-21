@@ -28,6 +28,17 @@ class AudioVisualizerService {
         this.currentMode = null;
         this._isLoopActive = false;
         this._isActive = false;
+        this._sensitivityCache = null;
+        this._sensitivityCacheTime = 0;
+    }
+
+    _getSensitivity() {
+        const now = performance.now();
+        if (this._sensitivityCache === null || now - this._sensitivityCacheTime > 1000) {
+            this._sensitivityCache = parseFloat(localStorage.getItem('liquid_visualizer_sensitivity') || '2.5');
+            this._sensitivityCacheTime = now;
+        }
+        return this._sensitivityCache;
     }
 
     /**
@@ -234,7 +245,7 @@ class AudioVisualizerService {
 
         this._meterPeak += (this._meterTargetPeak - this._meterPeak) * 0.34;
 
-        const sensitivity = parseFloat(localStorage.getItem('liquid_visualizer_sensitivity') || '2.5');
+        const sensitivity = this._getSensitivity();
         const peak = this._clamp01(this._meterPeak * sensitivity);
         const stereoWidth = Math.abs(this._meterLeft - this._meterRight);
         const t = now / 1000;
@@ -278,7 +289,7 @@ class AudioVisualizerService {
         const treble = this._average(this.dataArray, Math.floor(bufLen * 0.75), bufLen);
 
         // Retrieve visualizer sensitivity from localStorage (default 2.5)
-        const sensitivity = parseFloat(localStorage.getItem('liquid_visualizer_sensitivity') || '2.5');
+        const sensitivity = this._getSensitivity();
 
         this._notify({
             bands: [bass, lowMid, mid, highMid, treble].map(v => Math.min(1.0, (v / 255) * sensitivity)),
