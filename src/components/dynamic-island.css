@@ -1182,6 +1182,48 @@ body.motion-vivid .inner-action-btn:hover {
     z-index: 1;
 }
 
+body.eco-mode *,
+body.eco-mode *::before,
+body.eco-mode *::after {
+    animation: none !important;
+    transition-duration: 0s !important;
+}
+
+body.eco-mode #dynamic-island {
+    background: var(--island-bg) !important;
+    background-image: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+body.eco-mode #dynamic-island *,
+body.eco-mode #dynamic-island *::before,
+body.eco-mode #dynamic-island *::after {
+    filter: none !important;
+    text-shadow: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+body.eco-mode .music-player,
+body.eco-mode .music-info,
+body.eco-mode .island-menu-item,
+body.eco-mode .ic-tile,
+body.eco-mode .ic-action-btn,
+body.eco-mode .settings-card,
+body.eco-mode .setting-row {
+    background-image: none !important;
+}
+
+body.eco-mode .island-bg-layer,
+body.eco-mode .live-viz-canvas,
+body.eco-mode .music-viz-canvas {
+    display: none !important;
+}
+
 .music-search-panel {
     height: 100%;
     padding: 14px 18px 16px;

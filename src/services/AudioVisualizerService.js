@@ -28,6 +28,10 @@ class AudioVisualizerService {
         this.currentMode = null;
         this._isLoopActive = false;
         this._isActive = false;
+        this._targetFps = 24;
+        this._lastFrame = 0;
+        this._ampFrame = null;
+        this._ecoMode = localStorage.getItem('liquid_eco_mode') === 'true';
     }
 
     /**
@@ -36,7 +40,7 @@ class AudioVisualizerService {
      * Falls back to a smart music-reactive simulation if unavailable.
      */
     async start() {
-        if (this.isRunning) return;
+        if (this.isRunning || this._ecoMode) return;
         this.isRunning = true;
 
         const mode = localStorage.getItem('liquid_visualizer_mode') || 'real';
@@ -101,7 +105,7 @@ class AudioVisualizerService {
     }
 
     _startLoopIfNeeded() {
-        if (!this._isActive || this.subscribers.size === 0) return;
+        if (this._ecoMode || !this._isActive || this.subscribers.size === 0) return;
         if (this._isLoopActive) return;
         this._isLoopActive = true;
         if (this.currentMode === 'simulation' || this._fallbackMode) {
@@ -185,7 +189,7 @@ class AudioVisualizerService {
     }
 
     setActive(isActive) {
-        const nextActive = Boolean(isActive);
+        const nextActive = Boolean(isActive) && !this._ecoMode;
         if (this._isActive === nextActive) return;
 
         this._isActive = nextActive;
@@ -204,14 +208,17 @@ class AudioVisualizerService {
         }
     }
 
-    _meterTick() {
+    _meterTick(timestamp = 0) {
         if (!this.isRunning || !this._isActive || this.currentMode !== 'real' || this._fallbackMode) {
             this._isLoopActive = false;
             return;
         }
 
+        this._animFrame = requestAnimationFrame((nextTimestamp) => this._meterTick(nextTimestamp));
+        if (!this._shouldRenderFrame(timestamp)) return;
+
         const now = performance.now();
-        if (!this._meterPollInFlight && now - this._meterLastPoll > 45) {
+        if (!this._meterPollInFlight && now - this._meterLastPoll > 80) {
             this._meterLastPoll = now;
             this._meterPollInFlight = true;
             try {
@@ -250,7 +257,6 @@ class AudioVisualizerService {
             ];
 
         this._notify({ bands, raw: null, isSimulation: false, source: 'native-wasapi-meter' });
-        this._animFrame = requestAnimationFrame(() => this._meterTick());
     }
 
     _startSimulation() {
@@ -261,11 +267,14 @@ class AudioVisualizerService {
         this._startLoopIfNeeded();
     }
 
-    _tick() {
+    _tick(timestamp = 0) {
         if (!this.isRunning || !this._isActive || !this.analyser || this.currentMode !== 'real') {
             this._isLoopActive = false;
             return;
         }
+
+        this._animFrame = requestAnimationFrame((nextTimestamp) => this._tick(nextTimestamp));
+        if (!this._shouldRenderFrame(timestamp)) return;
 
         this.analyser.getByteFrequencyData(this.dataArray);
 
@@ -286,10 +295,9 @@ class AudioVisualizerService {
             isSimulation: false
         });
 
-        this._animFrame = requestAnimationFrame(() => this._tick());
     }
 
-    _simTick() {
+    _simTick(timestamp = 0) {
         if (!this.isRunning || !this._isActive || (this.currentMode !== 'simulation' && !this._fallbackMode)) {
             this._isLoopActive = false;
             return;
@@ -302,6 +310,9 @@ class AudioVisualizerService {
             this._animFrame = null;
             return;
         }
+
+        this._animFrame = requestAnimationFrame((nextTimestamp) => this._simTick(nextTimestamp));
+        if (!this._shouldRenderFrame(timestamp)) return;
 
         const t = performance.now() / 1000;
         const bps = this._simBPM / 60;
@@ -325,8 +336,13 @@ class AudioVisualizerService {
         ].map(v => v * this._simAmplitude);
 
         this._notify({ bands, raw: null, isSimulation: true });
+    }
 
-        this._animFrame = requestAnimationFrame(() => this._simTick());
+    _shouldRenderFrame(timestamp = 0) {
+        const frameInterval = 1000 / this._targetFps;
+        if (timestamp - this._lastFrame < frameInterval) return false;
+        this._lastFrame = timestamp - ((timestamp - this._lastFrame) % frameInterval);
+        return true;
     }
 
     _average(arr, start, end) {
@@ -381,6 +397,7 @@ class AudioVisualizerService {
             const diff = targetAmplitude - this._simAmplitude;
             if (Math.abs(diff) < 0.01) {
                 this._simAmplitude = targetAmplitude;
+                this._ampFrame = null;
                 return;
             }
             this._simAmplitude += diff * 0.08;
@@ -389,9 +406,17 @@ class AudioVisualizerService {
                 this._startLoopIfNeeded();
             }
             
-            requestAnimationFrame(step);
+            this._ampFrame = requestAnimationFrame(step);
         };
-        step();
+        if (!this._ampFrame) step();
+    }
+
+    setEcoMode(enabled) {
+        this._ecoMode = Boolean(enabled);
+        if (this._ecoMode) {
+            this.setActive(false);
+            this.stop();
+        }
     }
 
     stop() {
@@ -400,6 +425,10 @@ class AudioVisualizerService {
         if (this._animFrame) {
             cancelAnimationFrame(this._animFrame);
             this._animFrame = null;
+        }
+        if (this._ampFrame) {
+            cancelAnimationFrame(this._ampFrame);
+            this._ampFrame = null;
         }
         this._isLoopActive = false;
 
@@ -418,6 +447,7 @@ class AudioVisualizerService {
             this.stream.getTracks().forEach(t => t.stop());
             this.stream = null;
         }
+        this._lastFrame = 0;
     }
 }
 
