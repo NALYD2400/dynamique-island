@@ -1134,22 +1134,6 @@ export class DynamicIsland {
             ctx.fill();
         }
 
-        // Dynamic glow sync with cover color if vizColorMode is 'cover'
-        if (vizColorMode === 'cover' && this._coverColors && this._islandConfig.glowEnabled !== false) {
-            const primaryHex = rgbToHex(this._coverColors.primary.r, this._coverColors.primary.g, this._coverColors.primary.b);
-            const primaryRgbStr = `${this._coverColors.primary.r}, ${this._coverColors.primary.g}, ${this._coverColors.primary.b}`;
-            const size = this._islandConfig.glowDensity || 20;
-            const island = document.getElementById('dynamic-island');
-            if (island) {
-                island.style.setProperty('--island-glow-color', primaryHex);
-                island.style.setProperty('--island-glow-rgb', primaryRgbStr);
-                if (this.musicData && this.musicData.isPlaying) {
-                    island.style.boxShadow = '';
-                } else {
-                    island.style.boxShadow = ThemeService.buildIslandShadow(size, primaryRgbStr, true);
-                }
-            }
-        }
     }
 
     initEvents() {
@@ -1663,7 +1647,11 @@ export class DynamicIsland {
 
             island.style.setProperty('--island-glow-color', color);
             island.style.setProperty('--island-glow-rgb', rgbStr);
-            island.style.boxShadow = ThemeService.buildIslandShadow(size, rgbStr, true);
+            if (this.musicData && this.musicData.isPlaying) {
+                island.style.boxShadow = '';
+            } else {
+                island.style.boxShadow = ThemeService.buildIslandShadow(size, rgbStr, true);
+            }
         }
 
         // Update blurred background layer for instant feedback in any mode
@@ -4482,6 +4470,17 @@ export class DynamicIsland {
         const active = Boolean(isPlaying);
         if (this.el) {
             this.el.classList.toggle('playing-music-glow', active);
+            if (this._islandConfig && this._islandConfig.glowEnabled !== false) {
+                if (active) {
+                    this.el.style.boxShadow = '';
+                } else {
+                    const rgbStr = this.el.style.getPropertyValue('--island-glow-rgb') || '0, 243, 255';
+                    const size = this._islandConfig.glowDensity || 20;
+                    this.el.style.boxShadow = ThemeService.buildIslandShadow(size, rgbStr, true);
+                }
+            } else {
+                this.el.style.boxShadow = ThemeService.buildIslandShadow(0, '0, 243, 255', false);
+            }
         }
         document.querySelectorAll('.play-btn i, #ic-np-play-btn-val i').forEach((icon) => {
             icon.className = `ph-fill ph-${active ? 'pause' : 'play'}`;
