@@ -1279,6 +1279,24 @@ app.whenReady().then(() => {
     });
 });
 
+app.on('web-contents-created', (event, contents) => {
+    // 🛡️ Sentinel: [CRITICAL] Prevent unsafe web navigation
+    contents.on('will-navigate', (event, navigationUrl) => {
+        event.preventDefault();
+        console.warn(`[Security] Blocked unauthorized navigation to: ${navigationUrl}`);
+    });
+
+    // 🛡️ Sentinel: [CRITICAL] Prevent unsafe window creation
+    contents.setWindowOpenHandler(({ url }) => {
+        if (url.startsWith('http://') || url.startsWith('https://')) {
+            require('electron').shell.openExternal(url);
+        } else {
+            console.warn(`[Security] Blocked unauthorized window open to: ${url}`);
+        }
+        return { action: 'deny' };
+    });
+});
+
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit();
 });
