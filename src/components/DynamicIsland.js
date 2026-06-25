@@ -30,6 +30,22 @@ function blendHexColors(baseHex, coverHex, coverWeight = 65) {
     return rgbToHex(r, g, b);
 }
 
+// ⚡ Bolt Performance Optimization:
+// Added a debounce utility to rate-limit high-frequency events (like typing in a search bar).
+// Impact: Reduces unnecessary synchronous DOM re-renders and potential localStorage read/writes
+// during fast typing by waiting until the user stops typing for 'wait' milliseconds.
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
 
 // Fonction utilitaire pour convertir les millisecondes en 'MM:SS'
 function formatTime(ms) {
@@ -4038,10 +4054,18 @@ export class DynamicIsland {
             e.stopPropagation();
             this.clearMusicHistory();
         });
+
+        // ⚡ Bolt Performance Optimization:
+        // Debounce the music history search to avoid DOM thrashing.
+        // Impact: Eliminates N-1 renders where N is the number of characters typed in a burst.
+        const debouncedMusicHistorySearch = debounce(() => {
+            this.setMusicHistorySearch(searchInput.value);
+        }, 300);
+
         searchInput.addEventListener('click', (e) => e.stopPropagation());
         searchInput.addEventListener('input', (e) => {
             e.stopPropagation();
-            this.setMusicHistorySearch(e.target.value);
+            debouncedMusicHistorySearch();
         });
         if (searchClear) {
             searchClear.addEventListener('click', (e) => {
