@@ -50,6 +50,17 @@ function escapeHtml(value) {
     })[char]);
 }
 
+function sanitizeUri(uri) {
+    if (!uri) return '';
+    const str = String(uri).trim();
+    // Remove all whitespace/control chars for checking scheme to prevent bypasses like 'java script:'
+    const schemeCheck = str.toLowerCase().replace(/[\x00-\x20]/g, '');
+    if (schemeCheck.startsWith('javascript:') || schemeCheck.startsWith('vbscript:') || schemeCheck.startsWith('data:text')) {
+        return '';
+    }
+    return str;
+}
+
 function getMusicSearchProvider(data = {}) {
     const appId = (data.appId || '').toLowerCase();
     const title = (data.title || '').toLowerCase();
@@ -3062,7 +3073,7 @@ export class DynamicIsland {
                                     let iconHtml = '';
                                     if (icon) {
                                         iconHtml = `
-                                            <img src="${icon}" style="width: 14px; height: 14px; object-fit: contain;" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
+                                            <img src="${sanitizeUri(escapeHtml(icon))}" style="width: 14px; height: 14px; object-fit: contain;" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
                                             <i class="ph-fill ph-music-note" style="display: none; font-size: 12px;"></i>
                                         `;
                                     } else {
@@ -3261,12 +3272,12 @@ export class DynamicIsland {
             const preferServiceIcon = shouldPreferServiceIcon(this.musicData.appId, this.musicData.title, this.musicData.artist);
             const displayArt = getDisplayMediaArt(this.musicData);
             if (preferServiceIcon && appIcon) {
-                coverHtml = `<img src="${appIcon}" style="width: 28px; height: 28px; border-radius: 6px; ${getServiceArtStyle('small')} margin-left: 2px;" onerror="this.outerHTML='<div style=\\'width: 28px; height: 28px; border-radius: 6px; background: linear-gradient(135deg, var(--neon-primary), var(--neon-secondary)); display: flex; align-items: center; justify-content: center; margin-left: 2px;\\'><i class=\\'ph-fill ph-music-note\\' style=\\'font-size: 14px; color: #fff;\\'></i></div>';">`;
+                coverHtml = `<img src="${sanitizeUri(escapeHtml(appIcon))}" style="width: 28px; height: 28px; border-radius: 6px; ${getServiceArtStyle('small')} margin-left: 2px;" onerror="this.outerHTML='<div style=\\'width: 28px; height: 28px; border-radius: 6px; background: linear-gradient(135deg, var(--neon-primary), var(--neon-secondary)); display: flex; align-items: center; justify-content: center; margin-left: 2px;\\'><i class=\\'ph-fill ph-music-note\\' style=\\'font-size: 14px; color: #fff;\\'></i></div>';">`;
             } else if (displayArt && displayArt.length > 0) {
-                coverHtml = `<img src="${displayArt}" style="width: 28px; height: 28px; border-radius: 6px; object-fit: cover; margin-left: 2px;" onerror="this.outerHTML='<div style=\\'width: 28px; height: 28px; border-radius: 6px; background: linear-gradient(135deg, var(--neon-primary), var(--neon-secondary)); display: flex; align-items: center; justify-content: center; margin-left: 2px;\\'><i class=\\'ph-fill ph-music-note\\' style=\\'font-size: 14px; color: #fff;\\'></i></div>';">`;
+                coverHtml = `<img src="${sanitizeUri(escapeHtml(displayArt))}" style="width: 28px; height: 28px; border-radius: 6px; object-fit: cover; margin-left: 2px;" onerror="this.outerHTML='<div style=\\'width: 28px; height: 28px; border-radius: 6px; background: linear-gradient(135deg, var(--neon-primary), var(--neon-secondary)); display: flex; align-items: center; justify-content: center; margin-left: 2px;\\'><i class=\\'ph-fill ph-music-note\\' style=\\'font-size: 14px; color: #fff;\\'></i></div>';">`;
             } else {
                 if (appIcon) {
-                    coverHtml = `<img src="${appIcon}" style="width: 28px; height: 28px; border-radius: 6px; object-fit: contain; background: #000; padding: 2px; margin-left: 2px;" onerror="this.outerHTML='<div style=\\'width: 28px; height: 28px; border-radius: 6px; background: linear-gradient(135deg, var(--neon-primary), var(--neon-secondary)); display: flex; align-items: center; justify-content: center; margin-left: 2px;\\'><i class=\\'ph-fill ph-music-note\\' style=\\'font-size: 14px; color: #fff;\\'></i></div>';">`;
+                    coverHtml = `<img src="${sanitizeUri(escapeHtml(appIcon))}" style="width: 28px; height: 28px; border-radius: 6px; object-fit: contain; background: #000; padding: 2px; margin-left: 2px;" onerror="this.outerHTML='<div style=\\'width: 28px; height: 28px; border-radius: 6px; background: linear-gradient(135deg, var(--neon-primary), var(--neon-secondary)); display: flex; align-items: center; justify-content: center; margin-left: 2px;\\'><i class=\\'ph-fill ph-music-note\\' style=\\'font-size: 14px; color: #fff;\\'></i></div>';">`;
                 } else {
                     coverHtml = `<img src="${APP_LOGO_ART}" class="idle-cover-art app-logo-art" alt="Liquid Dynamic Island">`;
                 }
@@ -3393,16 +3404,16 @@ export class DynamicIsland {
         const previousDisplayArt = shouldAnimateCover && data.previousDisplayCover && data.previousDisplayCover !== displayArt ? data.previousDisplayCover : '';
 
         if (displayArt && displayArt.length > 0) {
-            const currentImg = `<img src="${escapeHtml(displayArt)}" class="album-art-img album-art-current" style="${displayArtStyle}" alt="Album">`;
+            const currentImg = `<img src="${sanitizeUri(escapeHtml(displayArt))}" class="album-art-img album-art-current" style="${displayArtStyle}" alt="Album">`;
             coverHtml = previousDisplayArt
                 ? `<div class="album-art album-art-stack ${isDisplayServiceArt ? 'is-service-art' : ''}">
-                    <img src="${escapeHtml(previousDisplayArt)}" class="album-art-img album-art-previous" alt="">
+                    <img src="${sanitizeUri(escapeHtml(previousDisplayArt))}" class="album-art-img album-art-previous" alt="">
                     ${currentImg}
                   </div>`
-                : `<img src="${escapeHtml(displayArt)}" class="album-art ${flipClass}" style="${displayArtStyle}" alt="Album">`;
+                : `<img src="${sanitizeUri(escapeHtml(displayArt))}" class="album-art ${flipClass}" style="${displayArtStyle}" alt="Album">`;
         } else {
             if (appIcon) {
-                coverHtml = `<img src="${appIcon}" class="album-art ${flipClass}" style="object-fit: contain; background: #000; padding: 5px;" alt="App Icon">`;
+                coverHtml = `<img src="${sanitizeUri(escapeHtml(appIcon))}" class="album-art ${flipClass}" style="object-fit: contain; background: #000; padding: 5px;" alt="App Icon">`;
             } else {
                 coverHtml = `<img src="${APP_LOGO_ART}" class="album-art app-logo-art ${flipClass}" alt="Liquid Dynamic Island">`;
             }
@@ -3922,7 +3933,7 @@ export class DynamicIsland {
             const provider = this.getProviderFromHistoryItem(item);
             const isCurrent = this.isCurrentHistoryItem(item);
             const cover = item.cover
-                ? `<img src="${escapeHtml(item.cover)}" class="music-history-cover" alt="">`
+                ? `<img src="${sanitizeUri(escapeHtml(item.cover))}" class="music-history-cover" alt="">`
                 : `<img src="${APP_LOGO_ART}" class="music-history-cover music-history-cover-fallback app-logo-art" alt="Liquid Dynamic Island">`;
 
             return `
@@ -4899,7 +4910,7 @@ export class DynamicIsland {
                 let iconHtml = '';
                 if (icon) {
                     iconHtml = `
-                        <img src="${icon}" class="mixer-app-icon-img" alt="${s.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
+                        <img src="${sanitizeUri(escapeHtml(icon))}" class="mixer-app-icon-img" alt="${s.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
                         <i class="ph-fill ph-music-note mixer-app-icon-fallback" style="display: none;"></i>
                     `;
                 } else {
