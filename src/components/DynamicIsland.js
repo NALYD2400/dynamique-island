@@ -4898,8 +4898,9 @@ export class DynamicIsland {
                 
                 let iconHtml = '';
                 if (icon) {
+                    const safeIconUrl = String(icon).trim().toLowerCase().startsWith('javascript:') || String(icon).trim().toLowerCase().startsWith('vbscript:') ? '' : escapeHtml(icon);
                     iconHtml = `
-                        <img src="${icon}" class="mixer-app-icon-img" alt="${s.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
+                        <img src="${safeIconUrl}" class="mixer-app-icon-img" alt="${escapeHtml(s.name)}" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
                         <i class="ph-fill ph-music-note mixer-app-icon-fallback" style="display: none;"></i>
                     `;
                 } else {
@@ -4923,10 +4924,10 @@ export class DynamicIsland {
                         </div>
                         <div class="mixer-details">
                             <div class="mixer-app-name-row">
-                                <span class="mixer-app-name">${cleanName}</span>
+                                <span class="mixer-app-name">${escapeHtml(cleanName)}</span>
                                 <span class="mixer-app-vol-badge">${activeVol}%</span>
                             </div>
-                            <span class="mixer-title-text" title="${displayTitle}">${displayTitle}</span>
+                            <span class="mixer-title-text" title="${escapeHtml(displayTitle)}">${escapeHtml(displayTitle)}</span>
                             <div class="mixer-slider-wrapper">
                                 <input type="range" class="mixer-volume-slider" data-pid="${s.pid}" min="0" max="100" value="${activeVol}">
                             </div>
