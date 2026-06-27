@@ -3440,11 +3440,11 @@ export class DynamicIsland {
           ` : ''}
         </div>
         <div class="music-controls">
-          <button class="control-btn-music" onclick="event.stopPropagation(); window.spotifyControl('prev')"><i class="ph-fill ph-skip-back"></i></button>
-          <button class="control-btn-music play-btn" onclick="event.stopPropagation(); window.spotifyControl('toggle')">
+          <button class="control-btn-music" aria-label="Previous track" title="Previous track" onclick="event.stopPropagation(); window.spotifyControl('prev')"><i class="ph-fill ph-skip-back"></i></button>
+          <button class="control-btn-music play-btn" aria-label="${data.isPlaying ? 'Pause track' : 'Play track'}" title="${data.isPlaying ? 'Pause' : 'Play'}" onclick="event.stopPropagation(); window.spotifyControl('toggle')">
             <i class="ph-fill ${data.isPlaying ? 'ph-pause' : 'ph-play'}"></i>
           </button>
-          <button class="control-btn-music" onclick="event.stopPropagation(); window.spotifyControl('next')"><i class="ph-fill ph-skip-forward"></i></button>
+          <button class="control-btn-music" aria-label="Next track" title="Next track" onclick="event.stopPropagation(); window.spotifyControl('next')"><i class="ph-fill ph-skip-forward"></i></button>
         </div>
         <div class="progress-bar" style="--progress-pct: ${pct}%">
           <div class="progress-fill" id="music-progress-fill" style="width: ${pct}%"></div>
