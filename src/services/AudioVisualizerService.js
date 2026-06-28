@@ -32,6 +32,15 @@ class AudioVisualizerService {
         this._lastFrame = 0;
         this._ampFrame = null;
         this._ecoMode = localStorage.getItem('liquid_eco_mode') === 'true';
+        this._sensitivity = parseFloat(localStorage.getItem('liquid_visualizer_sensitivity') || '2.5');
+    }
+
+    /**
+     * Set the sensitivity dynamically.
+     * @param {string|number} value
+     */
+    setSensitivity(value) {
+        this._sensitivity = parseFloat(value ?? '2.5');
     }
 
     /**
@@ -241,8 +250,8 @@ class AudioVisualizerService {
 
         this._meterPeak += (this._meterTargetPeak - this._meterPeak) * 0.34;
 
-        const sensitivity = parseFloat(localStorage.getItem('liquid_visualizer_sensitivity') || '2.5');
-        const peak = this._clamp01(this._meterPeak * sensitivity);
+        // Bolt: Use cached sensitivity instead of synchronous localStorage.getItem inside loop (~60fps)
+        const peak = this._clamp01(this._meterPeak * this._sensitivity);
         const stereoWidth = Math.abs(this._meterLeft - this._meterRight);
         const t = now / 1000;
 
@@ -286,11 +295,9 @@ class AudioVisualizerService {
         const highMid = this._average(this.dataArray, Math.floor(bufLen * 0.5), Math.floor(bufLen * 0.75));
         const treble = this._average(this.dataArray, Math.floor(bufLen * 0.75), bufLen);
 
-        // Retrieve visualizer sensitivity from localStorage (default 2.5)
-        const sensitivity = parseFloat(localStorage.getItem('liquid_visualizer_sensitivity') || '2.5');
-
+        // Bolt: Use cached sensitivity instead of synchronous localStorage.getItem inside loop (~60fps)
         this._notify({
-            bands: [bass, lowMid, mid, highMid, treble].map(v => Math.min(1.0, (v / 255) * sensitivity)),
+            bands: [bass, lowMid, mid, highMid, treble].map(v => Math.min(1.0, (v / 255) * this._sensitivity)),
             raw: this.dataArray,
             isSimulation: false
         });

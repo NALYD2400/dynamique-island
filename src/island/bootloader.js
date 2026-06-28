@@ -158,6 +158,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (config.visualizerSensitivity !== undefined) {
             localStorage.setItem('liquid_visualizer_sensitivity', config.visualizerSensitivity);
+            if (typeof window.visualizerService !== 'undefined') {
+                window.visualizerService.setSensitivity(config.visualizerSensitivity);
+            } else if (typeof visualizerService !== 'undefined') {
+                visualizerService.setSensitivity(config.visualizerSensitivity);
+            }
         }
         if (config.shortcut !== undefined) {
             localStorage.setItem('liquid_island_shortcut', config.shortcut);
