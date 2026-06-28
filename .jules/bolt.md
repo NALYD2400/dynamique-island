@@ -1,0 +1,3 @@
+## 2024-05-19 - Synchronous LocalStorage Blocking Main Thread
+**Learning:** Found synchronous `localStorage` reads (`liquid_eco_mode`, `liquid_idle_compact_mode`) embedded deep inside the `DynamicIsland`'s visualizer and timer loops (`requestAnimationFrame` and fast `setInterval`). Since these are I/O bound and run 60 times a second, they caused noticeable main thread blocking and jank.
+**Action:** Always cache these heavily-accessed configuration values into class properties (e.g. `this.isEcoMode`) initialized at startup, and hook into settings change events to update the cache asynchronously. Never read from `localStorage` inside a render loop!

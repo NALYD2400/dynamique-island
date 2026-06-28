@@ -396,7 +396,9 @@ export class DynamicIsland {
         this._smoothTimer = null;
         this._mediaPollingActive = false;
         this._smoothLoopActive = false;
+        // Performance optimization: Cache localStorage values to avoid synchronous I/O blocking in hot loops (e.g. 60fps visualizer)
         this.isEcoMode = localStorage.getItem('liquid_eco_mode') === 'true';
+        this.idleCompactMode = localStorage.getItem('liquid_idle_compact_mode') || 'cover';
 
         // Album art color sync state
         this._coverColors = null;
@@ -460,7 +462,7 @@ export class DynamicIsland {
     }
 
     _startVisualizer() {
-        if (localStorage.getItem('liquid_eco_mode') === 'true') {
+        if (this.isEcoMode) {
             visualizerService.setEcoMode(true);
             return;
         }
@@ -488,7 +490,7 @@ export class DynamicIsland {
 
     syncVisualizerActivity() {
         const canvas = this._vizCanvas;
-        const ecoMode = localStorage.getItem('liquid_eco_mode') === 'true';
+        const ecoMode = this.isEcoMode;
         visualizerService.setEcoMode(ecoMode);
 
         const hasVisibleCanvas = Boolean(!ecoMode && canvas && canvas.isConnected && canvas.width > 0 && canvas.height > 0);
@@ -534,7 +536,9 @@ export class DynamicIsland {
     }
 
     syncEcoMode() {
+        // Performance optimization: Cache localStorage values to avoid synchronous I/O blocking in hot loops (e.g. 60fps visualizer)
         this.isEcoMode = localStorage.getItem('liquid_eco_mode') === 'true';
+        this.idleCompactMode = localStorage.getItem('liquid_idle_compact_mode') || 'cover';
         document.body.classList.toggle('eco-mode', this.isEcoMode);
         visualizerService.setEcoMode(this.isEcoMode);
         this.syncVisualizerActivity();
@@ -1015,7 +1019,7 @@ export class DynamicIsland {
 
     _updateVizCanvas() {
         const canvas = this._vizCanvas;
-        if (localStorage.getItem('liquid_eco_mode') === 'true') {
+        if (this.isEcoMode) {
             if (canvas) {
                 const ctx = canvas.getContext('2d');
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -1824,7 +1828,7 @@ export class DynamicIsland {
     }
 
     getMediaPollDelay() {
-        if (localStorage.getItem('liquid_eco_mode') === 'true') {
+        if (this.isEcoMode) {
             if (this.isExpanded) return 1200;
             return this.isPlaying ? 2200 : 5000;
         }
@@ -1858,7 +1862,7 @@ export class DynamicIsland {
                     if (bar) bar.style.setProperty('--progress-pct', `${pct}%`);
                 }
                 if (timeEl) timeEl.innerText = formatTime(currentProgress);
-            } else if (!this.isExpanded && this.isPlaying && this.musicData && localStorage.getItem('liquid_idle_compact_mode') === 'progress') {
+            } else if (!this.isExpanded && this.isPlaying && this.musicData && this.idleCompactMode === 'progress') {
                 const chipTime = this.el.querySelector('.idle-metric-chip span');
                 if (chipTime) {
                     const data = this.musicData;
@@ -1878,8 +1882,8 @@ export class DynamicIsland {
     getProgressSmoothDelay() {
         const progressVisible =
             (this.isExpanded && this.mode === 'music' && this.isPlaying && this.musicData) ||
-            (!this.isExpanded && this.isPlaying && this.musicData && localStorage.getItem('liquid_idle_compact_mode') === 'progress');
-        if (localStorage.getItem('liquid_eco_mode') === 'true') return progressVisible ? 350 : 1200;
+            (!this.isExpanded && this.isPlaying && this.musicData && this.idleCompactMode === 'progress');
+        if (this.isEcoMode) return progressVisible ? 350 : 1200;
         return progressVisible ? 100 : 500;
     }
 
@@ -2407,7 +2411,7 @@ export class DynamicIsland {
         let wifiEnabled = localStorage.getItem('liquid_wifi_enabled') !== 'false';
         let btEnabled = localStorage.getItem('liquid_bluetooth_enabled') !== 'false';
         let dndEnabled = localStorage.getItem('liquid_dnd_enabled') === 'true';
-        const isEcoMode = localStorage.getItem('liquid_eco_mode') === 'true';
+        const isEcoMode = this.isEcoMode;
         const isFocusMode = localStorage.getItem('liquid_focus_mode') === 'true';
 
         // 1. Synchronously render UI with cached/default states immediately
@@ -3253,8 +3257,8 @@ export class DynamicIsland {
         if (musicEnabled && this.musicData && this.musicData.isPlaying) {
             this.el.classList.add('island-active-music');
             this.el.classList.remove('island-active-network'); // Ensure unique state
-            const compactMode = localStorage.getItem('liquid_idle_compact_mode') || 'cover';
-            const showIdleVisualizer = localStorage.getItem('liquid_eco_mode') !== 'true' && localStorage.getItem('liquid_player_show_visualizer') !== 'false';
+            const compactMode = this.idleCompactMode || 'cover';
+            const showIdleVisualizer = !this.isEcoMode && localStorage.getItem('liquid_player_show_visualizer') !== 'false';
 
             let coverHtml;
             const appIcon = getFallbackIcon(this.musicData.appId, this.musicData.title, this.musicData.artist, this.musicData.windowTitle);
@@ -3298,7 +3302,7 @@ export class DynamicIsland {
                 if (!group && (!this._idleVolumeRefreshAt || Date.now() - this._idleVolumeRefreshAt > 2000)) {
                     this._idleVolumeRefreshAt = Date.now();
                     this.refreshCurrentMediaVolumeSession().then(() => {
-                        if (!this.isExpanded && localStorage.getItem('liquid_idle_compact_mode') === 'volume') this.renderIdle();
+                        if (!this.isExpanded && this.idleCompactMode === 'volume') this.renderIdle();
                     });
                 }
             } else if (compactMode === 'progress') {
@@ -3367,7 +3371,7 @@ export class DynamicIsland {
         const currentTime = formatTime(data.progress || 0);
         const totalTime = formatTime(data.duration || 0);
         const showTimes = localStorage.getItem('liquid_player_show_times') !== 'false';
-        const showVisualizer = localStorage.getItem('liquid_eco_mode') !== 'true' && localStorage.getItem('liquid_player_show_visualizer') !== 'false' && data.isPlaying;
+        const showVisualizer = !this.isEcoMode && localStorage.getItem('liquid_player_show_visualizer') !== 'false' && data.isPlaying;
         const showActions = localStorage.getItem('liquid_player_show_actions') !== 'false';
         const displayArt = getDisplayMediaArt(data);
         const rawDisplayArt = getRawDisplayMediaArt(data);
@@ -4454,7 +4458,7 @@ export class DynamicIsland {
             timeEl.innerText = formatTime(safeProgress);
         }
 
-        if (!this.isExpanded && localStorage.getItem('liquid_idle_compact_mode') === 'progress') {
+        if (!this.isExpanded && this.idleCompactMode === 'progress') {
             const chipTime = this.el.querySelector('.idle-metric-chip span');
             if (chipTime) chipTime.innerText = formatTime(safeProgress);
         }
@@ -5554,7 +5558,7 @@ export class DynamicIsland {
         const notificationsEnabled = localStorage.getItem('liquid_notifications_enabled') !== 'false';
         const isCoverSync = localStorage.getItem('liquid_cover_color_sync') !== 'false';
         const mediaDebugEnabled = localStorage.getItem('liquid_media_debug') === 'true';
-        const compactMode = localStorage.getItem('liquid_idle_compact_mode') || 'cover';
+        const compactMode = this.idleCompactMode || 'cover';
         const isControlEnabled = localStorage.getItem('liquid_island_control_enabled') !== 'false';
         const shortcut = localStorage.getItem('liquid_island_shortcut') || 'Alt+I';
         const profiles = this.loadProfiles();
@@ -5893,6 +5897,7 @@ export class DynamicIsland {
         this.content.querySelector('#inner-compact-mode').addEventListener('change', (e) => {
             SoundService.play('close');
             localStorage.setItem('liquid_idle_compact_mode', e.target.value);
+            this.idleCompactMode = e.target.value;
             this._vizCanvas = null;
             if (!this.isExpanded) this.renderIdle();
         });
