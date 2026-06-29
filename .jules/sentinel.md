@@ -1,0 +1,4 @@
+## 2024-05-18 - Fix Cross-Site Scripting (XSS) in DynamicIsland
+**Vulnerability:** User-controlled media metadata (e.g., song title, artist, app icons, covers) was being directly interpolated into `<img>` `src` attributes without proper sanitization or HTML encoding in `src/components/DynamicIsland.js`. An attacker could break out of the `src` attribute via double quotes and inject malicious event handlers (like `onload="alert(1)"`).
+**Learning:** Raw string interpolation for HTML construction in frontend vanilla JS is highly risky if the inputs are not properly encoded.
+**Prevention:** Always use `escapeHtml()` combined with a URI-scheme sanitizer (like `sanitizeUri()`) when dealing with URI attributes. Even if `javascript:` URIs are blocked in `<img>` tags by modern browsers, using `escapeHtml()` is required to prevent attribute breakout.
