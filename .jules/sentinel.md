@@ -1,0 +1,4 @@
+## 2024-06-29 - [Missing Scheme Sanitization in UI Render]
+**Vulnerability:** User-controlled inputs like app icons and media cover arts were directly injected into the `src` attribute of `<img>` tags in `DynamicIsland.js`, risking malicious scheme execution (e.g. `javascript:`, `data:text/html`).
+**Learning:** In vanilla JS UI components using innerHTML template literals, it is crucial to employ both an HTML entity escape method (`escapeHtml`) and a URI sanitizer (`sanitizeUri`) on dynamically generated attributes. In this codebase, the lack of `sanitizeUri` could allow payload execution via spoofed third-party media or crafted shortcuts.
+**Prevention:** Always wrap dynamically generated image URIs with `escapeHtml(sanitizeUri(value))` to simultaneously protect against HTML structure breakouts and malicious URL schemes.
