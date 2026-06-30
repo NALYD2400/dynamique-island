@@ -1,0 +1,4 @@
+## 2024-06-30 - XSS in Image src attributes via unsanitized URIs
+**Vulnerability:** Found multiple instances where user-controlled variables (like application paths/icons, titles, and track metadata) were injected directly into `<img src="...">` attributes without proper sanitization. Only `escapeHtml` was used in some places, which protects against breaking out of the attribute but does not stop malicious URIs (e.g., `javascript:`, `data:text/html`) from executing.
+**Learning:** `escapeHtml` is insufficient for preventing XSS in URI contexts (like `href` and `src`). The Sentinel memory states that `sanitizeUri(uri)` must be used alongside `escapeHtml(value)` when injecting user-controlled data into URI attributes.
+**Prevention:** Implement and enforce a `sanitizeUri` function that explicitly rejects dangerous schemes, and combine it with `escapeHtml` (e.g., `escapeHtml(sanitizeUri(userInput))`) for all `src` and `href` attributes.
