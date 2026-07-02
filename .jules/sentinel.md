@@ -1,0 +1,4 @@
+## 2024-07-02 - Ensure robust input validation and sanitization
+**Vulnerability:** A cross-site scripting (XSS) vulnerability was identified in `src/components/DynamicIsland.js`, caused by the direct injection of user-controlled, un-sanitized data into `src` and `href` attributes, allowing potential execution of malicious URI schemes like `javascript:`.
+**Learning:** This application heavily relies on valid `data:` URIs (specifically for base64 images), making typical, naive URI sanitization (that simply strips all `data:` URIs) unviable.
+**Prevention:** Always use a specific sanitization routine (e.g. the newly added `sanitizeUri` function) alongside HTML escaping (`escapeHtml`) when dealing with user-controlled URI attributes to prevent malicious scheme execution (`javascript:`, `vbscript:`, `data:text/html`), while intentionally allowing valid data URIs (like `data:image/...`).
