@@ -397,6 +397,7 @@ export class DynamicIsland {
         this._mediaPollingActive = false;
         this._smoothLoopActive = false;
         this.isEcoMode = localStorage.getItem('liquid_eco_mode') === 'true';
+        this.idleCompactMode = localStorage.getItem('liquid_idle_compact_mode') || 'cover';
 
         // Album art color sync state
         this._coverColors = null;
@@ -1015,7 +1016,7 @@ export class DynamicIsland {
 
     _updateVizCanvas() {
         const canvas = this._vizCanvas;
-        if (localStorage.getItem('liquid_eco_mode') === 'true') {
+        if (this.isEcoMode) {
             if (canvas) {
                 const ctx = canvas.getContext('2d');
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -1824,7 +1825,7 @@ export class DynamicIsland {
     }
 
     getMediaPollDelay() {
-        if (localStorage.getItem('liquid_eco_mode') === 'true') {
+        if (this.isEcoMode) {
             if (this.isExpanded) return 1200;
             return this.isPlaying ? 2200 : 5000;
         }
@@ -1858,7 +1859,7 @@ export class DynamicIsland {
                     if (bar) bar.style.setProperty('--progress-pct', `${pct}%`);
                 }
                 if (timeEl) timeEl.innerText = formatTime(currentProgress);
-            } else if (!this.isExpanded && this.isPlaying && this.musicData && localStorage.getItem('liquid_idle_compact_mode') === 'progress') {
+            } else if (!this.isExpanded && this.isPlaying && this.musicData && this.idleCompactMode === 'progress') {
                 const chipTime = this.el.querySelector('.idle-metric-chip span');
                 if (chipTime) {
                     const data = this.musicData;
@@ -1878,8 +1879,8 @@ export class DynamicIsland {
     getProgressSmoothDelay() {
         const progressVisible =
             (this.isExpanded && this.mode === 'music' && this.isPlaying && this.musicData) ||
-            (!this.isExpanded && this.isPlaying && this.musicData && localStorage.getItem('liquid_idle_compact_mode') === 'progress');
-        if (localStorage.getItem('liquid_eco_mode') === 'true') return progressVisible ? 350 : 1200;
+            (!this.isExpanded && this.isPlaying && this.musicData && this.idleCompactMode === 'progress');
+        if (this.isEcoMode) return progressVisible ? 350 : 1200;
         return progressVisible ? 100 : 500;
     }
 
@@ -4454,7 +4455,7 @@ export class DynamicIsland {
             timeEl.innerText = formatTime(safeProgress);
         }
 
-        if (!this.isExpanded && localStorage.getItem('liquid_idle_compact_mode') === 'progress') {
+        if (!this.isExpanded && this.idleCompactMode === 'progress') {
             const chipTime = this.el.querySelector('.idle-metric-chip span');
             if (chipTime) chipTime.innerText = formatTime(safeProgress);
         }
@@ -5893,6 +5894,7 @@ export class DynamicIsland {
         this.content.querySelector('#inner-compact-mode').addEventListener('change', (e) => {
             SoundService.play('close');
             localStorage.setItem('liquid_idle_compact_mode', e.target.value);
+            this.idleCompactMode = e.target.value;
             this._vizCanvas = null;
             if (!this.isExpanded) this.renderIdle();
         });
