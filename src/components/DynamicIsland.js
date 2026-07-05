@@ -2648,9 +2648,9 @@ export class DynamicIsland {
                                 <span class="ic-np-artist" id="ic-np-artist-val">${escapeHtml(musicData.artist)}</span>
                             </div>
                             <div class="ic-np-controls">
-                                <button class="ic-np-btn" onclick="event.stopPropagation(); window.spotifyControl('prev')"><i class="ph-fill ph-skip-back"></i></button>
-                                <button class="ic-np-btn play" id="ic-np-play-btn-val" onclick="event.stopPropagation(); window.spotifyControl('toggle')"><i class="ph-fill ph-${musicData.isPlaying ? 'pause' : 'play'}"></i></button>
-                                <button class="ic-np-btn" onclick="event.stopPropagation(); window.spotifyControl('next')"><i class="ph-fill ph-skip-forward"></i></button>
+                                <button class="ic-np-btn" aria-label="Previous" onclick="event.stopPropagation(); window.spotifyControl('prev')"><i class="ph-fill ph-skip-back"></i></button>
+                                <button class="ic-np-btn play" id="ic-np-play-btn-val" aria-label="${musicData.isPlaying ? 'Pause' : 'Play'}" onclick="event.stopPropagation(); window.spotifyControl('toggle')"><i class="ph-fill ph-${musicData.isPlaying ? 'pause' : 'play'}"></i></button>
+                                <button class="ic-np-btn" aria-label="Next" onclick="event.stopPropagation(); window.spotifyControl('next')"><i class="ph-fill ph-skip-forward"></i></button>
                             </div>
                         </div>
 
@@ -3440,11 +3440,11 @@ export class DynamicIsland {
           ` : ''}
         </div>
         <div class="music-controls">
-          <button class="control-btn-music" onclick="event.stopPropagation(); window.spotifyControl('prev')"><i class="ph-fill ph-skip-back"></i></button>
-          <button class="control-btn-music play-btn" onclick="event.stopPropagation(); window.spotifyControl('toggle')">
+          <button class="control-btn-music" aria-label="Previous" onclick="event.stopPropagation(); window.spotifyControl('prev')"><i class="ph-fill ph-skip-back"></i></button>
+          <button class="control-btn-music play-btn" aria-label="${data.isPlaying ? 'Pause' : 'Play'}" onclick="event.stopPropagation(); window.spotifyControl('toggle')">
             <i class="ph-fill ${data.isPlaying ? 'ph-pause' : 'ph-play'}"></i>
           </button>
-          <button class="control-btn-music" onclick="event.stopPropagation(); window.spotifyControl('next')"><i class="ph-fill ph-skip-forward"></i></button>
+          <button class="control-btn-music" aria-label="Next" onclick="event.stopPropagation(); window.spotifyControl('next')"><i class="ph-fill ph-skip-forward"></i></button>
         </div>
         <div class="progress-bar" style="--progress-pct: ${pct}%">
           <div class="progress-fill" id="music-progress-fill" style="width: ${pct}%"></div>
@@ -4483,6 +4483,9 @@ export class DynamicIsland {
         if (this.el) {
             this.el.classList.toggle('playing-music-glow', active);
         }
+        document.querySelectorAll('.play-btn, #ic-np-play-btn-val').forEach((btn) => {
+            btn.setAttribute('aria-label', active ? 'Pause' : 'Play');
+        });
         document.querySelectorAll('.play-btn i, #ic-np-play-btn-val i').forEach((icon) => {
             icon.className = `ph-fill ph-${active ? 'pause' : 'play'}`;
         });
@@ -5429,6 +5432,7 @@ export class DynamicIsland {
             if (npArtist) npArtist.innerText = data.artist || "Artiste inconnu";
             if (npPlayBtn) {
                 npPlayBtn.setAttribute('onclick', `event.stopPropagation(); window.spotifyControl('toggle')`);
+                npPlayBtn.setAttribute('aria-label', data.isPlaying ? 'Pause' : 'Play');
                 npPlayBtn.innerHTML = `<i class="ph-fill ph-${data.isPlaying ? 'pause' : 'play'}"></i>`;
             }
             if (npCover) {
