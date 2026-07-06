@@ -1,0 +1,4 @@
+## 2024-05-18 - Prevent XSS via malicious URI schemes in image source attributes
+**Vulnerability:** The application was vulnerable to Cross-Site Scripting (XSS) because user-controlled data was injected directly into the `src` attribute of `<img>` tags without proper sanitization. This allowed attackers to use malicious URI schemes like `javascript:` to execute arbitrary scripts.
+**Learning:** Even when outputting data within HTML attributes, `escapeHtml` is not enough to prevent execution of malicious URI schemes if the attribute itself takes a URI (e.g., `src` or `href`). A dedicated URI sanitization function is required to block schemes like `javascript:`, `vbscript:`, and `data:text/html`.
+**Prevention:** Always use a `sanitizeUri` function alongside `escapeHtml` when injecting user-controlled data into URI attributes like `src` or `href` to prevent malicious scheme execution.
