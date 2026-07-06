@@ -460,7 +460,7 @@ export class DynamicIsland {
     }
 
     _startVisualizer() {
-        if (localStorage.getItem('liquid_eco_mode') === 'true') {
+        if (this.isEcoMode) {
             visualizerService.setEcoMode(true);
             return;
         }
@@ -488,7 +488,7 @@ export class DynamicIsland {
 
     syncVisualizerActivity() {
         const canvas = this._vizCanvas;
-        const ecoMode = localStorage.getItem('liquid_eco_mode') === 'true';
+        const ecoMode = this.isEcoMode;
         visualizerService.setEcoMode(ecoMode);
 
         const hasVisibleCanvas = Boolean(!ecoMode && canvas && canvas.isConnected && canvas.width > 0 && canvas.height > 0);
@@ -1015,7 +1015,7 @@ export class DynamicIsland {
 
     _updateVizCanvas() {
         const canvas = this._vizCanvas;
-        if (localStorage.getItem('liquid_eco_mode') === 'true') {
+        if (this.isEcoMode) {
             if (canvas) {
                 const ctx = canvas.getContext('2d');
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -1824,7 +1824,7 @@ export class DynamicIsland {
     }
 
     getMediaPollDelay() {
-        if (localStorage.getItem('liquid_eco_mode') === 'true') {
+        if (this.isEcoMode) {
             if (this.isExpanded) return 1200;
             return this.isPlaying ? 2200 : 5000;
         }
@@ -1879,7 +1879,7 @@ export class DynamicIsland {
         const progressVisible =
             (this.isExpanded && this.mode === 'music' && this.isPlaying && this.musicData) ||
             (!this.isExpanded && this.isPlaying && this.musicData && localStorage.getItem('liquid_idle_compact_mode') === 'progress');
-        if (localStorage.getItem('liquid_eco_mode') === 'true') return progressVisible ? 350 : 1200;
+        if (this.isEcoMode) return progressVisible ? 350 : 1200;
         return progressVisible ? 100 : 500;
     }
 

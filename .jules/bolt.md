@@ -1,0 +1,3 @@
+## 2026-07-06 - Synchronous localStorage in tight loops blocks Chromium's main thread
+**Learning:** Using `localStorage.getItem` within high-frequency loops (like `requestAnimationFrame` intervals, or aggressive setTimeouts) forces synchronous I/O, which blocks the Chromium main thread. Specifically, calls to `localStorage.getItem('liquid_eco_mode')` were executing multiple times per frame in visualizer loops and audio pollers, causing measurable micro-stutters.
+**Action:** When working in high-frequency rendering or polling functions, cache settings values as class properties (e.g. `this.isEcoMode`) and update the cache via event listeners when the setting changes, rather than continuously polling `localStorage`.
