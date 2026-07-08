@@ -1,0 +1,3 @@
+## 2026-07-08 - Synchronous localStorage reads in hot paths
+**Learning:** Found multiple instances where `localStorage.getItem` was called inside high-frequency functions like `_updateVizCanvas` (which runs per-frame) and `getMediaPollDelay`. Calling `localStorage` synchronously is a blocking I/O operation and causes main thread jitter, especially inside `requestAnimationFrame` or tight `setInterval`/`setTimeout` loops.
+**Action:** Always cache `localStorage` values into class properties (e.g. `this.isEcoMode`) on initialization or state change events, and read from memory during hot paths instead of querying `localStorage` directly.

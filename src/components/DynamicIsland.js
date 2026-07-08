@@ -460,7 +460,8 @@ export class DynamicIsland {
     }
 
     _startVisualizer() {
-        if (localStorage.getItem('liquid_eco_mode') === 'true') {
+        // Performance optimization: Using cached this.isEcoMode instead of synchronous localStorage read to prevent main thread blocking
+        if (this.isEcoMode) {
             visualizerService.setEcoMode(true);
             return;
         }
@@ -488,7 +489,8 @@ export class DynamicIsland {
 
     syncVisualizerActivity() {
         const canvas = this._vizCanvas;
-        const ecoMode = localStorage.getItem('liquid_eco_mode') === 'true';
+        // Performance optimization: Using cached this.isEcoMode instead of synchronous localStorage read to prevent main thread blocking
+        const ecoMode = this.isEcoMode;
         visualizerService.setEcoMode(ecoMode);
 
         const hasVisibleCanvas = Boolean(!ecoMode && canvas && canvas.isConnected && canvas.width > 0 && canvas.height > 0);
@@ -1015,7 +1017,8 @@ export class DynamicIsland {
 
     _updateVizCanvas() {
         const canvas = this._vizCanvas;
-        if (localStorage.getItem('liquid_eco_mode') === 'true') {
+        // Performance optimization: Using cached this.isEcoMode instead of synchronous localStorage read to prevent main thread blocking
+        if (this.isEcoMode) {
             if (canvas) {
                 const ctx = canvas.getContext('2d');
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -1824,7 +1827,8 @@ export class DynamicIsland {
     }
 
     getMediaPollDelay() {
-        if (localStorage.getItem('liquid_eco_mode') === 'true') {
+        // Performance optimization: Using cached this.isEcoMode instead of synchronous localStorage read to prevent main thread blocking
+        if (this.isEcoMode) {
             if (this.isExpanded) return 1200;
             return this.isPlaying ? 2200 : 5000;
         }
@@ -1879,7 +1883,8 @@ export class DynamicIsland {
         const progressVisible =
             (this.isExpanded && this.mode === 'music' && this.isPlaying && this.musicData) ||
             (!this.isExpanded && this.isPlaying && this.musicData && localStorage.getItem('liquid_idle_compact_mode') === 'progress');
-        if (localStorage.getItem('liquid_eco_mode') === 'true') return progressVisible ? 350 : 1200;
+        // Performance optimization: Using cached this.isEcoMode instead of synchronous localStorage read to prevent main thread blocking
+        if (this.isEcoMode) return progressVisible ? 350 : 1200;
         return progressVisible ? 100 : 500;
     }
 
@@ -2407,7 +2412,8 @@ export class DynamicIsland {
         let wifiEnabled = localStorage.getItem('liquid_wifi_enabled') !== 'false';
         let btEnabled = localStorage.getItem('liquid_bluetooth_enabled') !== 'false';
         let dndEnabled = localStorage.getItem('liquid_dnd_enabled') === 'true';
-        const isEcoMode = localStorage.getItem('liquid_eco_mode') === 'true';
+        // Performance optimization: Using cached this.isEcoMode instead of synchronous localStorage read to prevent main thread blocking
+        const isEcoMode = this.isEcoMode;
         const isFocusMode = localStorage.getItem('liquid_focus_mode') === 'true';
 
         // 1. Synchronously render UI with cached/default states immediately
@@ -3254,7 +3260,8 @@ export class DynamicIsland {
             this.el.classList.add('island-active-music');
             this.el.classList.remove('island-active-network'); // Ensure unique state
             const compactMode = localStorage.getItem('liquid_idle_compact_mode') || 'cover';
-            const showIdleVisualizer = localStorage.getItem('liquid_eco_mode') !== 'true' && localStorage.getItem('liquid_player_show_visualizer') !== 'false';
+            // Performance optimization: Using cached this.isEcoMode instead of synchronous localStorage read to prevent main thread blocking
+            const showIdleVisualizer = !this.isEcoMode && localStorage.getItem('liquid_player_show_visualizer') !== 'false';
 
             let coverHtml;
             const appIcon = getFallbackIcon(this.musicData.appId, this.musicData.title, this.musicData.artist, this.musicData.windowTitle);
@@ -3367,7 +3374,8 @@ export class DynamicIsland {
         const currentTime = formatTime(data.progress || 0);
         const totalTime = formatTime(data.duration || 0);
         const showTimes = localStorage.getItem('liquid_player_show_times') !== 'false';
-        const showVisualizer = localStorage.getItem('liquid_eco_mode') !== 'true' && localStorage.getItem('liquid_player_show_visualizer') !== 'false' && data.isPlaying;
+        // Performance optimization: Using cached this.isEcoMode instead of synchronous localStorage read to prevent main thread blocking
+        const showVisualizer = !this.isEcoMode && localStorage.getItem('liquid_player_show_visualizer') !== 'false' && data.isPlaying;
         const showActions = localStorage.getItem('liquid_player_show_actions') !== 'false';
         const displayArt = getDisplayMediaArt(data);
         const rawDisplayArt = getRawDisplayMediaArt(data);
