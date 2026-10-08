@@ -68,6 +68,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const island = new DynamicIsland();
     window.island = island;
 
+    // Première fois seulement : Windows range l'icône de la barre dans la zone masquée (flèche ^).
+    // Une indication dans l'Island évite de croire que l'app n'a pas démarré.
+    const TRAY_HINT_KEY = 'liquid_tray_hint_shown';
+    try {
+        if (localStorage.getItem(TRAY_HINT_KEY) !== 'true') {
+            setTimeout(() => {
+                island.showNotification(
+                    'Icône dans la barre des tâches',
+                    'Elle est dans la flèche ^ à côté de l’horloge. Glisse-la sur la barre pour la garder visible.',
+                    'ph-push-pin',
+                );
+                localStorage.setItem(TRAY_HINT_KEY, 'true');
+            }, 4000);
+        }
+    } catch (e) {
+        // Stockage indisponible : pas d'indication, rien d'autre ne casse.
+    }
+
     // Send the initial wallpaper sync status to the main process
     const isWallpaperSync = localStorage.getItem('liquid_wallpaper_sync') === 'true';
     const wallpaperSyncStyle = localStorage.getItem('liquid_wallpaper_sync_style') || 'blur';
