@@ -73,7 +73,7 @@ export default function App() {
                                 setPageId(item.id);
                             }}
                         >
-                            <span className="nav-icon" style={{ background: item.color }}><Icon name={item.icon} /></span>
+                            <span className="nav-icon"><Icon name={item.icon} /></span>
                             {item.label}
                         </button>
                     ))}
@@ -90,7 +90,7 @@ export default function App() {
                         aria-label="Fermer"
                         onClick={() => ipcRenderer.send('close-settings')}
                     >
-                        <Icon name="ph-x" weight="bold" />
+                        <Icon name="ph-x" />
                     </GlassButton>
                 </header>
                 <div className="page" key={page.id}>

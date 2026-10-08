@@ -13,7 +13,7 @@ export const menuView = {
         if (controlEnabled) {
             itemsHtml += `
             <div class="island-menu-item" onclick="event.stopPropagation(); window.island.setMode('control')">
-                <div class="menu-icon"><i class="ph-fill ph-sliders"></i></div>
+                <div class="menu-icon"><i class="ph ph-sliders"></i></div>
                 <span>Contrôle</span>
             </div>`;
         }
@@ -21,13 +21,13 @@ export const menuView = {
         if (musicEnabled) {
             itemsHtml += `
             <div class="island-menu-item" onclick="event.stopPropagation(); window.island.setMode('music')">
-                <div class="menu-icon"><i class="ph-fill ph-music-notes"></i></div>
+                <div class="menu-icon"><i class="ph ph-music-notes"></i></div>
                 <span>Lecteur</span>
             </div>`;
 
             itemsHtml += `
             <div class="island-menu-item" onclick="event.stopPropagation(); window.island.setMode('music-history')">
-                <div class="menu-icon"><i class="ph-fill ph-clock-counter-clockwise"></i></div>
+                <div class="menu-icon"><i class="ph ph-clock-counter-clockwise"></i></div>
                 <span>Historique</span>
             </div>`;
         }
@@ -35,7 +35,7 @@ export const menuView = {
         if (timerEnabled) {
             itemsHtml += `
             <div class="island-menu-item" onclick="event.stopPropagation(); window.island.setMode('timer')">
-                <div class="menu-icon"><i class="ph-fill ph-timer"></i></div>
+                <div class="menu-icon"><i class="ph ph-timer"></i></div>
                 <span>Chrono</span>
             </div>`;
         }
@@ -43,14 +43,14 @@ export const menuView = {
         // Mixer integration
         itemsHtml += `
         <div class="island-menu-item" onclick="event.stopPropagation(); window.island.setMode('mixer')">
-            <div class="menu-icon"><i class="ph-fill ph-sliders-horizontal"></i></div>
+            <div class="menu-icon"><i class="ph ph-sliders-horizontal"></i></div>
             <span>Mélangeur</span>
         </div>`;
 
         // Réglages integration
         itemsHtml += `
         <div class="island-menu-item" onclick="event.stopPropagation(); window.island.setMode('settings')">
-            <div class="menu-icon"><i class="ph-fill ph-gear"></i></div>
+            <div class="menu-icon"><i class="ph ph-gear"></i></div>
             <span>Réglages</span>
         </div>`;
 

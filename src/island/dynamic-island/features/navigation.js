@@ -6,7 +6,12 @@ export const navigationMethods = {
     // ... (rest of methods)
 
     async transitionState(updateFn) {
-        if (this._transitionInProgress) return;
+        // Une transition est déjà en cours : celle-ci est rejouée juste après, au lieu d'être perdue
+        // (une notification reçue pendant un changement de mode ne s'affichait jamais).
+        if (this._transitionInProgress) {
+            this._queuedTransition = updateFn;
+            return;
+        }
 
         this._transitionInProgress = true;
         const transitionToken = ++this._transitionToken;
@@ -40,6 +45,9 @@ export const navigationMethods = {
                 this._isTransitioning = false;
                 this._transitionInProgress = false;
                 this.el.classList.remove('animating');
+                const queued = this._queuedTransition;
+                this._queuedTransition = null;
+                if (queued) this.transitionState(queued);
             }
         }
     },
@@ -316,8 +324,10 @@ export const navigationMethods = {
 
         this._lastRenderedTrack = null; // Force updateMusic to re-sync state on next poll
 
-        // Essential: Clear ALL possible size/state classes before applying the new one
-        this.el.classList.remove(...this.getIslandSizeClasses());
+        // Essential: Clear ALL possible size/state classes before applying the new one.
+        // Une notification repliée garde sa taille compacte (280×35) pendant son délai.
+        const keepCompactNotification = !this.isExpanded && this.mode === 'notification' && this.el.classList.contains('island-notifying');
+        this.el.classList.remove(...this.getIslandSizeClasses().filter((c) => !(keepCompactNotification && c === 'island-notifying')));
 
         if (this.isExpanded) {
             const modeSizeClass = this.getModeSizeClass();
@@ -347,6 +357,8 @@ export const navigationMethods = {
             else if (this.mode === 'music-history') this.renderMusicHistory();
             else if (this.mode === 'control') this.renderControl();
             else if (this.mode === 'mixer') this.renderMixer();
+        } else if (keepCompactNotification) {
+            this.renderNotification();
         } else {
             // Collapsed state
             this.el.classList.add('island-idle');

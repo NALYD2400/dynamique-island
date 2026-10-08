@@ -37,7 +37,7 @@ export const idleView = {
             this.el.classList.add('island-active-music');
             this.content.innerHTML = `
                 <div class="island-idle-content" style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; height: 100%; padding: 0 16px; color: var(--neon-primary); font-weight: 600; font-size: 13px;">
-                    <i class="ph-fill ph-robot" style="font-size: 16px; animation: pulseGlow 1.5s infinite;"></i>
+                    <i class="ph ph-robot" style="font-size: 16px; animation: pulseGlow 1.5s infinite;"></i>
                     <span style="font-family: inherit; font-size: 12px; letter-spacing: 0.5px;">Liquid AI réfléchit...</span>
                 </div>
             `;
@@ -51,7 +51,7 @@ export const idleView = {
             const label = this.aiActionLabel || 'Action';
             this.content.innerHTML = `
                 <div class="island-idle-content" style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; height: 100%; padding: 0 16px; color: var(--neon-secondary); font-weight: 600; font-size: 13px;">
-                    <i class="ph-fill ph-sparkle" style="font-size: 16px; animation: pulseGlow 1.5s infinite;"></i>
+                    <i class="ph ph-sparkle" style="font-size: 16px; animation: pulseGlow 1.5s infinite;"></i>
                     <span style="font-family: inherit; font-size: 12px; letter-spacing: 0.5px;">Exécute : ${label}...</span>
                 </div>
             `;
@@ -71,7 +71,7 @@ export const idleView = {
 
             this.content.innerHTML = `
         <div class="island-idle-content" style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; height: 100%;">
-          <i class="ph-fill ph-timer" style="color: ${timerColor}; font-size: 16px; filter: ${iconGlow};"></i>
+          <i class="ph ph-timer" style="color: ${timerColor}; font-size: 16px; filter: ${iconGlow};"></i>
           <span style="color: ${timerColor}; font-family: var(--font-mono); font-weight: 700; font-size: 15px; letter-spacing: 0.5px;">
             ${mins}:${secs}
           </span>
@@ -99,12 +99,12 @@ export const idleView = {
             const preferServiceIcon = shouldPreferServiceIcon(this.musicData.appId, this.musicData.title, this.musicData.artist);
             const displayArt = getDisplayMediaArt(this.musicData);
             if (preferServiceIcon && appIcon) {
-                coverHtml = `<img src="${appIcon}" style="width: 28px; height: 28px; border-radius: 6px; ${getServiceArtStyle('small')} margin-left: 2px;" onerror="this.outerHTML='<div style=\\'width: 28px; height: 28px; border-radius: 6px; background: linear-gradient(135deg, var(--neon-primary), var(--neon-secondary)); display: flex; align-items: center; justify-content: center; margin-left: 2px;\\'><i class=\\'ph-fill ph-music-note\\' style=\\'font-size: 14px; color: #fff;\\'></i></div>';">`;
+                coverHtml = `<img src="${appIcon}" style="width: 28px; height: 28px; border-radius: 6px; ${getServiceArtStyle('small')} margin-left: 2px;" onerror="this.outerHTML='<div style=\\'width: 28px; height: 28px; border-radius: 6px; background: linear-gradient(135deg, var(--neon-primary), var(--neon-secondary)); display: flex; align-items: center; justify-content: center; margin-left: 2px;\\'><i class=\\'ph ph-music-note\\' style=\\'font-size: 14px; color: #fff;\\'></i></div>';">`;
             } else if (displayArt && displayArt.length > 0) {
-                coverHtml = `<img src="${displayArt}" style="width: 28px; height: 28px; border-radius: 6px; object-fit: cover; margin-left: 2px;" onerror="this.outerHTML='<div style=\\'width: 28px; height: 28px; border-radius: 6px; background: linear-gradient(135deg, var(--neon-primary), var(--neon-secondary)); display: flex; align-items: center; justify-content: center; margin-left: 2px;\\'><i class=\\'ph-fill ph-music-note\\' style=\\'font-size: 14px; color: #fff;\\'></i></div>';">`;
+                coverHtml = `<img src="${displayArt}" style="width: 28px; height: 28px; border-radius: 6px; object-fit: cover; margin-left: 2px;" onerror="this.outerHTML='<div style=\\'width: 28px; height: 28px; border-radius: 6px; background: linear-gradient(135deg, var(--neon-primary), var(--neon-secondary)); display: flex; align-items: center; justify-content: center; margin-left: 2px;\\'><i class=\\'ph ph-music-note\\' style=\\'font-size: 14px; color: #fff;\\'></i></div>';">`;
             } else {
                 if (appIcon) {
-                    coverHtml = `<img src="${appIcon}" style="width: 28px; height: 28px; border-radius: 6px; object-fit: contain; background: #000; padding: 2px; margin-left: 2px;" onerror="this.outerHTML='<div style=\\'width: 28px; height: 28px; border-radius: 6px; background: linear-gradient(135deg, var(--neon-primary), var(--neon-secondary)); display: flex; align-items: center; justify-content: center; margin-left: 2px;\\'><i class=\\'ph-fill ph-music-note\\' style=\\'font-size: 14px; color: #fff;\\'></i></div>';">`;
+                    coverHtml = `<img src="${appIcon}" style="width: 28px; height: 28px; border-radius: 6px; object-fit: contain; background: #000; padding: 2px; margin-left: 2px;" onerror="this.outerHTML='<div style=\\'width: 28px; height: 28px; border-radius: 6px; background: linear-gradient(135deg, var(--neon-primary), var(--neon-secondary)); display: flex; align-items: center; justify-content: center; margin-left: 2px;\\'><i class=\\'ph ph-music-note\\' style=\\'font-size: 14px; color: #fff;\\'></i></div>';">`;
                 } else {
                     coverHtml = `<img src="${APP_LOGO_ART}" class="idle-cover-art app-logo-art" alt="Liquid Dynamic Island">`;
                 }
@@ -129,7 +129,7 @@ export const idleView = {
                 const icon = activeVol === 0 ? 'ph-speaker-slash' : (activeVol !== null && activeVol < 50 ? 'ph-speaker-low' : 'ph-speaker-high');
                 idleInnerHtml = `
           <div class="idle-metric-chip">
-            <i class="ph-fill ${icon}"></i>
+            <i class="ph ${icon}"></i>
             <span>${activeVol === null ? '--' : `${activeVol}%`}</span>
           </div>
                 `;
@@ -142,7 +142,7 @@ export const idleView = {
             } else if (compactMode === 'progress') {
                 idleInnerHtml = `
           <div class="idle-metric-chip">
-            <i class="ph-fill ph-waveform"></i>
+            <i class="ph ph-waveform"></i>
             <span>${formatTime(this.musicData.progress || 0)}</span>
           </div>
                 `;

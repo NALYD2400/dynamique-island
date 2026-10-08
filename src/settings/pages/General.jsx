@@ -47,7 +47,7 @@ function Profiles({ store }) {
                                 deleteProfile(profile.id);
                             }}
                         >
-                            <Icon name="ph-x" weight="bold" />
+                            <Icon name="ph-x" />
                         </button>
                     </div>
                 ))}

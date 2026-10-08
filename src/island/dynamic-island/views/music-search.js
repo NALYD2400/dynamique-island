@@ -15,26 +15,26 @@ export const musicSearchView = {
       <div class="music-search-panel">
         <div class="music-search-header">
           <button class="island-action-btn music-search-back" id="music-search-back" title="Retour lecteur">
-            <i class="ph-bold ph-arrow-left"></i>
+            <i class="ph ph-arrow-left"></i>
           </button>
           <div class="music-search-heading">
             <span>Recherche musique</span>
-            <small><i class="ph-fill ${provider.icon}"></i> ${escapeHtml(provider.label)} detecte</small>
+            <small><i class="ph ${provider.icon}"></i> ${escapeHtml(provider.label)} detecte</small>
           </div>
         </div>
 
         <div class="music-search-field">
-          <i class="ph-bold ph-magnifying-glass"></i>
+          <i class="ph ph-magnifying-glass"></i>
           <input id="music-search-input" type="text" value="${escapeHtml(draft)}" placeholder="Titre, artiste, album…">
           <button id="music-search-submit" title="Lancer la recherche">
-            <i class="ph-bold ph-arrow-square-out"></i>
+            <i class="ph ph-arrow-square-out"></i>
           </button>
         </div>
 
         <div class="music-search-actions">
           ${hasCurrentTrack ? `
             <button class="music-search-chip" id="music-search-current" title="Rechercher le morceau en cours">
-              <i class="ph-fill ph-music-note"></i>
+              <i class="ph ph-music-note"></i>
               <span>${escapeHtml(currentQuery)}</span>
             </button>
           ` : `

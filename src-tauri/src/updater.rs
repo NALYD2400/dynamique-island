@@ -71,15 +71,17 @@ fn set(app: &AppHandle, notify_island: bool, patch: impl FnOnce(&mut UpdateStatu
     let public = status(app);
     let _ = app.emit(events::UPDATE_STATUS_CHANGED, &public);
     if notify_island {
-        let version = public.available_version.clone().unwrap_or_else(|| "recente".into());
+        let version = public.available_version.clone().unwrap_or_else(|| "récente".into());
+        // Deux messages : « disponible » tant qu'on ne l'a pas téléchargée, « prête » ensuite.
+        let (title, message) = if public.state == "downloaded" {
+            ("Mise à jour prête".to_string(), format!("Version {version} à installer dans les réglages"))
+        } else {
+            ("Mise à jour disponible".to_string(), format!("Version {version} : télécharge-la dans les réglages"))
+        };
         let _ = app.emit_to(
             crate::island::LABEL,
             events::TRIGGER_NOTIF,
-            serde_json::json!({
-                "title": "Mise a jour disponible",
-                "message": format!("Version {version} prete dans les reglages"),
-                "icon": "ph-download-simple"
-            }),
+            serde_json::json!({ "title": title, "message": message, "icon": "ph-download-simple" }),
         );
     }
     public

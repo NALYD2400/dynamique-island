@@ -25,7 +25,8 @@ const SWITCH_TINT = '#30d158';
 /** Remplissage neutre des curseurs (comme le centre de contrôle macOS). */
 const SLIDER_TINT = '#e5e5ea';
 
-export const Icon = ({ name, weight = 'fill', className = '' }) => (
+/** Une seule graisse pour toute l'interface : régulière (`ph`). `weight="bold"` seulement pour les coches. */
+export const Icon = ({ name, weight = 'regular', className = '' }) => (
     <i className={`${weight === 'regular' ? 'ph' : `ph-${weight}`} ${name} ${className}`} aria-hidden="true" />
 );
 
@@ -154,7 +155,7 @@ export function Select({ value, options, groups, onChange, placeholder = 'Choisi
                     onChange(option.value);
                 }}
             >
-                {option.icon && <Icon name={option.icon.replace(/^ph-(fill|bold) /, '')} weight={option.icon.startsWith('ph-bold') ? 'bold' : 'fill'} />}
+                {option.icon && <Icon name={option.icon.replace(/^ph(-fill|-bold)? /, '')} />}
                 <span>{option.label}</span>
                 {option.value === value && <Icon name="ph-check" weight="bold" className="menu-check" />}
             </GlassMenuItem>
@@ -164,7 +165,7 @@ export function Select({ value, options, groups, onChange, placeholder = 'Choisi
         <GlassMenu>
             <GlassSurface render={<GlassMenuTrigger />} className="select-trigger" radius="capsule" interactive>
                 <span>{current?.label ?? placeholder}</span>
-                <Icon name="ph-caret-up-down" weight="bold" />
+                <Icon name="ph-caret-up-down" />
             </GlassSurface>
             <GlassMenuContent className="select-menu" align="end">
                 {groups
@@ -200,7 +201,7 @@ export function Button({ children, icon, tone, ...props }) {
                 props.onClick?.(event);
             }}
         >
-            {icon && <Icon name={icon} weight="bold" />}
+            {icon && <Icon name={icon} />}
             {children}
         </GlassButton>
     );

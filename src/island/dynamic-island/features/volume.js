@@ -24,7 +24,7 @@ export const volumeMethods = {
         const toast = document.createElement('div');
         toast.className = 'volume-indicator-toast';
         const icon = vol === 0 ? 'ph-speaker-slash' : (vol < 50 ? 'ph-speaker-low' : 'ph-speaker-high');
-        toast.innerHTML = `<i class="ph-fill ${icon}"></i> <span>${vol}%</span>`;
+        toast.innerHTML = `<i class="ph ${icon}"></i> <span>${vol}%</span>`;
 
         this.el.appendChild(toast);
 
@@ -45,7 +45,7 @@ export const volumeMethods = {
 
         const toast = document.createElement('div');
         toast.className = 'island-feedback-toast';
-        toast.innerHTML = `<i class="ph-fill ${icon}"></i><span>${escapeHtml(message)}</span>`;
+        toast.innerHTML = `<i class="ph ${icon}"></i><span>${escapeHtml(message)}</span>`;
         this.el.appendChild(toast);
 
         this._feedbackTimeout = setTimeout(() => {
@@ -221,7 +221,7 @@ export const volumeMethods = {
             slider.style.setProperty('--volume-pct', '0%');
             valueEl.innerText = '--';
             nameEl.innerText = 'App introuvable';
-            iconEl.className = 'ph-fill ph-speaker-none';
+            iconEl.className = 'ph ph-speaker-none';
             return;
         }
 
@@ -236,7 +236,7 @@ export const volumeMethods = {
         slider.style.setProperty('--volume-pct', `${activeVol}%`);
         valueEl.innerText = `${activeVol}%`;
         nameEl.innerText = cleanName;
-        iconEl.className = `ph-fill ${icon}`;
+        iconEl.className = `ph ${icon}`;
     },
 
     async setCurrentMediaVolume(volume) {
@@ -334,7 +334,7 @@ export const volumeMethods = {
         const toast = document.createElement('div');
         toast.className = 'app-volume-toast';
         toast.innerHTML = `
-            <i class="ph-fill ${icon}"></i>
+            <i class="ph ${icon}"></i>
             <span>${escapeHtml(appName)}</span>
             <strong>${Math.round(volume)}%</strong>
         `;

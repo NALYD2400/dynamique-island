@@ -317,18 +317,18 @@ export const musicHistoryMethods = {
                     <div class="music-history-sub">
                         <span>${escapeHtml(item.artist)}</span>
                         <span class="music-history-dot"></span>
-                        <span><i class="ph-fill ${escapeHtml(provider.icon)}"></i> ${escapeHtml(provider.label)}</span>
+                        <span><i class="ph ${escapeHtml(provider.icon)}"></i> ${escapeHtml(provider.label)}</span>
                         ${(item.playCount || 1) > 1 ? `<span class="music-history-dot"></span><span>${item.playCount} ecoutes</span>` : ''}
                         <span class="music-history-dot"></span>
                         <span>${escapeHtml(formatHistoryTime(item.timestamp))}</span>
                     </div>
                 </div>
                 <div class="music-history-actions">
-                    <button class="music-history-action ${item.favorite ? 'is-favorite' : ''}" data-action="favorite" title="${item.favorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}"><i class="ph-fill ph-star"></i></button>
-                    <button class="music-history-action" data-action="search" title="Rechercher"><i class="ph-bold ph-magnifying-glass"></i></button>
-                    <button class="music-history-action ${isCurrent ? '' : 'is-disabled'}" data-action="replay" title="${isCurrent ? 'Rejouer depuis le debut' : 'Rejouer marche seulement pour le morceau en cours'}" ${isCurrent ? '' : 'disabled'}><i class="ph-fill ph-repeat"></i></button>
-                    <button class="music-history-action" data-action="open" title="Ouvrir"><i class="ph-bold ph-arrow-square-out"></i></button>
-                    <button class="music-history-action danger" data-action="delete" title="Supprimer"><i class="ph-bold ph-x"></i></button>
+                    <button class="music-history-action ${item.favorite ? 'is-favorite' : ''}" data-action="favorite" title="${item.favorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}"><i class="ph ph-star"></i></button>
+                    <button class="music-history-action" data-action="search" title="Rechercher"><i class="ph ph-magnifying-glass"></i></button>
+                    <button class="music-history-action ${isCurrent ? '' : 'is-disabled'}" data-action="replay" title="${isCurrent ? 'Rejouer depuis le debut' : 'Rejouer marche seulement pour le morceau en cours'}" ${isCurrent ? '' : 'disabled'}><i class="ph ph-repeat"></i></button>
+                    <button class="music-history-action" data-action="open" title="Ouvrir"><i class="ph ph-arrow-square-out"></i></button>
+                    <button class="music-history-action danger" data-action="delete" title="Supprimer"><i class="ph ph-x"></i></button>
                 </div>
             </div>`;
         }).join('');
@@ -361,21 +361,21 @@ export const musicHistoryMethods = {
       <div class="music-history-panel">
         <div class="music-history-header">
           <button class="island-action-btn music-history-back" id="music-history-back" title="Retour lecteur">
-            <i class="ph-bold ph-arrow-left"></i>
+            <i class="ph ph-arrow-left"></i>
           </button>
           <div class="music-history-heading">
             <span>Historique</span>
           </div>
           <button class="island-action-btn music-history-clear" id="music-history-clear" title="Vider l’historique">
-            <i class="ph-bold ph-trash"></i>
+            <i class="ph ph-trash"></i>
           </button>
         </div>
 
         <div class="music-history-search-filter-row">
           <div class="music-history-search">
-            <i class="ph-bold ph-magnifying-glass"></i>
+            <i class="ph ph-magnifying-glass"></i>
             <input id="music-history-search-input" type="text" value="${escapeHtml(this.musicHistoryQuery || '')}" placeholder="Rechercher…">
-            ${(this.musicHistoryQuery || '').trim() ? '<button id="music-history-search-clear" title="Effacer"><i class="ph-bold ph-x"></i></button>' : ''}
+            ${(this.musicHistoryQuery || '').trim() ? '<button id="music-history-search-clear" title="Effacer"><i class="ph ph-x"></i></button>' : ''}
           </div>
 
           <div class="music-history-filter">
@@ -390,16 +390,16 @@ export const musicHistoryMethods = {
 
         <div class="music-history-list">
           ${favoriteRows ? `
-            <div class="music-history-section-title"><i class="ph-fill ph-star"></i> Favoris</div>
+            <div class="music-history-section-title"><i class="ph ph-star"></i> Favoris</div>
             ${favoriteRows}
           ` : ''}
           ${recentRows ? `
-            <div class="music-history-section-title"><i class="ph-fill ph-clock-counter-clockwise"></i> Récents</div>
+            <div class="music-history-section-title"><i class="ph ph-clock-counter-clockwise"></i> Récents</div>
             ${recentRows}
           ` : ''}
           ${favoriteRows || recentRows ? '' : `
             <div class="music-history-empty">
-              <i class="ph-fill ph-clock-counter-clockwise"></i>
+              <i class="ph ph-clock-counter-clockwise"></i>
               <span>${emptyText}</span>
             </div>
           `}

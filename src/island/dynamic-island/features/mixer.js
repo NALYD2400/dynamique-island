@@ -27,11 +27,11 @@ export const mixerMethods = {
             if (muteBtn) {
                 if (clickPct === 0) {
                     muteBtn.classList.add('muted');
-                    muteBtn.innerHTML = '<i class="ph-fill ph-speaker-slash"></i>';
+                    muteBtn.innerHTML = '<i class="ph ph-speaker-slash"></i>';
                     row.classList.add('muted');
                 } else {
                     muteBtn.classList.remove('muted');
-                    muteBtn.innerHTML = `<i class="ph-fill ${clickPct < 50 ? 'ph-speaker-low' : 'ph-speaker-high'}"></i>`;
+                    muteBtn.innerHTML = `<i class="ph ${clickPct < 50 ? 'ph-speaker-low' : 'ph-speaker-high'}"></i>`;
                     row.classList.remove('muted');
                 }
             }
@@ -89,11 +89,11 @@ export const mixerMethods = {
             if (muteBtn) {
                 if (mustMute) {
                     muteBtn.classList.add('muted');
-                    muteBtn.innerHTML = '<i class="ph-fill ph-speaker-slash"></i>';
+                    muteBtn.innerHTML = '<i class="ph ph-speaker-slash"></i>';
                     row.classList.add('muted');
                 } else {
                     muteBtn.classList.remove('muted');
-                    muteBtn.innerHTML = `<i class="ph-fill ${visibleVolume < 50 ? 'ph-speaker-low' : 'ph-speaker-high'}"></i>`;
+                    muteBtn.innerHTML = `<i class="ph ${visibleVolume < 50 ? 'ph-speaker-low' : 'ph-speaker-high'}"></i>`;
                     row.classList.remove('muted');
                 }
             }
@@ -211,7 +211,7 @@ export const mixerMethods = {
                     headerIcon = 'ph-monitor';
                 }
             }
-            btnIcon.className = `ph-fill ${headerIcon}`;
+            btnIcon.className = `ph ${headerIcon}`;
         }
 
         // Render items list
@@ -231,7 +231,7 @@ export const mixerMethods = {
                 const activeClass = d.isDefault ? 'active' : '';
                 return `
                     <div class="audio-device-item ${activeClass}" onclick="event.stopPropagation(); window.island.selectAudioDevice('${escapeHtml(d.id)}')">
-                        <span class="audio-device-icon"><i class="ph-fill ${icon}"></i></span>
+                        <span class="audio-device-icon"><i class="ph ${icon}"></i></span>
                         <span class="device-name" title="${escapeHtml(d.name)}">${escapeHtml(d.name)}</span>
                         <span class="device-active-dot"></span>
                     </div>
@@ -282,7 +282,7 @@ export const mixerMethods = {
                 const activeClass = d.isDefault ? 'active' : '';
                 return `
                     <div class="audio-device-item ${activeClass}" onclick="event.stopPropagation(); window.island.selectMicDevice('${escapeHtml(d.id)}')">
-                        <span class="audio-device-icon"><i class="ph-fill ${icon}"></i></span>
+                        <span class="audio-device-icon"><i class="ph ${icon}"></i></span>
                         <span class="device-name" title="${escapeHtml(d.name)}">${escapeHtml(d.name)}</span>
                         <span class="device-active-dot"></span>
                     </div>
@@ -396,7 +396,7 @@ export const mixerMethods = {
         if (grouped.length === 0) {
             listHtml = `
                 <div class="mixer-empty-state">
-                    <i class="ph-fill ph-speaker-none"></i>
+                    <i class="ph ph-speaker-none"></i>
                     <span>Aucun flux audio détecté</span>
                 </div>
             `;
@@ -410,10 +410,10 @@ export const mixerMethods = {
                 if (icon) {
                     iconHtml = `
                         <img src="${icon}" class="mixer-app-icon-img" alt="${s.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
-                        <i class="ph-fill ph-music-note mixer-app-icon-fallback" style="display: none;"></i>
+                        <i class="ph ph-music-note mixer-app-icon-fallback" style="display: none;"></i>
                     `;
                 } else {
-                    iconHtml = `<i class="ph-fill ph-music-note mixer-app-icon-fallback"></i>`;
+                    iconHtml = `<i class="ph ph-music-note mixer-app-icon-fallback"></i>`;
                 }
                 
                 const muteIcon = isMuted ? 'ph-speaker-slash' : (activeVol < 50 ? 'ph-speaker-low' : 'ph-speaker-high');
@@ -442,7 +442,7 @@ export const mixerMethods = {
                             </div>
                         </div>
                         <button class="mixer-mute-btn ${btnMutedClass}" data-pid="${s.pid}" title="${isMuted ? 'Réactiver le son' : 'Couper le son'}" aria-label="${isMuted ? 'Réactiver le son' : 'Couper le son'}">
-                            <i class="ph-fill ${muteIcon}"></i>
+                            <i class="ph ${muteIcon}"></i>
                         </button>
                     </div>
                 `;
@@ -476,16 +476,16 @@ export const mixerMethods = {
         this.content.innerHTML = `
             <div class="mixer-container">
                 <div class="mixer-header">
-                    <span class="mixer-title"><i class="ph-fill ph-sliders"></i> Mélangeur Audio</span>
+                    <span class="mixer-title"><i class="ph ph-sliders"></i> Mélangeur Audio</span>
                     <div class="music-action-cluster">
                         <button class="island-action-btn device-select-btn ${activeOutBtnClass}" onclick="event.stopPropagation(); window.island.toggleAudioDeviceDropdown()" title="Périphérique de sortie">
-                            <i class="ph-fill ${headerIcon}"></i>
+                            <i class="ph ${headerIcon}"></i>
                         </button>
                         <button class="island-action-btn mic-select-btn ${activeMicBtnClass}" onclick="event.stopPropagation(); window.island.toggleMicDeviceDropdown()" title="Entrée audio / Micro">
-                            <i class="ph-fill ph-microphone"></i>
+                            <i class="ph ph-microphone"></i>
                         </button>
                         <button class="island-action-btn menu-btn" onclick="event.stopPropagation(); window.island.setMode('menu')" title="Menu des modules">
-                            <i class="ph-fill ph-squares-four"></i>
+                            <i class="ph ph-squares-four"></i>
                         </button>
                     </div>
                 </div>
@@ -498,7 +498,7 @@ export const mixerMethods = {
                         <div class="audio-device-dropdown-header">
                             <span class="audio-device-dropdown-title">Sortie Audio</span>
                             <button class="audio-device-dropdown-close" title="Fermer" aria-label="Fermer" onclick="event.stopPropagation(); window.island.toggleAudioDeviceDropdown()">
-                                <i class="ph-bold ph-x"></i>
+                                <i class="ph ph-x"></i>
                             </button>
                         </div>
                         <div class="audio-device-list-container">
@@ -510,7 +510,7 @@ export const mixerMethods = {
                         <div class="audio-device-dropdown-header">
                             <span class="audio-device-dropdown-title">Entrée Audio / Micro</span>
                             <button class="audio-device-dropdown-close" title="Fermer" aria-label="Fermer" onclick="event.stopPropagation(); window.island.toggleMicDeviceDropdown()">
-                                <i class="ph-bold ph-x"></i>
+                                <i class="ph ph-x"></i>
                             </button>
                         </div>
                         <div class="audio-device-list-container mic-device-list-container">
@@ -578,7 +578,7 @@ export const mixerMethods = {
             if (muteBtn) {
                 const muteIcon = isMuted ? 'ph-speaker-slash' : (activeVol < 50 ? 'ph-speaker-low' : 'ph-speaker-high');
                 muteBtn.className = `mixer-mute-btn ${isMuted ? 'muted' : ''}`;
-                muteBtn.innerHTML = `<i class="ph-fill ${muteIcon}"></i>`;
+                muteBtn.innerHTML = `<i class="ph ${muteIcon}"></i>`;
             }
             
             row.className = `mixer-session-row ${isMuted ? 'muted' : ''}`;
@@ -615,7 +615,7 @@ export const mixerMethods = {
             }
             if (muteIcon) {
                 muteIcon.className = `ic-mixer-mute ${isMuted ? 'muted' : ''}`;
-                muteIcon.innerHTML = `<i class="ph-fill ${isMuted ? 'ph-speaker-slash' : (activeVol < 50 ? 'ph-speaker-low' : 'ph-speaker-high')}"></i>`;
+                muteIcon.innerHTML = `<i class="ph ${isMuted ? 'ph-speaker-slash' : (activeVol < 50 ? 'ph-speaker-low' : 'ph-speaker-high')}"></i>`;
             }
         });
     },

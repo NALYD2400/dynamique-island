@@ -14,7 +14,7 @@ export const notificationView = {
         this.content.innerHTML = `
       <div class="island-notification ${isExpanded ? 'expanded' : 'compact'}">
         <div class="notif-icon-wrapper">
-          <i class="ph-fill ${safeIcon} notif-icon"></i>
+          <i class="ph ${safeIcon} notif-icon"></i>
         </div>
         <div class="notif-content">
           <div class="notif-title">${isExpanded ? safeTitle : `<strong>${safeTitle} :</strong> ${safeMessage}`}</div>

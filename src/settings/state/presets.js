@@ -1,21 +1,21 @@
 /** Préréglages : raccourcis du centre de contrôle, profils rapides et listes de choix. */
 
 export const SHORTCUT_PRESETS = {
-    explorer: { name: 'Explorateur', icon: 'ph-fill ph-folder', cmd: 'explorer.exe' },
-    settings: { name: 'Paramètres', icon: 'ph-fill ph-gear', cmd: 'ms-settings:' },
-    taskmgr: { name: 'Gestionnaire', icon: 'ph-fill ph-cpu', cmd: 'taskmgr.exe' },
-    calc: { name: 'Calculatrice', icon: 'ph-fill ph-calculator', cmd: 'calc.exe' },
-    terminal: { name: 'Terminal', icon: 'ph-fill ph-terminal', cmd: 'cmd.exe' },
-    notepad: { name: 'Bloc-notes', icon: 'ph-fill ph-note-pencil', cmd: 'notepad.exe' },
-    paint: { name: 'Paint', icon: 'ph-fill ph-palette', cmd: 'ms-paint:' },
-    snipping: { name: 'Capture d’écran', icon: 'ph-fill ph-camera', cmd: 'ms-screenclip:' },
-    music: { name: 'Lecteur', icon: 'ph-fill ph-music-notes', cmd: 'liquid:music' },
-    history: { name: 'Historique', icon: 'ph-fill ph-clock-counter-clockwise', cmd: 'liquid:music-history' },
-    musicSearch: { name: 'Recherche', icon: 'ph-bold ph-magnifying-glass', cmd: 'liquid:music-search' },
-    widgets: { name: 'Widgets', icon: 'ph-fill ph-squares-four', cmd: 'liquid:menu' },
-    mixer: { name: 'Mixer', icon: 'ph-fill ph-sliders-horizontal', cmd: 'liquid:mixer' },
-    islandSettings: { name: 'Réglages', icon: 'ph-fill ph-gear-six', cmd: 'liquid:settings' },
-    custom: { name: 'Perso', icon: 'ph-fill ph-sparkle', cmd: '' },
+    explorer: { name: 'Explorateur', icon: 'ph ph-folder', cmd: 'explorer.exe' },
+    settings: { name: 'Paramètres', icon: 'ph ph-gear', cmd: 'ms-settings:' },
+    taskmgr: { name: 'Gestionnaire', icon: 'ph ph-cpu', cmd: 'taskmgr.exe' },
+    calc: { name: 'Calculatrice', icon: 'ph ph-calculator', cmd: 'calc.exe' },
+    terminal: { name: 'Terminal', icon: 'ph ph-terminal', cmd: 'cmd.exe' },
+    notepad: { name: 'Bloc-notes', icon: 'ph ph-note-pencil', cmd: 'notepad.exe' },
+    paint: { name: 'Paint', icon: 'ph ph-palette', cmd: 'ms-paint:' },
+    snipping: { name: 'Capture d’écran', icon: 'ph ph-camera', cmd: 'ms-screenclip:' },
+    music: { name: 'Lecteur', icon: 'ph ph-music-notes', cmd: 'liquid:music' },
+    history: { name: 'Historique', icon: 'ph ph-clock-counter-clockwise', cmd: 'liquid:music-history' },
+    musicSearch: { name: 'Recherche', icon: 'ph ph-magnifying-glass', cmd: 'liquid:music-search' },
+    widgets: { name: 'Widgets', icon: 'ph ph-squares-four', cmd: 'liquid:menu' },
+    mixer: { name: 'Mixer', icon: 'ph ph-sliders-horizontal', cmd: 'liquid:mixer' },
+    islandSettings: { name: 'Réglages', icon: 'ph ph-gear-six', cmd: 'liquid:settings' },
+    custom: { name: 'Perso', icon: 'ph ph-sparkle', cmd: '' },
 };
 
 /** Groupes affichés dans le menu de choix d'un raccourci. */
@@ -26,10 +26,10 @@ export const SHORTCUT_GROUPS = [
 ];
 
 export const DEFAULT_SHORTCUTS = [
-    { name: 'Explorer', preset: 'explorer', icon: 'ph-fill ph-folder', cmd: 'explorer.exe' },
-    { name: 'Settings', preset: 'settings', icon: 'ph-fill ph-gear', cmd: 'ms-settings:' },
-    { name: 'TaskMgr', preset: 'taskmgr', icon: 'ph-fill ph-cpu', cmd: 'taskmgr.exe' },
-    { name: 'Calc', preset: 'calc', icon: 'ph-fill ph-calculator', cmd: 'calc.exe' },
+    { name: 'Explorer', preset: 'explorer', icon: 'ph ph-folder', cmd: 'explorer.exe' },
+    { name: 'Settings', preset: 'settings', icon: 'ph ph-gear', cmd: 'ms-settings:' },
+    { name: 'TaskMgr', preset: 'taskmgr', icon: 'ph ph-cpu', cmd: 'taskmgr.exe' },
+    { name: 'Calc', preset: 'calc', icon: 'ph ph-calculator', cmd: 'calc.exe' },
 ];
 
 export const MOTION_OPTIONS = [

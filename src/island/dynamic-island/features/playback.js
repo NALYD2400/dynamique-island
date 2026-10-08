@@ -66,7 +66,7 @@ export const playbackMethods = {
             this.el.classList.toggle('playing-music-glow', active);
         }
         document.querySelectorAll('.play-btn i, #ic-np-play-btn-val i').forEach((icon) => {
-            icon.className = `ph-fill ph-${active ? 'pause' : 'play'}`;
+            icon.className = `ph ph-${active ? 'pause' : 'play'}`;
         });
     },
 

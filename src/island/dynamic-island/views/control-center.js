@@ -64,10 +64,10 @@ export const controlCenterView = {
         
         if (widgetType === 'launchpad') {
             const defaultShortcuts = [
-                { name: "Explorer", preset: "explorer", icon: "ph-fill ph-folder", cmd: "explorer.exe" },
-                { name: "Settings", preset: "settings", icon: "ph-fill ph-gear", cmd: "ms-settings:" },
-                { name: "TaskMgr", preset: "taskmgr", icon: "ph-fill ph-cpu", cmd: "taskmgr.exe" },
-                { name: "Calc", preset: "calc", icon: "ph-fill ph-calculator", cmd: "calc.exe" }
+                { name: "Explorer", preset: "explorer", icon: "ph ph-folder", cmd: "explorer.exe" },
+                { name: "Settings", preset: "settings", icon: "ph ph-gear", cmd: "ms-settings:" },
+                { name: "TaskMgr", preset: "taskmgr", icon: "ph ph-cpu", cmd: "taskmgr.exe" },
+                { name: "Calc", preset: "calc", icon: "ph ph-calculator", cmd: "calc.exe" }
             ];
             const shortcuts = JSON.parse(localStorage.getItem('liquid_control_shortcuts') || JSON.stringify(defaultShortcuts));
             
@@ -85,7 +85,7 @@ export const controlCenterView = {
                 <div class="ic-stats-card">
                     <div class="ic-stats-half">
                         <div class="ic-stats-info">
-                            <span class="ic-stats-label"><i class="ph-fill ph-cpu"></i> CPU</span>
+                            <span class="ic-stats-label"><i class="ph ph-cpu"></i> CPU</span>
                             <span id="ic-stat-val-cpu" class="ic-stats-val">${stats.cpu}%</span>
                         </div>
                         <div class="ic-stats-bar">
@@ -94,7 +94,7 @@ export const controlCenterView = {
                     </div>
                     <div class="ic-stats-half" style="border-left: 1px solid rgba(255,255,255,0.06); padding-left: 12px;">
                         <div class="ic-stats-info">
-                            <span class="ic-stats-label"><i class="ph-fill ph-database"></i> RAM</span>
+                            <span class="ic-stats-label"><i class="ph ph-database"></i> RAM</span>
                             <span id="ic-stat-val-ram" class="ic-stats-val">${stats.ram}%</span>
                         </div>
                         <div class="ic-stats-bar">
@@ -109,7 +109,7 @@ export const controlCenterView = {
             thirdCardHtml = `
                 <div class="ic-weather-card" id="ic-weather-card">
                     <div class="ic-weather-info">
-                        <span class="ic-weather-label"><i class="ph-fill ph-cloud-sun"></i> <span id="ic-weather-city">${city ? escapeHtml(city) : 'Météo'}</span></span>
+                        <span class="ic-weather-label"><i class="ph ph-cloud-sun"></i> <span id="ic-weather-city">${city ? escapeHtml(city) : 'Météo'}</span></span>
                         <span class="ic-weather-val" id="ic-weather-temp">${city ? '…' : '—'}</span>
                     </div>
                     <div class="ic-weather-condition">
@@ -117,7 +117,7 @@ export const controlCenterView = {
                         <span class="ic-weather-hl" id="ic-weather-hl">${city ? '' : 'Réglages → Centre de contrôle'}</span>
                     </div>
                     <div class="ic-weather-icon-wrapper">
-                        <i class="ph-fill ph-cloud-sun ic-weather-icon" id="ic-weather-icon"></i>
+                        <i class="ph ph-cloud-sun ic-weather-icon" id="ic-weather-icon"></i>
                     </div>
                 </div>
             `;
@@ -138,7 +138,7 @@ export const controlCenterView = {
                 <div class="ic-machine-card">
                     <div class="ic-machine-half">
                         <div class="ic-machine-info">
-                            <span class="ic-machine-label" id="ic-mach-lbl-batt"><i class="ph-fill ${battIcon}" style="${batteryCharging ? 'color: #34c759;' : ''}"></i> ${battLabelText}</span>
+                            <span class="ic-machine-label" id="ic-mach-lbl-batt"><i class="ph ${battIcon}" style="${batteryCharging ? 'color: #34c759;' : ''}"></i> ${battLabelText}</span>
                             <span id="ic-mach-val-batt" class="ic-machine-val">${batteryLevel}%</span>
                         </div>
                         <div class="ic-machine-bar">
@@ -147,7 +147,7 @@ export const controlCenterView = {
                     </div>
                     <div class="ic-machine-half" style="border-left: 1px solid rgba(255,255,255,0.06); padding-left: 12px;">
                         <div class="ic-machine-info">
-                            <span class="ic-machine-label"><i class="ph-fill ph-hard-drive"></i> Disque C:</span>
+                            <span class="ic-machine-label"><i class="ph ph-hard-drive"></i> Disque C:</span>
                             <span class="ic-machine-val" id="ic-mach-val-disk">${diskFreeGb} Go libres</span>
                         </div>
                         <div class="ic-machine-bar">
@@ -163,12 +163,12 @@ export const controlCenterView = {
                 <div class="island-control-header">
                     <div class="ic-header-copy">
                         <span class="ic-title">Centre de Contrôle</span>
-                        <span class="ic-time"><i class="ph-fill ph-clock"></i>${new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
+                        <span class="ic-time"><i class="ph ph-clock"></i>${new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
                     </div>
                     <div class="ic-header-actions">
                         <button class="ic-action-btn" onclick="event.stopPropagation(); window.island.setMode('settings')" title="Réglages"><i class="ph ph-gear"></i></button>
                         <button class="ic-action-btn power" id="ic-shutdown" title="Éteindre"><i class="ph ph-power"></i></button>
-                        <button class="ic-close" onclick="event.stopPropagation(); window.island.setMode('menu')" title="Menu des modules"><i class="ph-fill ph-squares-four"></i></button>
+                        <button class="ic-close" onclick="event.stopPropagation(); window.island.setMode('menu')" title="Menu des modules"><i class="ph ph-squares-four"></i></button>
                     </div>
                 </div>
                 
@@ -177,42 +177,42 @@ export const controlCenterView = {
                     <div class="ic-control-stack">
                         <div class="ic-toggles-grid">
                             <div class="ic-tile ${wifiEnabled ? 'active' : ''}" id="ic-wifi">
-                                <i class="ph-fill ph-wifi-high"></i>
+                                <i class="ph ph-wifi-high"></i>
                                 <div class="ic-tile-text">
                                     <span class="ic-tile-label">Wi-Fi</span>
                                     <span class="ic-tile-status">${wifiEnabled ? 'Activé' : 'Désactivé'}</span>
                                 </div>
                             </div>
                             <div class="ic-tile ${btEnabled ? 'active' : ''}" id="ic-bluetooth">
-                                <i class="ph-fill ph-bluetooth"></i>
+                                <i class="ph ph-bluetooth"></i>
                                 <div class="ic-tile-text">
                                     <span class="ic-tile-label">Bluetooth</span>
                                     <span class="ic-tile-status">${btEnabled ? 'Activé' : 'Désactivé'}</span>
                                 </div>
                             </div>
                             <div class="ic-tile ${dndEnabled ? 'active' : ''}" id="ic-dnd" title="Ne pas déranger : coupe les notifications de Windows">
-                                <i class="ph-fill ph-moon"></i>
+                                <i class="ph ph-moon"></i>
                                 <div class="ic-tile-text">
                                     <span class="ic-tile-label">DND</span>
                                     <span class="ic-tile-status">${dndEnabled ? 'Activé' : 'Désactivé'}</span>
                                 </div>
                             </div>
                             <div class="ic-tile ${isFocusMode ? 'active' : ''}" id="ic-focus" title="Focus : plus de notifications dans l’Island, pilule estompée au repos">
-                                <i class="ph-fill ph-target"></i>
+                                <i class="ph ph-target"></i>
                                 <div class="ic-tile-text">
                                     <span class="ic-tile-label">Focus</span>
                                     <span class="ic-tile-status">${isFocusMode ? 'Activé' : 'Désactivé'}</span>
                                 </div>
                             </div>
                             <div class="ic-tile ${isEcoMode ? 'active' : ''}" id="ic-eco">
-                                <i class="ph-fill ph-leaf"></i>
+                                <i class="ph ph-leaf"></i>
                                 <div class="ic-tile-text">
                                     <span class="ic-tile-label">Éco</span>
                                     <span class="ic-tile-status">${isEcoMode ? 'Activé' : 'Désactivé'}</span>
                                 </div>
                             </div>
                             <div class="ic-tile" id="ic-sett-tile" title="Ouvrir les Réglages">
-                                <i class="ph-fill ph-gear"></i>
+                                <i class="ph ph-gear"></i>
                                 <div class="ic-tile-text">
                                     <span class="ic-tile-label">Réglages</span>
                                     <span class="ic-tile-status">Configurer</span>
@@ -242,7 +242,7 @@ export const controlCenterView = {
                     <div class="ic-sliders-layout" style="width: 60px;">
                         <div class="ic-vertical-slider" id="ic-volume-slider" style="--slider-val-pct: ${Math.round(sysVol)}%" title="Volume Système">
                             <div class="ic-slider-fill"></div>
-                            <div class="ic-slider-icon"><i class="ph-fill ph-speaker-high"></i></div>
+                            <div class="ic-slider-icon"><i class="ph ph-speaker-high"></i></div>
                         </div>
                     </div>
                 </div>
@@ -256,10 +256,10 @@ export const controlCenterView = {
         // Bind Launchpad buttons click handlers
         if (widgetType === 'launchpad') {
             const defaultShortcuts = [
-                { name: "Explorer", preset: "explorer", icon: "ph-fill ph-folder", cmd: "explorer.exe" },
-                { name: "Settings", preset: "settings", icon: "ph-fill ph-gear", cmd: "ms-settings:" },
-                { name: "TaskMgr", preset: "taskmgr", icon: "ph-fill ph-cpu", cmd: "taskmgr.exe" },
-                { name: "Calc", preset: "calc", icon: "ph-fill ph-calculator", cmd: "calc.exe" }
+                { name: "Explorer", preset: "explorer", icon: "ph ph-folder", cmd: "explorer.exe" },
+                { name: "Settings", preset: "settings", icon: "ph ph-gear", cmd: "ms-settings:" },
+                { name: "TaskMgr", preset: "taskmgr", icon: "ph ph-cpu", cmd: "taskmgr.exe" },
+                { name: "Calc", preset: "calc", icon: "ph ph-calculator", cmd: "calc.exe" }
             ];
             const shortcuts = JSON.parse(localStorage.getItem('liquid_control_shortcuts') || JSON.stringify(defaultShortcuts));
             
@@ -457,7 +457,7 @@ export const controlCenterView = {
                         if (battLabel) {
                             const bIcon = bCharging ? 'ph-battery-charging' : 'ph-battery-high';
                             const bText = bCharging ? 'Secteur' : 'Batterie';
-                            battLabel.innerHTML = `<i class="ph-fill ${bIcon}" style="${bCharging ? 'color: #34c759;' : ''}"></i> ${bText}`;
+                            battLabel.innerHTML = `<i class="ph ${bIcon}" style="${bCharging ? 'color: #34c759;' : ''}"></i> ${bText}`;
                         }
                     } catch(e){}
                 }
@@ -484,7 +484,7 @@ export const controlCenterView = {
                 overlay.className = 'ic-confirm-overlay';
                 overlay.innerHTML = `
                     <div class="ic-confirm-box">
-                        <i class="ph-fill ph-power ic-confirm-icon"></i>
+                        <i class="ph ph-power ic-confirm-icon"></i>
                         <span class="ic-confirm-title">Quitter l'Island ?</span>
                         <span class="ic-confirm-desc">Voulez-vous fermer l'application Dynamic Island ?</span>
                         <div class="ic-confirm-buttons">
@@ -596,7 +596,7 @@ export const controlCenterView = {
                     if (battLabel) {
                         const battIcon = batteryCharging ? 'ph-battery-charging' : 'ph-battery-high';
                         const battLabelText = batteryCharging ? 'Secteur' : 'Batterie';
-                        battLabel.innerHTML = `<i class="ph-fill ${battIcon}" style="dots; color: ${batteryCharging ? '#34c759' : ''}"></i> ${battLabelText}`;
+                        battLabel.innerHTML = `<i class="ph ${battIcon}" style="dots; color: ${batteryCharging ? '#34c759' : ''}"></i> ${battLabelText}`;
                     }
                 } catch(e){}
             }
@@ -649,10 +649,10 @@ export const controlCenterView = {
                                     if (icon) {
                                         iconHtml = `
                                             <img src="${icon}" style="width: 14px; height: 14px; object-fit: contain;" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-flex';">
-                                            <i class="ph-fill ph-music-note" style="display: none; font-size: 12px;"></i>
+                                            <i class="ph ph-music-note" style="display: none; font-size: 12px;"></i>
                                         `;
                                     } else {
-                                        iconHtml = `<i class="ph-fill ph-music-note"></i>`;
+                                        iconHtml = `<i class="ph ph-music-note"></i>`;
                                     }
                                     
                                     const muteIcon = isMuted ? 'ph-speaker-slash' : (activeVol < 50 ? 'ph-speaker-low' : 'ph-speaker-high');
@@ -670,7 +670,7 @@ export const controlCenterView = {
                                             </div>
                                             <span class="ic-mixer-vol">${activeVol}%</span>
                                             <div class="ic-mixer-mute ${isMuted ? 'muted' : ''}" data-pid="${s.pid}">
-                                                <i class="ph-fill ${muteIcon}"></i>
+                                                <i class="ph ${muteIcon}"></i>
                                             </div>
                                         </div>
                                     `;
@@ -710,7 +710,7 @@ export const controlCenterView = {
         set('ic-weather-hl', `Min. ${Math.round(weather.min)}° / Max. ${Math.round(weather.max)}°`);
         const iconEl = document.getElementById('ic-weather-icon');
         if (iconEl) {
-            iconEl.className = `ph-fill ${icon} ic-weather-icon`;
+            iconEl.className = `ph ${icon} ic-weather-icon`;
             iconEl.style.color = color;
             iconEl.style.filter = `drop-shadow(0 0 8px ${color}4d)`;
         }

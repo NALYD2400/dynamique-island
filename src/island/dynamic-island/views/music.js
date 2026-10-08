@@ -61,17 +61,17 @@ export const musicView = {
 
         const menuBtn = `
           <button class="island-action-btn menu-btn" onclick="event.stopPropagation(); window.island.setMode('menu')" title="Menu des modules">
-            <i class="ph-fill ph-squares-four"></i>
+            <i class="ph ph-squares-four"></i>
           </button>`;
 
         const favoriteBtn = `
           <button class="island-action-btn music-favorite-btn ${isFavorite ? 'is-favorite' : ''}" onclick="event.stopPropagation(); window.island.toggleCurrentMusicFavorite()" title="${isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}">
-            <i class="ph-fill ph-star"></i>
+            <i class="ph ph-star"></i>
           </button>`;
 
         const historyBtn = `
           <button class="island-action-btn music-history-btn" onclick="event.stopPropagation(); window.island.setMode('music-history')" title="Historique musique">
-            <i class="ph-fill ph-clock-counter-clockwise"></i>
+            <i class="ph ph-clock-counter-clockwise"></i>
           </button>`;
 
         this.content.innerHTML = `

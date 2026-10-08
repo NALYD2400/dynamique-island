@@ -16,10 +16,10 @@ export const searchView = {
         this.content.innerHTML = `
             <div class="island-search-container">
                 <div class="search-bar-integrated">
-                    <i class="ph-bold ph-magnifying-glass search-icon-integrated"></i>
+                    <i class="ph ph-magnifying-glass search-icon-integrated"></i>
                     <input type="text" id="island-search-input" placeholder="Rechercher…" autofocus>
                     <button class="island-close-search" title="Fermer la recherche" aria-label="Fermer la recherche" onclick="window.dispatchEvent(new CustomEvent('liquid-search-close'))">
-                        <i class="ph-bold ph-x"></i>
+                        <i class="ph ph-x"></i>
                     </button>
                 </div>
                 <div id="island-search-results" class="island-search-results">
