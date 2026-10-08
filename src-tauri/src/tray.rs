@@ -20,7 +20,7 @@ pub fn create(app: &AppHandle) -> tauri::Result<()> {
     )?;
 
     let mut builder = TrayIconBuilder::with_id("main")
-        .tooltip("Liquid Dynamic Island")
+        .tooltip("Nolys")
         .menu(&menu)
         .show_menu_on_left_click(false)
         .on_menu_event(move |app, event| match event.id().as_ref() {

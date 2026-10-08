@@ -81,7 +81,7 @@ export const visualizerMethods = {
         const barW = Math.max(2, Math.floor((w - (totalBars - 1) * 1) / totalBars));
         const gap = 1;
 
-        const vizColorMode = this._islandConfig.vizColorMode || 'cyberpunk';
+        const vizColorMode = this._islandConfig.vizColorMode || 'cover';
 
         // Optimize: pre-parse colors outside the loop to avoid regex parsing 60 times per frame!
         let solidRgb = null;
@@ -89,11 +89,11 @@ export const visualizerMethods = {
         let gradBRgb = null;
         
         if (vizColorMode === 'solid') {
-            const hex = this._islandConfig.vizColorSolid || '#00f3ff';
+            const hex = this._islandConfig.vizColorSolid || '#D49460';
             solidRgb = hexToRgb(hex);
         } else if (vizColorMode === 'gradient') {
-            const hexA = this._islandConfig.vizColorGradA || '#00f3ff';
-            const hexB = this._islandConfig.vizColorGradB || '#ff00ff';
+            const hexA = this._islandConfig.vizColorGradA || '#D49460';
+            const hexB = this._islandConfig.vizColorGradB || '#EDBC89';
             gradARgb = hexToRgb(hexA);
             gradBRgb = hexToRgb(hexB);
         }
@@ -120,9 +120,9 @@ export const visualizerMethods = {
                     g = Math.round(c1.g * (1 - t) + c2.g * t);
                     b = Math.round(c1.b * (1 - t) + c2.b * t);
                 } else {
-                    r = Math.round(t < 0.5 ? (t * 2 * 255) : 255);
-                    g = Math.round(t < 0.5 ? 243 : (1 - (t - 0.5) * 2) * 200);
-                    b = 255;
+                    r = Math.round(212 + (237 - 212) * t);
+                    g = Math.round(148 + (188 - 148) * t);
+                    b = Math.round(96 + (137 - 96) * t);
                 }
             } else if (vizColorMode === 'solid') {
                 if (solidRgb) {

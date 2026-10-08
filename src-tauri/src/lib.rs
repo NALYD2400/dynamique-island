@@ -1,4 +1,4 @@
-//! Liquid Dynamic Island — point d'entrée de l'application Tauri.
+//! Nolys — point d'entrée de l'application Tauri.
 
 mod commands;
 mod events;
@@ -89,14 +89,14 @@ pub fn run() {
             commands::updates::install_update,
         ])
         .run(tauri::generate_context!())
-        .expect("impossible de démarrer Liquid Dynamic Island");
+        .expect("impossible de démarrer Nolys");
 }
 
 fn setup(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     let data_dir = app.path().app_data_dir()?;
     std::fs::create_dir_all(&data_dir)?;
     logger::init(data_dir.clone());
-    logger::log(&format!("[App] Starting Liquid Dynamic Island {}", app.package_info().version));
+    logger::log(&format!("[App] Starting Nolys {}", app.package_info().version));
     migration::import_legacy_files(&data_dir);
     let legacy_settings = migration::legacy_settings_script(&data_dir);
 

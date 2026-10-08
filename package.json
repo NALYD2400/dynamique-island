@@ -1,8 +1,8 @@
 {
   "name": "liquid-dynamic-island",
   "private": true,
-  "version": "2.0.1",
-  "description": "Liquid Dynamic Island — widget Dynamic Island pour Windows (Tauri + Rust)",
+  "version": "2.0.2",
+  "description": "Nolys — widget Liquid Glass pour Windows (Tauri + Rust)",
   "scripts": {
     "dev": "tauri dev",
     "build": "tauri build",

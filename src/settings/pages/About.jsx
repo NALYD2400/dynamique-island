@@ -54,7 +54,7 @@ export default function About({ store }) {
             <div className="about-hero">
                 <img src="/assets/app-logo.png" alt="" className="about-logo" />
                 <div>
-                    <h2>Liquid Dynamic Island</h2>
+                    <h2>Nolys</h2>
                     {version && <p>Version {version}</p>}
                 </div>
             </div>

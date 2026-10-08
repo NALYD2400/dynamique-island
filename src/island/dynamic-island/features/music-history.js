@@ -307,7 +307,7 @@ export const musicHistoryMethods = {
             const isCurrent = this.isCurrentHistoryItem(item);
             const cover = item.cover
                 ? `<img src="${escapeHtml(item.cover)}" class="music-history-cover" alt="">`
-                : `<img src="${APP_LOGO_ART}" class="music-history-cover music-history-cover-fallback app-logo-art" alt="Liquid Dynamic Island">`;
+                : `<img src="${APP_LOGO_ART}" class="music-history-cover music-history-cover-fallback app-logo-art" alt="Nolys">`;
 
             return `
             <div class="music-history-row ${item.favorite ? 'is-favorite' : ''}" data-index="${index}">

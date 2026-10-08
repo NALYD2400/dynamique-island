@@ -58,7 +58,7 @@ window.spotifyControl = async (action) => {
 
 // 2. INITIALIZE SERVICES & ISLAND CLASS
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('[Island Widget] Bootstrapping Dynamic Island...');
+    console.log('[Island Widget] Bootstrapping Nolys...');
     
     // Theme setup
     ThemeService.applyGlobalTheme();

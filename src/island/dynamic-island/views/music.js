@@ -55,7 +55,7 @@ export const musicView = {
             if (appIcon) {
                 coverHtml = `<img src="${appIcon}" class="album-art ${flipClass}" style="object-fit: contain; background: #000; padding: 5px;" alt="App Icon">`;
             } else {
-                coverHtml = `<img src="${APP_LOGO_ART}" class="album-art app-logo-art ${flipClass}" alt="Liquid Dynamic Island">`;
+                coverHtml = `<img src="${APP_LOGO_ART}" class="album-art app-logo-art ${flipClass}" alt="Nolys">`;
             }
         }
 

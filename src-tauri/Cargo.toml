@@ -1,7 +1,7 @@
 [package]
 name = "liquid-dynamic-island"
-version = "2.0.1"
-description = "Liquid Dynamic Island — widget Dynamic Island pour Windows"
+version = "2.0.2"
+description = "Nolys — widget Dynamic Island pour Windows"
 authors = ["NALYD2400"]
 edition = "2021"
 rust-version = "1.82"

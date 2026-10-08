@@ -52,7 +52,7 @@ export function loadSettings() {
         glowDensity: glow.glowDensity ?? 20,
         glowColorMode: glow.glowColorMode || 'mix',
         glowBlend: glow.glowBlend ?? 65,
-        glowColor: glow.glowColor || '#00f3ff',
+        glowColor: glow.glowColor || '#D49460',
         coverSync: flag('liquid_cover_color_sync'),
         idleCoverBg: flag('liquid_island_idle_cover_bg'),
 
@@ -63,10 +63,10 @@ export function loadSettings() {
         showVisualizer: flag('liquid_player_show_visualizer'),
         showActions: flag('liquid_player_show_actions'),
         wheelAppVolume: flag('liquid_player_wheel_app_volume'),
-        vizColorMode: glow.vizColorMode || 'cyberpunk',
-        vizColorSolid: glow.vizColorSolid || '#00f3ff',
-        vizColorGradA: glow.vizColorGradA || '#00f3ff',
-        vizColorGradB: glow.vizColorGradB || '#ff00ff',
+        vizColorMode: glow.vizColorMode || 'cover',
+        vizColorSolid: glow.vizColorSolid || '#D49460',
+        vizColorGradA: glow.vizColorGradA || '#D49460',
+        vizColorGradB: glow.vizColorGradB || '#EDBC89',
         visualizerSensitivity: number('liquid_visualizer_sensitivity', 2.5),
         visualizerMode: read('liquid_visualizer_mode', 'real'),
 
@@ -89,7 +89,7 @@ export function loadSettings() {
 /** Message `config-changed` attendu par l'Island. */
 export function buildConfig(s) {
     return {
-        preset: 'cyberpunk',
+        preset: readJson('island_standalone_config', {}).preset || 'copper',
         isPersistent: s.persistent,
         motion: s.motion,
         notifications: s.notifications,
@@ -244,11 +244,11 @@ export function fromSnapshot(current, snapshot = {}) {
         glowDensity: pick(glow.glowDensity, current.glowDensity),
         glowColorMode: pick(glow.glowColorMode, 'cover'),
         glowBlend: pick(glow.glowBlend, 65),
-        glowColor: pick(glow.glowColor, '#00f3ff'),
+        glowColor: pick(glow.glowColor, '#D49460'),
         vizColorMode: pick(glow.vizColorMode, 'cover'),
-        vizColorSolid: pick(glow.vizColorSolid, '#00f3ff'),
-        vizColorGradA: pick(glow.vizColorGradA, '#00f3ff'),
-        vizColorGradB: pick(glow.vizColorGradB, '#ff00ff'),
+        vizColorSolid: pick(glow.vizColorSolid, '#D49460'),
+        vizColorGradA: pick(glow.vizColorGradA, '#D49460'),
+        vizColorGradB: pick(glow.vizColorGradB, '#EDBC89'),
         materialStyle: pick(glow.materialStyle, current.materialStyle),
         grainEffect: pick(glow.grainEffect, current.grainEffect),
         glassControls: pick(glow.glassControls, current.glassControls),

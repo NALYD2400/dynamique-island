@@ -5,7 +5,7 @@ const hexToRgb = (hex) => {
         g: parseInt(result[2], 16),
         b: parseInt(result[3], 16),
         str: `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}`
-    } : { r: 0, g: 243, b: 255, str: '0, 243, 255' };
+    } : { r: 212, g: 148, b: 96, str: '212, 148, 96' };
 };
 
 const rgbToHex = (r, g, b) => {
@@ -23,7 +23,7 @@ const blendHexColors = (baseHex, coverHex, coverWeight = 65) => {
 };
 
 export const ThemeService = {
-    buildIslandShadow(size = 20, rgb = '0, 243, 255', enabled = true) {
+    buildIslandShadow(size = 20, rgb = '212, 148, 96', enabled = true) {
         const glowStrength = enabled ? 1 : 0;
         return [
             'inset 0 1px 0 rgba(255, 255, 255, 0.16)',
@@ -38,8 +38,8 @@ export const ThemeService = {
         const theme = JSON.parse(localStorage.getItem('liquid_global_theme') || '{}');
 
         // Apply primary and secondary variables to document
-        const primary = theme.primary || '#00f3ff';
-        const secondary = theme.secondary || '#bc13fe';
+        const primary = theme.primary || '#D49460';
+        const secondary = theme.secondary || '#EDBC89';
         const rgb = hexToRgb(primary);
         
         document.documentElement.style.setProperty('--neon-primary', primary);
@@ -75,12 +75,12 @@ export const ThemeService = {
         // Glow Settings
         if (config.glowEnabled === false) {
             island.style.setProperty('--island-glow-opacity', '0');
-            island.style.boxShadow = this.buildIslandShadow(0, '0, 243, 255', false);
+            island.style.boxShadow = this.buildIslandShadow(0, '212, 148, 96', false);
         } else {
             island.style.setProperty('--island-glow-opacity', '1');
             const size = config.glowDensity || 20;
             const glowMode = config.glowColorMode || 'mix';
-            const fixedColor = config.glowColor || '#00f3ff';
+            const fixedColor = config.glowColor || '#D49460';
             const canUseCover = localStorage.getItem('liquid_cover_color_sync') !== 'false' && coverColors.primary;
             let color = fixedColor;
 

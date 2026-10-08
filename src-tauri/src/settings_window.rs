@@ -18,7 +18,7 @@ pub fn open(app: &AppHandle) {
     }
 
     let built = WebviewWindowBuilder::new(app, LABEL, WebviewUrl::App("settings/index.html".into()))
-        .title("Réglages — Liquid Dynamic Island")
+        .title("Réglages — Nolys")
         .inner_size(880.0, 580.0)
         .center()
         .decorations(false)

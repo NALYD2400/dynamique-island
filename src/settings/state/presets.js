@@ -90,7 +90,7 @@ export const WIDGET_OPTIONS = [
     { value: 'mixer', label: 'Mélangeur', icon: 'ph-sliders-horizontal' },
 ];
 
-/** Profils rapides (mêmes valeurs que la version précédente). */
+/** Profils rapides ; les profils musique et travail suivent la palette cuivre. */
 export const QUICK_PROFILES = {
     music: {
         name: 'Musique',
@@ -110,8 +110,8 @@ export const QUICK_PROFILES = {
         volume: 70,
         glow: {
             opacity: 94, blur: 30, glowEnabled: true, glowDensity: 28, glowColorMode: 'cover', glowBlend: 80,
-            glowColor: '#00f3ff', vizColorMode: 'cover', vizColorSolid: '#00f3ff', vizColorGradA: '#00f3ff',
-            vizColorGradB: '#ff00ff', materialStyle: 'glass', grainEffect: 'none',
+            glowColor: '#D49460', vizColorMode: 'cover', vizColorSolid: '#D49460', vizColorGradA: '#D49460',
+            vizColorGradB: '#EDBC89', materialStyle: 'glass', grainEffect: 'none',
         },
     },
     work: {
@@ -132,8 +132,8 @@ export const QUICK_PROFILES = {
         volume: 55,
         glow: {
             opacity: 92, blur: 30, glowEnabled: true, glowDensity: 20, glowColorMode: 'mix', glowBlend: 70,
-            glowColor: '#00f3ff', vizColorMode: 'cover', vizColorSolid: '#00f3ff', vizColorGradA: '#00f3ff',
-            vizColorGradB: '#ff00ff', materialStyle: 'glass', grainEffect: 'light',
+            glowColor: '#D49460', vizColorMode: 'cover', vizColorSolid: '#D49460', vizColorGradA: '#D49460',
+            vizColorGradB: '#EDBC89', materialStyle: 'glass', grainEffect: 'light',
         },
     },
     gaming: {

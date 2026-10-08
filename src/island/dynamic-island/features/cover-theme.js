@@ -227,7 +227,7 @@ export const coverThemeMethods = {
         if (island && this._islandConfig.glowEnabled !== false) {
             const size = this._islandConfig.glowDensity || 20;
             const glowMode = this._islandConfig.glowColorMode || 'mix';
-            const fixedColor = this._islandConfig.glowColor || '#00f3ff';
+            const fixedColor = this._islandConfig.glowColor || '#D49460';
             const canUseCover = localStorage.getItem('liquid_cover_color_sync') !== 'false';
 
             let color = fixedColor;
@@ -279,6 +279,7 @@ export const coverThemeMethods = {
      */
     restorePresetTheme() {
         const PRESET_COLORS = {
+            copper:    { primary: '#D49460', secondary: '#EDBC89' },
             cyberpunk: { primary: '#00f3ff', secondary: '#bc13fe' },
             sleek:     { primary: '#ffffff', secondary: '#888888' },
             emerald:   { primary: '#10b981', secondary: '#059669' },
@@ -287,8 +288,8 @@ export const coverThemeMethods = {
         };
 
         const savedConfig = JSON.parse(localStorage.getItem('island_standalone_config') || '{}');
-        const preset = savedConfig.preset || 'cyberpunk';
-        const colors = PRESET_COLORS[preset] || PRESET_COLORS.cyberpunk;
+        const preset = savedConfig.preset || 'copper';
+        const colors = PRESET_COLORS[preset] || PRESET_COLORS.copper;
 
         const rgb = hexToRgb(colors.primary);
         const rgbStr = `${rgb.r}, ${rgb.g}, ${rgb.b}`;

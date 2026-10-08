@@ -1,13 +1,45 @@
-# Liquid Dynamic Island — v2 (Tauri + Rust)
+# Nolys
+
+<p><img src="branding/icon-source.png" alt="Logo Nolys : N en verre cuivre" width="160"></p>
+
+**Votre musique. Votre bureau. À portée de clic.**
+
+Nolys est le nouveau nom de Liquid Dynamic Island. La version source **2.0.2** intègre l’identité Liquid Glass cuivre/champagne. La dernière version installable publiée est encore [Liquid Dynamic Island 2.0.1](https://github.com/NALYD2400/dynamique-island/releases/tag/v2.0.1).
 
 Widget « Dynamic Island » pour Windows : musique (Spotify, navigateurs…), mixeur audio par application, centre de contrôle, notifications, synchronisation du fond d'écran.
 
-Cette version remplace l'ancienne version Electron + `liquid_core.exe` (.NET) + PowerShell par **un seul exécutable Rust** de ~12 Mo. L'interface est la même, au pixel près.
+Le cœur Tauri 2 / Rust remplace l’ancien assemblage Electron, .NET et PowerShell. La pilule est écrite en JavaScript/CSS ; les réglages utilisent React et Liquid Glass.
+
+## Au quotidien
+
+- Lecteur musical : suivi des sessions Windows, pochette, progression, volume et historique.
+- Mixeur audio par application, périphériques de sortie et d’entrée.
+- Centre de contrôle : commandes Windows, raccourcis, météo et mesures système.
+- Chronomètre, notifications compactes, placement et taille sur plusieurs écrans.
+- Matériaux, transparence, flou, halos et couleurs personnalisables ; synchronisation avec les pochettes et le fond d’écran.
+
+## Identité
+
+Le N en verre teinté cuivre est partagé par l’app, la barre système, l’installateur et le portfolio. Palette : cuivre `#D49460`, champagne `#EDBC89`, charbon `#17151B`, ivoire `#F5EFE7`. Les préférences enregistrées et les couleurs des pochettes restent prioritaires. [Sources et exports de la marque](branding/README.md).
+
+Le dépôt GitHub et l’identifiant `com.nalyd.liquid-dynamic-island` sont conservés pour assurer la continuité des données et du canal de mise à jour.
+
+## Aperçu de la nouvelle identité
+
+Captures du code source 2.0.2, rendues avec un pont Tauri de démonstration. Musique, météo et données Windows sont simulées ; la matière, les contrôles et le logo viennent de l’interface réelle.
+
+| Lecteur musical | Centre de contrôle |
+|---|---|
+| ![Lecteur](docs/screenshots/02-lecteur-musical.webp) | ![Centre de contrôle](docs/screenshots/03-centre-de-controle.webp) |
+
+| Apparence | À propos |
+|---|---|
+| ![Personnalisation](docs/screenshots/12-apparence.webp) | ![Nolys 2.0.2](docs/screenshots/17-mises-a-jour.webp) |
 
 ## Prérequis
 
 - [Rust](https://rustup.rs) (stable, MSVC)
-- Node.js 20+ (Vite et CLI Tauri)
+- Node.js 22.12+ ou 24 LTS (Vite et CLI Tauri)
 - WebView2 (déjà présent sur Windows 10/11)
 
 ```bash
@@ -60,7 +92,7 @@ src-tauri/src/               Cœur natif (Rust)
 
 ## Publier une mise à jour
 
-1. Augmenter la version dans `src-tauri/tauri.conf.json` **et** `src-tauri/Cargo.toml`.
+1. Aligner la version dans `package.json`, `package-lock.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml` et `src-tauri/Cargo.lock`.
 2. Compiler en signant les fichiers de mise à jour (la clé privée est dans `keys/`, jamais dans git) :
 
    ```powershell
@@ -70,8 +102,8 @@ src-tauri/src/               Cœur natif (Rust)
    ```
 
 3. Créer une release GitHub sur `NALYD2400/dynamique-island` (tag `vX.Y.Z`) et y joindre, depuis `src-tauri/target/release/bundle/nsis/` :
-   - `Liquid Dynamic Island_X.Y.Z_x64-setup.exe`
-   - `Liquid Dynamic Island_X.Y.Z_x64-setup.exe.sig`
+   - `Nolys_X.Y.Z_x64-setup.exe`
+   - `Nolys_X.Y.Z_x64-setup.exe.sig`
    - un fichier `latest.json` (modèle ci-dessous)
 
 ```json
@@ -82,7 +114,7 @@ src-tauri/src/               Cœur natif (Rust)
   "platforms": {
     "windows-x86_64": {
       "signature": "<contenu du fichier .sig>",
-      "url": "https://github.com/NALYD2400/dynamique-island/releases/download/vX.Y.Z/Liquid.Dynamic.Island_X.Y.Z_x64-setup.exe"
+      "url": "https://github.com/NALYD2400/dynamique-island/releases/download/vX.Y.Z/Nolys_X.Y.Z_x64-setup.exe"
     }
   }
 }

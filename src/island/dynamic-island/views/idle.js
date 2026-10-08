@@ -106,7 +106,7 @@ export const idleView = {
                 if (appIcon) {
                     coverHtml = `<img src="${appIcon}" style="width: 28px; height: 28px; border-radius: 6px; object-fit: contain; background: #000; padding: 2px; margin-left: 2px;" onerror="this.outerHTML='<div style=\\'width: 28px; height: 28px; border-radius: 6px; background: linear-gradient(135deg, var(--neon-primary), var(--neon-secondary)); display: flex; align-items: center; justify-content: center; margin-left: 2px;\\'><i class=\\'ph ph-music-note\\' style=\\'font-size: 14px; color: #fff;\\'></i></div>';">`;
                 } else {
-                    coverHtml = `<img src="${APP_LOGO_ART}" class="idle-cover-art app-logo-art" alt="Liquid Dynamic Island">`;
+                    coverHtml = `<img src="${APP_LOGO_ART}" class="idle-cover-art app-logo-art" alt="Nolys">`;
                 }
             }
 

@@ -56,7 +56,7 @@ export const controlCenterView = {
         const flipClass = this._pendingCoverAnimationTrackKey && this._pendingCoverAnimationTrackKey === controlTrackKey ? 'flip-active' : '';
         const npCoverHtml = hasCover
             ? `<img id="ic-np-cover-img" src="${effectiveNpArt}" class="ic-np-cover ${flipClass}">`
-            : `<img id="ic-np-cover-img" src="${APP_LOGO_ART}" class="ic-np-cover app-logo-art ${flipClass}" alt="Liquid Dynamic Island">`;
+            : `<img id="ic-np-cover-img" src="${APP_LOGO_ART}" class="ic-np-cover app-logo-art ${flipClass}" alt="Nolys">`;
 
         // Render customizable third card based on user preference
         const widgetType = localStorage.getItem('liquid_control_widget_type') || 'launchpad';
@@ -486,7 +486,7 @@ export const controlCenterView = {
                     <div class="ic-confirm-box">
                         <i class="ph ph-power ic-confirm-icon"></i>
                         <span class="ic-confirm-title">Quitter l'Island ?</span>
-                        <span class="ic-confirm-desc">Voulez-vous fermer l'application Dynamic Island ?</span>
+                        <span class="ic-confirm-desc">Voulez-vous fermer l'application Nolys ?</span>
                         <div class="ic-confirm-buttons">
                             <button class="ic-confirm-btn cancel" id="confirm-cancel">Annuler</button>
                             <button class="ic-confirm-btn confirm" id="confirm-ok">Quitter</button>

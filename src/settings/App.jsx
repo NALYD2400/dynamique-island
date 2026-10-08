@@ -46,7 +46,7 @@ export default function App() {
 
     useEffect(() => localStorage.setItem('liquid_settings_page', pageId), [pageId]);
     useEffect(() => {
-        document.documentElement.style.setProperty('--accent', cover.primary || '#0a84ff');
+        document.documentElement.style.setProperty('--accent', cover.primary || '#D49460');
     }, [cover.primary]);
 
     return (
@@ -57,7 +57,7 @@ export default function App() {
                 <header className="sidebar-header">
                     <img src="/assets/app-logo.png" alt="" />
                     <div>
-                        <strong>Liquid Dynamic Island</strong>
+                        <strong>Nolys</strong>
                         <span>Réglages</span>
                     </div>
                 </header>

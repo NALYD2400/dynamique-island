@@ -211,7 +211,7 @@ export const playbackMethods = {
                         img.id = 'ic-np-cover-img';
                         img.className = 'ic-np-cover app-logo-art';
                         img.src = APP_LOGO_ART;
-                        img.alt = 'Liquid Dynamic Island';
+                        img.alt = 'Nolys';
                         parent.replaceChild(img, npCover);
                     }
                 }

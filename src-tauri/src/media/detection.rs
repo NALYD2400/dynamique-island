@@ -91,7 +91,7 @@ pub fn enrich(mut media: RawMedia) -> RawMedia {
 
 fn is_own_process(name: &str) -> bool {
     let n = name.to_lowercase();
-    n.contains("liquid dynamic island") || n.contains("liquid-dynamic-island") || n.contains("liquid_core") || n == "electron"
+    n == "nolys" || n == "nolys.exe" || n.contains("liquid dynamic island") || n.contains("liquid-dynamic-island") || n.contains("liquid_core") || n == "electron"
 }
 
 fn is_likely_media_process(name: &str, window_title: &str) -> bool {

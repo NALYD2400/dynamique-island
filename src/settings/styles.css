@@ -1,7 +1,7 @@
 /* Fenêtre des réglages — Liquid Glass, thème sombre. */
 
 :root {
-    --accent: #0a84ff;
+    --accent: #D49460;
     --text: rgba(255, 255, 255, 0.94);
     --text-secondary: rgba(235, 235, 245, 0.58);
     --text-tertiary: rgba(235, 235, 245, 0.36);
@@ -69,9 +69,9 @@ button {
 
 .backdrop-default {
     background:
-        radial-gradient(40% 50% at 15% 20%, #3a2a6b 0%, transparent 70%),
-        radial-gradient(45% 55% at 85% 80%, #12425e 0%, transparent 70%),
-        radial-gradient(30% 40% at 70% 15%, #4a1d3d 0%, transparent 70%);
+        radial-gradient(40% 50% at 15% 20%, #67412d 0%, transparent 70%),
+        radial-gradient(45% 55% at 85% 80%, #382c28 0%, transparent 70%),
+        radial-gradient(30% 40% at 70% 15%, #80634a 0%, transparent 70%);
     opacity: 0.9;
 }
 
