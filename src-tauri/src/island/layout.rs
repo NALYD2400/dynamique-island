@@ -117,16 +117,22 @@ pub fn merge(base: &Layout, patch: &LayoutPatch) -> Layout {
 }
 
 /// Garde la fenêtre dans la zone de travail de son écran (40 px de marge en haut).
+/// Décalage du haut de la pilule dans la fenêtre, en pixels CSS (`top: 50px` de l'interface).
+const PILL_TOP_OFFSET: f64 = 50.0;
+
 pub fn clamp(app: &AppHandle, layout: &Layout) -> Layout {
     let monitor = target_monitor(app, &layout.display_id);
     let area = monitor.as_ref().map(work_area).unwrap_or_else(fallback_area);
     let scale = clamp_scale(layout.scale);
     let (w, h) = ((BASE_WIDTH * scale).round(), (BASE_HEIGHT * scale).round());
     let max_x = (area.x + area.width - w).max(area.x);
-    let max_y = (area.y + area.height - h).max(area.y - 40.0);
+    // La pilule est posée à 50 px du haut de la fenêtre (× taille) : la fenêtre peut donc
+    // remonter jusqu'à ce que la pilule touche le bord de l'écran, sans être bloquée plus haut.
+    let min_y = area.y - PILL_TOP_OFFSET * scale;
+    let max_y = (area.y + area.height - h).max(min_y);
     Layout {
         x: layout.x.clamp(area.x, max_x),
-        y: layout.y.clamp(area.y - 40.0, max_y),
+        y: layout.y.clamp(min_y, max_y),
         scale,
         // Un identifiant inconnu (écran débranché, ancienne config) retombe sur l'écran réel.
         display_id: monitor.as_ref().map(monitor_id).unwrap_or_else(|| layout.display_id.clone()),
