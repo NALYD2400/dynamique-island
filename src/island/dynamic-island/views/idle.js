@@ -51,7 +51,7 @@ export const idleView = {
             const label = this.aiActionLabel || 'Action';
             this.content.innerHTML = `
                 <div class="island-idle-content" style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; height: 100%; padding: 0 16px; color: var(--neon-secondary); font-weight: 600; font-size: 13px;">
-                    <i class="ph-fill ph-sparkles" style="font-size: 16px; animation: pulseGlow 1.5s infinite;"></i>
+                    <i class="ph-fill ph-sparkle" style="font-size: 16px; animation: pulseGlow 1.5s infinite;"></i>
                     <span style="font-family: inherit; font-size: 12px; letter-spacing: 0.5px;">Exécute : ${label}...</span>
                 </div>
             `;

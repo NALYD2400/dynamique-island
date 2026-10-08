@@ -1,19 +1,47 @@
 /**
- * Effet verre (Liquid Glass) sur les boutons de la vue musique.
+ * Effet verre (Liquid Glass) sur les commandes du lecteur et du centre de contrôle.
  *
  * Le verre réfracte la couche `.island-glass-backdrop` (la pochette floutée en
- * fond de l'Island), pas le bureau Windows. Il n'est donc activé que là où il y
- * a quelque chose dessous : le lecteur déplié. Le SDK n'est chargé qu'au premier
- * usage, et la scène est libérée dès qu'on quitte le lecteur.
+ * fond de l'Island), pas le bureau Windows. Il n'est donc activé que dans les
+ * vues dépliées listées ci-dessous. Le SDK n'est chargé qu'au premier usage, et
+ * la scène est libérée dès qu'on quitte ces vues.
  */
 import { rgbToHex } from '../helpers/color.js';
 
-const MUSIC_SURFACES = [
-    // Précédent / suivant : icônes seules, le verre n'apparaît qu'au survol (comme Apple Music).
-    { selector: '.music-controls .control-btn-music:not(.play-btn)', options: { material: 'clear', radius: 'circle', interactive: true }, hoverOnly: true },
-    { selector: '.music-controls .play-btn', options: { material: 'regular', radius: 'circle', interactive: true }, tinted: true },
-    { selector: '.music-action-cluster', options: { material: 'clear', radius: 'capsule' } },
-];
+// Couleurs Apple des tuiles allumées (mêmes teintes que le style CSS sans verre).
+const TILE_TINTS = {
+    'ic-wifi': '#007aff',
+    'ic-bluetooth': '#007aff',
+    'ic-dnd': '#af52de',
+    'ic-focus': '#5856d6',
+    'ic-eco': '#34c759',
+};
+
+/**
+ * Surfaces en verre par vue. `options` peut être une fonction (élément, teinte
+ * de la pochette) pour les surfaces dont l'aspect dépend de leur état.
+ * `hoverOnly` : le verre n'apparaît qu'au survol (icône seule au repos).
+ */
+const SURFACES_BY_MODE = {
+    music: [
+        { selector: '.music-controls .control-btn-music:not(.play-btn)', options: { material: 'clear', radius: 'circle', interactive: true }, hoverOnly: true },
+        { selector: '.music-controls .play-btn', options: (_, coverTint) => ({ material: 'regular', radius: 'circle', interactive: true, tint: coverTint }) },
+        { selector: '.music-action-cluster', options: { material: 'clear', radius: 'capsule' } },
+    ],
+    control: [
+        { selector: '.ic-header-actions', options: { material: 'clear', radius: 'capsule' } },
+        {
+            selector: '.ic-toggles-grid .ic-tile',
+            options: (element) => {
+                const active = element.classList.contains('active');
+                return { material: active ? 'regular' : 'clear', radius: 12, interactive: true, tint: active ? TILE_TINTS[element.id] : undefined };
+            },
+        },
+        { selector: '.ic-now-playing-card, .ic-launchpad-card, .ic-stats-card, .ic-weather-card, .ic-mixer-card, .ic-machine-card', options: { material: 'clear', radius: 14 } },
+        { selector: '.ic-np-btn.play', options: (_, coverTint) => ({ material: 'regular', radius: 'circle', interactive: true, tint: coverTint }) },
+        { selector: '.ic-vertical-slider', options: { material: 'clear', radius: 18 } },
+    ],
+};
 
 let glassModule = null;
 const loadGlass = () => (glassModule ??= import('../../glass-scene.js'));
@@ -22,6 +50,11 @@ export const glassMethods = {
     isGlassControlsEnabled() {
         return this._islandConfig?.glassControls !== false
             && localStorage.getItem('liquid_eco_mode') !== 'true';
+    },
+
+    /** La vue courante a-t-elle des surfaces en verre ? */
+    hasGlassSurfaces() {
+        return this.isExpanded && Object.hasOwn(SURFACES_BY_MODE, this.mode);
     },
 
     /** Retire le verre des boutons, et libère la scène si elle ne sert plus. */
@@ -36,13 +69,14 @@ export const glassMethods = {
         }
     },
 
-    /** À appeler après chaque rendu du lecteur : les boutons ont été recréés. */
+    /** À appeler après chaque rendu d'une vue en verre : ses éléments ont été recréés. */
     async syncGlassControls() {
-        const wanted = this.isGlassControlsEnabled() && this.isExpanded && this.mode === 'music';
+        const wanted = this.isGlassControlsEnabled() && this.hasGlassSurfaces();
         this.releaseGlassControls({ keepScene: wanted });
         if (!wanted) return;
 
         const token = this._glassToken;
+        const mode = this.mode;
         let createGlassScene;
         try {
             ({ createGlassScene } = await loadGlass());
@@ -54,10 +88,10 @@ export const glassMethods = {
 
         try {
             if (!this._glassScene) {
-                this._glassScene = createGlassScene(this.el, { maxSurfaces: 8 });
+                this._glassScene = createGlassScene(this.el, { maxSurfaces: 24 });
                 this._glassScene.setContent(this.el.querySelector('.island-glass-backdrop'));
             }
-            const tint = this._coverColors && localStorage.getItem('liquid_cover_color_sync') !== 'false'
+            const coverTint = this._coverColors && localStorage.getItem('liquid_cover_color_sync') !== 'false'
                 ? rgbToHex(this._coverColors.primary.r, this._coverColors.primary.g, this._coverColors.primary.b)
                 : undefined;
 
@@ -71,9 +105,10 @@ export const glassMethods = {
                 };
             };
 
-            for (const { selector, options, tinted, hoverOnly } of MUSIC_SURFACES) {
-                const surfaceOptions = { ...options, appearance: 'dark', tint: tinted ? tint : undefined };
+            for (const { selector, options, hoverOnly } of SURFACES_BY_MODE[mode]) {
                 for (const element of this.content.querySelectorAll(selector)) {
+                    const resolved = typeof options === 'function' ? options(element, coverTint) : options;
+                    const surfaceOptions = { ...resolved, appearance: 'dark' };
                     if (!hoverOnly) {
                         this._glassCleanups.push(attach(element, surfaceOptions));
                         continue;

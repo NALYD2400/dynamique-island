@@ -309,8 +309,8 @@ export const navigationMethods = {
             this._controlSliderCleanup();
             this._controlSliderCleanup = null;
         }
-        // Le contenu va être remplacé : le lecteur réenregistre ses boutons en verre après rendu.
-        this.releaseGlassControls({ keepScene: this.isExpanded && this.mode === 'music' });
+        // Le contenu va être remplacé : chaque vue en verre réenregistre ses surfaces après rendu.
+        this.releaseGlassControls({ keepScene: this.hasGlassSurfaces() });
 
         this._lastRenderedTrack = null; // Force updateMusic to re-sync state on next poll
 

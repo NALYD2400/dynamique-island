@@ -190,3 +190,47 @@
 
 
 /* Cozy amber tint effect for Night Light toggle removed */
+
+/* ---------------------------------------------------------------- Centre de contrôle en verre
+ * Actif quand features/glass.js a enregistré les surfaces (classe .glass-controls).
+ * Le matériau, la teinte des tuiles allumées et l'élasticité viennent du SDK :
+ * on retire ici les fonds, bordures, ombres et zooms CSS qui feraient doublon. */
+#dynamic-island.glass-controls :is(.ic-tile, .ic-header-actions, .ic-now-playing-card, .ic-launchpad-card,
+    .ic-stats-card, .ic-weather-card, .ic-mixer-card, .ic-machine-card, .ic-vertical-slider, .ic-np-btn.play).lg-surface {
+    background-color: transparent;
+    /* Lueur sous le pointeur du SDK, écrasée sinon par le raccourci `background` des règles d'origine. */
+    background-image: radial-gradient(
+        var(--lg-glow-size, 64px) circle at var(--lg-glow-x, 50%) var(--lg-glow-y, 50%),
+        color-mix(in srgb, var(--lg-glow-color, rgb(255 255 255 / 0.16)) calc(var(--lg-glow, 0) * 100%), transparent),
+        transparent
+    );
+    border-color: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+
+#dynamic-island.glass-controls :is(.ic-tile, .ic-vertical-slider).lg-surface:hover,
+#dynamic-island.glass-controls .ic-vertical-slider.lg-surface.active {
+    transform: none;
+}
+
+#dynamic-island.glass-controls .ic-tile.lg-surface i,
+#dynamic-island.glass-controls .ic-tile.lg-surface .ic-tile-label {
+    color: #fff;
+}
+
+#dynamic-island.glass-controls .ic-tile.active.lg-surface i {
+    opacity: 1;
+}
+
+#dynamic-island.glass-controls .ic-np-btn.play.lg-surface,
+#dynamic-island.glass-controls .ic-np-btn.play.lg-surface:hover {
+    color: #fff;
+    transform: none;
+}
+
+/* Le remplissage du volume reste blanc, légèrement translucide pour laisser voir le verre. */
+#dynamic-island.glass-controls .ic-vertical-slider.lg-surface .ic-slider-fill {
+    background: rgba(255, 255, 255, 0.78);
+}

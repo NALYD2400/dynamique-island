@@ -15,7 +15,7 @@ export const SHORTCUT_PRESETS = {
     widgets: { name: 'Widgets', icon: 'ph-fill ph-squares-four', cmd: 'liquid:menu' },
     mixer: { name: 'Mixer', icon: 'ph-fill ph-sliders-horizontal', cmd: 'liquid:mixer' },
     islandSettings: { name: 'Réglages', icon: 'ph-fill ph-gear-six', cmd: 'liquid:settings' },
-    custom: { name: 'Perso', icon: 'ph-fill ph-sparkles', cmd: '' },
+    custom: { name: 'Perso', icon: 'ph-fill ph-sparkle', cmd: '' },
 };
 
 /** Groupes affichés dans le menu de choix d'un raccourci. */

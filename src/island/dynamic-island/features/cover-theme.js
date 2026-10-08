@@ -182,7 +182,7 @@ export const coverThemeMethods = {
                 this.restorePresetTheme();
             }
             // Le bouton lecture en verre prend la teinte de la nouvelle pochette.
-            if (this.isExpanded && this.mode === 'music') this.syncGlassControls();
+            if (this.hasGlassSurfaces()) this.syncGlassControls();
         };
         img.onerror = () => {
             this._coverColors = null;

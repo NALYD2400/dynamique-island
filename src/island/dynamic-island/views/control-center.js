@@ -202,7 +202,7 @@ export const controlCenterView = {
                     <div class="ic-control-stack">
                         <div class="ic-toggles-grid">
                             <div class="ic-tile ${wifiEnabled ? 'active' : ''}" id="ic-wifi">
-                                <i class="ph-fill ph-wifi"></i>
+                                <i class="ph-fill ph-wifi-high"></i>
                                 <div class="ic-tile-text">
                                     <span class="ic-tile-label">Wi-Fi</span>
                                     <span class="ic-tile-status">${wifiEnabled ? 'Activé' : 'Désactivé'}</span>
@@ -425,6 +425,8 @@ export const controlCenterView = {
                     if (statusText) {
                         statusText.innerText = newVal ? 'Activé' : 'Désactivé';
                     }
+                    // La tuile allumée passe en verre teinté.
+                    this.syncGlassControls();
                     
                     await tile.onToggle(newVal);
                 };
@@ -681,5 +683,6 @@ export const controlCenterView = {
 
         // Fire async updates immediately without blocking the synchronous render thread!
         updateAsyncSystemData();
+        this.syncGlassControls();
     },
 };

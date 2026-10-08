@@ -27,11 +27,24 @@ export const APP_ICONS = {
     vlc: 'https://api.iconify.design/logos:vlc.svg'
 };
 
+/**
+ * Lecteurs dédiés : l'application qui joue est connue avec certitude. Le titre du
+ * morceau ne doit alors jamais la remplacer (« STRUCT - Tiktok Version » sur
+ * Spotify affichait le logo TikTok à la place de la pochette).
+ */
+const DEDICATED_PLAYER_APPS = /spotify|deezer|soundcloud|tidal|applemusic|itunes|amazonmusic|zunemusic|qobuz|vlc|foobar|musicbee|aimp|winamp|mediaplayer/;
+
+export function isDedicatedPlayerApp(appId) {
+    return DEDICATED_PLAYER_APPS.test((appId || '').toLowerCase().replace(/[\s.]/g, ''));
+}
+
 export function getFallbackIcon(appId, title, artist = '', windowTitle = '') {
     const id = appId ? appId.toLowerCase().replace('.exe', '') : '';
     const t = `${title || ''} ${artist || ''} ${windowTitle || ''}`.toLowerCase();
 
-    // Priority 1: Detect streaming services from the title (works even in browsers)
+    // Priorité 1 : service deviné d'après le titre, utile seulement dans un navigateur
+    // (un onglet peut jouer YouTube, Netflix…). Ignoré pour un lecteur dédié.
+    if (isDedicatedPlayerApp(appId)) return getAppIcon(id);
     if (t.includes('netflix')) return APP_ICONS.netflix;
     if (t.includes('disney')) return APP_ICONS.disney;
     if (t.includes('crunchyroll')) return APP_ICONS.crunchyroll;
@@ -51,7 +64,11 @@ export function getFallbackIcon(appId, title, artist = '', windowTitle = '') {
     if (t.includes('soundcloud')) return APP_ICONS.soundcloud;
     if (t.includes('deezer')) return APP_ICONS.deezer;
 
-    // Priority 2: Detect from appId
+    // Priorité 2 : d'après l'application
+    return getAppIcon(id);
+}
+
+function getAppIcon(id) {
     if (id.includes('spotify')) return APP_ICONS.spotify;
     if (id.includes('netflix')) return APP_ICONS.netflix;
     if (id.includes('tiktok')) return APP_ICONS.tiktok;

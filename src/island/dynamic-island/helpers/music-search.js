@@ -1,11 +1,13 @@
 /** Fournisseurs de recherche musicale et clés de l’historique. */
+import { isDedicatedPlayerApp } from './media-art.js';
 
 export function getMusicSearchProvider(data = {}) {
     const appId = (data.appId || '').toLowerCase();
     const title = (data.title || '').toLowerCase();
     const artist = (data.artist || '').toLowerCase();
     const windowTitle = (data.windowTitle || '').toLowerCase();
-    const haystack = `${appId} ${title} ${artist} ${windowTitle}`;
+    // Lecteur dédié : seule l'application compte, pas les mots du titre (cf. media-art.js).
+    const haystack = isDedicatedPlayerApp(appId) ? appId : `${appId} ${title} ${artist} ${windowTitle}`;
     const isBrowser = /chrome|msedge|edge|firefox|brave|opera|arc/.test(appId);
 
     if (haystack.includes('tiktok') || haystack.includes('tik tok')) return { key: 'tiktok', label: 'TikTok', icon: 'ph-video' };
