@@ -81,6 +81,7 @@ export function loadSettings() {
         controlEnabled: flag('liquid_island_control_enabled'),
         timerEnabled: flag('liquid_island_timer_enabled'),
         widgetType: read('liquid_control_widget_type', 'launchpad'),
+        weatherCity: read('liquid_weather_city', ''),
         shortcuts: Array.isArray(shortcuts) ? DEFAULT_SHORTCUTS.map((fallback, i) => shortcuts[i] || fallback) : DEFAULT_SHORTCUTS,
     };
 }
@@ -165,6 +166,7 @@ export function saveSettings(s) {
         liquid_visualizer_sensitivity: s.visualizerSensitivity,
         liquid_island_shortcut: s.shortcut,
         liquid_control_widget_type: s.widgetType,
+        liquid_weather_city: (s.weatherCity || '').trim(),
         liquid_control_shortcuts: JSON.stringify(s.shortcuts),
         liquid_active_profile: s.activeProfile,
         liquid_player_show_times: s.showTimes,

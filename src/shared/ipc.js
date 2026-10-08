@@ -44,6 +44,7 @@ const INVOKE_CHANNELS = {
     'get-file-icon': (filePath) => ['get_file_icon', { filePath: String(filePath ?? '') }],
     'get-hardware-telemetry': () => ['get_hardware_telemetry'],
     'get-system-stats': () => ['get_system_stats'],
+    'get-weather': (city) => ['get_weather', { city: String(city ?? '') }],
     'set-system-volume': (volume) => ['set_system_volume', { volume: volume ?? null }],
     'get-system-volume': () => ['get_system_volume'],
     'get-audio-sessions': () => ['get_audio_sessions'],

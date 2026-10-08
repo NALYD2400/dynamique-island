@@ -104,45 +104,20 @@ export const controlCenterView = {
                 </div>
             `;
         } else if (widgetType === 'weather') {
-            const hour = new Date().getHours();
-            let temp = '21°';
-            let desc = 'Ensoleillé';
-            let minMax = 'Min. 14° / Max. 25°';
-            let icon = 'ph-sun';
-            let iconColor = '#ff9f0a';
-
-            if (hour >= 6 && hour < 18) {
-                temp = '21°';
-                desc = 'Ensoleillé';
-                minMax = 'Min. 14° / Max. 25°';
-                icon = 'ph-sun';
-                iconColor = '#ff9f0a';
-            } else if (hour >= 18 && hour < 22) {
-                temp = '16°';
-                desc = 'Partiellement nuageux';
-                minMax = 'Min. 11° / Max. 19°';
-                icon = 'ph-cloud-moon';
-                iconColor = '#5856d6';
-            } else {
-                temp = '12°';
-                desc = 'Nuit Claire';
-                minMax = 'Min. 9° / Max. 14°';
-                icon = 'ph-moon-stars';
-                iconColor = '#64d2ff';
-            }
-
+            // Rempli juste après le rendu par fillWeatherCard (météo réelle, ville des réglages).
+            const city = (localStorage.getItem('liquid_weather_city') || '').trim();
             thirdCardHtml = `
-                <div class="ic-weather-card">
+                <div class="ic-weather-card" id="ic-weather-card">
                     <div class="ic-weather-info">
-                        <span class="ic-weather-label"><i class="ph-fill ph-cloud-sun"></i> Météo</span>
-                        <span class="ic-weather-val">${temp}</span>
+                        <span class="ic-weather-label"><i class="ph-fill ph-cloud-sun"></i> <span id="ic-weather-city">${city ? escapeHtml(city) : 'Météo'}</span></span>
+                        <span class="ic-weather-val" id="ic-weather-temp">${city ? '…' : '—'}</span>
                     </div>
                     <div class="ic-weather-condition">
-                        <span class="ic-weather-desc">${desc}</span>
-                        <span class="ic-weather-hl">${minMax}</span>
+                        <span class="ic-weather-desc" id="ic-weather-desc">${city ? 'Chargement…' : 'Aucune ville choisie'}</span>
+                        <span class="ic-weather-hl" id="ic-weather-hl">${city ? '' : 'Réglages → Centre de contrôle'}</span>
                     </div>
                     <div class="ic-weather-icon-wrapper">
-                        <i class="ph-fill ${icon} ic-weather-icon" style="color: dots; color: ${iconColor}; filter: drop-shadow(0 0 8px ${iconColor}4d);"></i>
+                        <i class="ph-fill ph-cloud-sun ic-weather-icon" id="ic-weather-icon"></i>
                     </div>
                 </div>
             `;
@@ -710,6 +685,48 @@ export const controlCenterView = {
 
         // Fire async updates immediately without blocking the synchronous render thread!
         updateAsyncSystemData();
+        if (widgetType === 'weather') this.fillWeatherCard();
         this.syncGlassControls();
     },
+
+    /** Météo réelle (Open-Meteo, via le cœur natif) dans le widget du bas. */
+    async fillWeatherCard() {
+        const city = (localStorage.getItem('liquid_weather_city') || '').trim();
+        if (!city) return;
+        const weather = await ipcRenderer.invoke('get-weather', city).catch(() => null);
+        const card = document.getElementById('ic-weather-card');
+        if (!card || !card.isConnected) return;
+        const set = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+        if (!weather) {
+            set('ic-weather-temp', '—');
+            set('ic-weather-desc', 'Météo indisponible');
+            set('ic-weather-hl', 'Ville introuvable ou pas de connexion');
+            return;
+        }
+        const { label, icon, color } = describeWeather(weather.code, weather.isDay);
+        set('ic-weather-city', weather.city);
+        set('ic-weather-temp', `${Math.round(weather.temperature)}°`);
+        set('ic-weather-desc', label);
+        set('ic-weather-hl', `Min. ${Math.round(weather.min)}° / Max. ${Math.round(weather.max)}°`);
+        const iconEl = document.getElementById('ic-weather-icon');
+        if (iconEl) {
+            iconEl.className = `ph-fill ${icon} ic-weather-icon`;
+            iconEl.style.color = color;
+            iconEl.style.filter = `drop-shadow(0 0 8px ${color}4d)`;
+        }
+    },
 };
+
+/** Codes météo WMO (Open-Meteo) → texte, icône Phosphor et couleur. */
+function describeWeather(code, isDay) {
+    if (code === 0) return isDay ? { label: 'Ensoleillé', icon: 'ph-sun', color: '#ff9f0a' } : { label: 'Nuit claire', icon: 'ph-moon-stars', color: '#64d2ff' };
+    if (code <= 2) return isDay ? { label: 'Partiellement nuageux', icon: 'ph-cloud-sun', color: '#ffd60a' } : { label: 'Partiellement nuageux', icon: 'ph-cloud-moon', color: '#5e5ce6' };
+    if (code === 3) return { label: 'Couvert', icon: 'ph-cloud', color: '#aeaeb2' };
+    if (code <= 48) return { label: 'Brouillard', icon: 'ph-cloud-fog', color: '#aeaeb2' };
+    if (code <= 57) return { label: 'Bruine', icon: 'ph-cloud-rain', color: '#64d2ff' };
+    if (code <= 67) return { label: 'Pluie', icon: 'ph-cloud-rain', color: '#0a84ff' };
+    if (code <= 77) return { label: 'Neige', icon: 'ph-cloud-snow', color: '#e5e5ea' };
+    if (code <= 82) return { label: 'Averses', icon: 'ph-cloud-rain', color: '#0a84ff' };
+    if (code <= 86) return { label: 'Averses de neige', icon: 'ph-cloud-snow', color: '#e5e5ea' };
+    return { label: 'Orage', icon: 'ph-cloud-lightning', color: '#ffd60a' };
+}

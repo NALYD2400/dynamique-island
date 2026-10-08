@@ -72,6 +72,20 @@ export default function ControlCenter({ store }) {
                     <ChoiceGrid value={settings.widgetType} options={WIDGET_OPTIONS} onChange={(widgetType) => update({ widgetType })} />
                 </Card>
 
+                <Reveal when={settings.widgetType === 'weather'}>
+                    <Card title="Météo" footer="Données Open-Meteo, actualisées toutes les 15 minutes. Seul le nom de la ville est envoyé.">
+                        <Row label="Ville" description="Par exemple : Lyon, Bruxelles, Montréal.">
+                            <input
+                                className="text-input"
+                                placeholder="Ta ville"
+                                maxLength={60}
+                                value={settings.weatherCity}
+                                onChange={(event) => update({ weatherCity: event.target.value })}
+                            />
+                        </Row>
+                    </Card>
+                </Reveal>
+
                 <Reveal when={settings.widgetType === 'launchpad'}>
                     <Card title="Raccourcis">
                         {settings.shortcuts.map((shortcut, index) => (

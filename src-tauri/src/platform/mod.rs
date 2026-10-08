@@ -12,4 +12,5 @@ pub mod radios;
 pub mod registry;
 pub mod smtc;
 pub mod system;
+pub mod weather;
 pub mod window;

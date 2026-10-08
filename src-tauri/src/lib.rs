@@ -54,6 +54,7 @@ pub fn run() {
             commands::system::dnd_control,
             commands::system::get_hardware_telemetry,
             commands::system::get_system_stats,
+            commands::system::get_weather,
             commands::system::get_active_window_info,
             commands::system::get_file_icon,
             commands::system::get_desktop_sources,

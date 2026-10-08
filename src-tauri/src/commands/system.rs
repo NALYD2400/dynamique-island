@@ -8,7 +8,7 @@ use tauri_plugin_autostart::ManagerExt;
 use super::{blocking, is_safe_text};
 use crate::platform::radios::{self, Kind};
 use crate::platform::system::{self, SystemStats, Telemetry};
-use crate::platform::{icons, process};
+use crate::platform::{icons, process, weather};
 
 fn toggle_action(action: &str) -> Option<&'static str> {
     match action.trim().to_lowercase().as_str() {
@@ -41,6 +41,15 @@ pub async fn dnd_control(action: String) -> String {
 pub async fn get_hardware_telemetry() -> Telemetry {
     let fallback = Telemetry { cpu_temp: 42.0, gpu_temp: 45.0, net_down: 0.0, net_up: 0.0, disk_read: 0.0, disk_write: 0.0 };
     blocking(system::telemetry, fallback).await
+}
+
+/// Météo réelle de la ville choisie (widget Météo du centre de contrôle).
+#[tauri::command]
+pub async fn get_weather(city: String) -> Option<weather::Weather> {
+    if !is_safe_text(&city) || city.len() > 100 {
+        return None;
+    }
+    blocking(move || weather::current(&city), None).await
 }
 
 #[tauri::command]
