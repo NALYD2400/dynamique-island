@@ -25,7 +25,7 @@ export const musicSearchView = {
 
         <div class="music-search-field">
           <i class="ph-bold ph-magnifying-glass"></i>
-          <input id="music-search-input" type="text" value="${escapeHtml(draft)}" placeholder="Titre, artiste, album...">
+          <input id="music-search-input" type="text" value="${escapeHtml(draft)}" placeholder="Titre, artiste, album…">
           <button id="music-search-submit" title="Lancer la recherche">
             <i class="ph-bold ph-arrow-square-out"></i>
           </button>
@@ -38,7 +38,7 @@ export const musicSearchView = {
               <span>${escapeHtml(currentQuery)}</span>
             </button>
           ` : `
-            <div class="music-search-empty">Aucun morceau en cours a reprendre.</div>
+            <div class="music-search-empty">Aucun morceau en cours à reprendre.</div>
           `}
         </div>
 

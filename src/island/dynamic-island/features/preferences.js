@@ -16,6 +16,54 @@ export const preferenceMethods = {
         const scale = Number(this._layoutConfig.scale);
         const safeScale = Number.isFinite(scale) ? Math.min(1.5, Math.max(0.65, scale)) : 1;
         container.style.setProperty('--island-layout-scale', safeScale.toString());
+        const scaleLabel = document.querySelector('#layout-edit-toolbar .layout-edit-scale');
+        if (scaleLabel) scaleLabel.textContent = `${Math.round(safeScale * 100)} %`;
+    },
+
+    /** Change la taille par pas de 5 %, dans les limites du cœur natif (65 à 150 %). */
+    stepLayoutScale(direction) {
+        const current = Number(this._layoutConfig.scale) || 1;
+        const next = Math.min(1.5, Math.max(0.65, Math.round((current + direction * 0.05) * 100) / 100));
+        if (next === current) return;
+        this.applyLayoutConfig({ scale: next }); // pourcentage à jour sans attendre le cœur natif
+        ipcRenderer.send('layout-config-changed', { scale: next });
+    },
+
+    /** Barre de placement sous l'Island : taille, recentrage, fin du mode. Branchée une seule fois. */
+    initLayoutEditToolbar() {
+        const toolbar = document.getElementById('layout-edit-toolbar');
+        if (!toolbar || toolbar.dataset.ready) return;
+        toolbar.dataset.ready = 'true';
+
+        toolbar.addEventListener('click', (e) => {
+            const action = e.target.closest('[data-layout]')?.dataset.layout;
+            if (!action) return;
+            e.stopPropagation();
+            if (action === 'smaller') this.stepLayoutScale(-1);
+            else if (action === 'bigger') this.stepLayoutScale(1);
+            else if (action === 'center') ipcRenderer.send('layout-reset');
+            else if (action === 'done') ipcRenderer.send('set-layout-edit-mode', false);
+        });
+
+        // Molette au-dessus de l'Island ou de la barre : taille.
+        const onWheel = (e) => {
+            if (!this._layoutEditMode) return;
+            e.preventDefault();
+            e.stopPropagation();
+            this.stepLayoutScale(e.deltaY < 0 ? 1 : -1);
+        };
+        document.getElementById('dynamic-island-container')?.addEventListener('wheel', onWheel, { passive: false, capture: true });
+
+        document.addEventListener('keydown', (e) => {
+            if (!this._layoutEditMode) return;
+            if (e.key === 'Escape' || e.key === 'Enter') {
+                e.preventDefault();
+                ipcRenderer.send('set-layout-edit-mode', false);
+            } else if (e.key === '+' || e.key === '=' || e.key === '-') {
+                e.preventDefault();
+                this.stepLayoutScale(e.key === '-' ? -1 : 1);
+            }
+        });
     },
 
     getMotionLevel() {
@@ -39,6 +87,7 @@ export const preferenceMethods = {
     },
 
     setLayoutEditMode(enabled) {
+        this.initLayoutEditToolbar();
         this._layoutEditMode = Boolean(enabled);
         document.body.classList.toggle('layout-edit-mode', this._layoutEditMode);
 

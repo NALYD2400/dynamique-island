@@ -193,6 +193,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (config.player.wheelAppVolume !== undefined) localStorage.setItem('liquid_player_wheel_app_volume', config.player.wheelAppVolume);
         }
         
+        // Un profil rapide peut avoir changé le mode Focus (écrit dans le stockage partagé).
+        document.body.classList.toggle('focus-mode-active', localStorage.getItem('liquid_focus_mode') === 'true');
+
         // Re-apply styles
         ThemeService.applyIslandSettings();
         

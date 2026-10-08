@@ -26,12 +26,21 @@ pub fn get_displays(app: AppHandle) -> Vec<displays::DisplayInfo> {
 #[tauri::command]
 pub fn set_layout_config(app: AppHandle, layout: Option<layout::LayoutPatch>) {
     let current = app.state::<AppState>().layout.lock().clone();
-    island::update_layout(&app, layout::merge(&current, &layout.unwrap_or_default()));
+    let patch = layout.unwrap_or_default();
+    let mut next = layout::merge(&current, &patch);
+    // Changer la taille sans position explicite : on garde le centre de l'Island en place
+    // (sinon la fenêtre grandit depuis son coin gauche et l'Island glisse vers la droite).
+    if patch.x.is_none() && next.scale != current.scale {
+        next.x = (current.x + layout::BASE_WIDTH * (current.scale - next.scale) / 2.0).round();
+    }
+    island::update_layout(&app, next);
 }
 
 #[tauri::command]
 pub fn reset_layout(app: AppHandle) {
-    island::update_layout(&app, layout::default_layout(&app));
+    // « Recentrer » : en haut au centre de l'écran actuel, en gardant la taille choisie.
+    let current = app.state::<AppState>().layout.lock().clone();
+    island::update_layout(&app, layout::centered_on(&app, &current));
 }
 
 #[tauri::command]

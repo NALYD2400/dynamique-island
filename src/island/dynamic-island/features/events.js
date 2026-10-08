@@ -342,9 +342,10 @@ export const eventMethods = {
             </div>
             <div class="context-menu-separator"></div>
             ${item('music', 'ph-music-notes', 'Lecteur')}
-            ${item('control', 'ph-squares-four', 'Centre de contrôle')}
+            ${item('control', 'ph-sliders', 'Centre de contrôle')}
             ${item('mixer', 'ph-sliders-horizontal', 'Mélangeur audio')}
             <div class="context-menu-separator"></div>
+            ${item('layout', 'ph-arrows-out-cardinal', 'Déplacer et redimensionner')}
             ${item('settings', 'ph-gear-six', 'Réglages…')}
             <div class="context-menu-separator"></div>
             ${item('exit', 'ph-power', 'Quitter l’Island', 'danger')}
@@ -375,6 +376,8 @@ export const eventMethods = {
                 this.openExpandedMode(action);
             } else if (action === 'settings') {
                 this.setMode('settings');
+            } else if (action === 'layout') {
+                ipcRenderer.send('set-layout-edit-mode', true);
             } else if (action === 'play') {
                 window.spotifyControl('toggle');
             } else if (action === 'next' || action === 'prev') {

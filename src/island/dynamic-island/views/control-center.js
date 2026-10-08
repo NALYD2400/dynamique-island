@@ -74,8 +74,8 @@ export const controlCenterView = {
             thirdCardHtml = `
                 <div class="ic-launchpad-card">
                     ${shortcuts.map((s, idx) => `
-                        <button class="ic-launchpad-btn" id="ic-lp-btn-${idx}" title="${s.name} (${s.cmd})">
-                            <i class="${s.icon}"></i>
+                        <button class="ic-launchpad-btn" id="ic-lp-btn-${idx}" title="${escapeHtml(s.name)}">
+                            <i class="${escapeHtml(s.icon)}"></i>
                         </button>
                     `).join('')}
                 </div>
@@ -193,7 +193,7 @@ export const controlCenterView = {
                     <div class="ic-header-actions">
                         <button class="ic-action-btn" onclick="event.stopPropagation(); window.island.setMode('settings')" title="Réglages"><i class="ph ph-gear"></i></button>
                         <button class="ic-action-btn power" id="ic-shutdown" title="Éteindre"><i class="ph ph-power"></i></button>
-                        <button class="ic-close" onclick="event.stopPropagation(); window.island.setMode('menu')" title="Retour au menu"><i class="ph ph-x"></i></button>
+                        <button class="ic-close" onclick="event.stopPropagation(); window.island.setMode('menu')" title="Menu des modules"><i class="ph-fill ph-squares-four"></i></button>
                     </div>
                 </div>
                 
@@ -215,14 +215,14 @@ export const controlCenterView = {
                                     <span class="ic-tile-status">${btEnabled ? 'Activé' : 'Désactivé'}</span>
                                 </div>
                             </div>
-                            <div class="ic-tile ${dndEnabled ? 'active' : ''}" id="ic-dnd">
+                            <div class="ic-tile ${dndEnabled ? 'active' : ''}" id="ic-dnd" title="Ne pas déranger : coupe les notifications de Windows">
                                 <i class="ph-fill ph-moon"></i>
                                 <div class="ic-tile-text">
                                     <span class="ic-tile-label">DND</span>
                                     <span class="ic-tile-status">${dndEnabled ? 'Activé' : 'Désactivé'}</span>
                                 </div>
                             </div>
-                            <div class="ic-tile ${isFocusMode ? 'active' : ''}" id="ic-focus">
+                            <div class="ic-tile ${isFocusMode ? 'active' : ''}" id="ic-focus" title="Focus : plus de notifications dans l’Island, pilule estompée au repos">
                                 <i class="ph-fill ph-target"></i>
                                 <div class="ic-tile-text">
                                     <span class="ic-tile-label">Focus</span>
@@ -291,10 +291,17 @@ export const controlCenterView = {
             shortcuts.forEach((s, idx) => {
                 const btn = container.querySelector(`#ic-lp-btn-${idx}`);
                 if (btn) {
-                    btn.onclick = (e) => {
+                    btn.onclick = async (e) => {
                         e.stopPropagation();
                         SoundService.play('click');
-                        this.launchShortcut(s.cmd);
+                        const launched = await this.launchShortcut(s.cmd);
+                        if (launched === false) {
+                            // Raccourci introuvable ou refusé : petit tremblement au lieu d'un échec silencieux.
+                            btn.classList.remove('is-error');
+                            void btn.offsetWidth;
+                            btn.classList.add('is-error');
+                            btn.title = `${s.name} : impossible de l’ouvrir`;
+                        }
                     };
                 }
             });
@@ -360,15 +367,40 @@ export const controlCenterView = {
         });
 
         // Bind Quick Tiles Toggle Handlers
+        const TOGGLE_ERRORS = { denied: 'Accès refusé', not_found: 'Introuvable', failed: 'Échec', unknown: 'Échec', error: 'Échec' };
+        const setTileState = (el, key, enabled, message) => {
+            localStorage.setItem(key, enabled);
+            el.classList.toggle('active', enabled);
+            el.classList.toggle('has-error', Boolean(message));
+            const statusText = el.querySelector('.ic-tile-status');
+            if (statusText) statusText.innerText = message || (enabled ? 'Activé' : 'Désactivé');
+            // La tuile allumée passe en verre teinté.
+            this.syncGlassControls();
+        };
+
+        // État réel de Windows (le Wi-Fi a pu être coupé ailleurs) : on corrige les tuiles.
+        [['#ic-wifi', 'liquid_wifi_enabled', 'wifi-control'], ['#ic-bluetooth', 'liquid_bluetooth_enabled', 'bluetooth-control'], ['#ic-dnd', 'liquid_dnd_enabled', 'dnd-control']]
+            .forEach(async ([selector, key, channel]) => {
+                const status = await ipcRenderer.invoke(channel, 'status').catch(() => 'unknown');
+                const el = container.querySelector(selector);
+                if (!el || !el.isConnected || el.classList.contains('is-busy')) return;
+                if (status === 'on' || status === 'off') {
+                    const enabled = status === 'on';
+                    if (el.classList.contains('active') !== enabled) setTileState(el, key, enabled);
+                } else if (status === 'not_found') {
+                    el.classList.add('is-unavailable');
+                    const statusText = el.querySelector('.ic-tile-status');
+                    if (statusText) statusText.innerText = 'Indisponible';
+                }
+            });
+
         const tiles = [
             { 
                 id: '#ic-wifi', 
                 key: 'liquid_wifi_enabled', 
                 isDefaultTrue: true, 
                 onToggle: async (state) => {
-                    if (ipcRenderer) {
-                        await ipcRenderer.invoke('wifi-control', state ? 'on' : 'off');
-                    }
+                    return ipcRenderer.invoke('wifi-control', state ? 'on' : 'off').catch(() => 'error');
                 } 
             },
             { 
@@ -376,9 +408,7 @@ export const controlCenterView = {
                 key: 'liquid_bluetooth_enabled', 
                 isDefaultTrue: true, 
                 onToggle: async (state) => {
-                    if (ipcRenderer) {
-                        await ipcRenderer.invoke('bluetooth-control', state ? 'on' : 'off');
-                    }
+                    return ipcRenderer.invoke('bluetooth-control', state ? 'on' : 'off').catch(() => 'error');
                 } 
             },
             { 
@@ -386,9 +416,7 @@ export const controlCenterView = {
                 key: 'liquid_dnd_enabled', 
                 isDefaultTrue: false, 
                 onToggle: async (state) => {
-                    if (ipcRenderer) {
-                        await ipcRenderer.invoke('dnd-control', state ? 'on' : 'off');
-                    }
+                    return ipcRenderer.invoke('dnd-control', state ? 'on' : 'off').catch(() => 'error');
                 } 
             },
             { 
@@ -397,7 +425,6 @@ export const controlCenterView = {
                 isDefaultTrue: false, 
                 onToggle: (state) => {
                     document.body.classList.toggle('focus-mode-active', state);
-                    window.dispatchEvent(new CustomEvent('liquid-focus-mode', { detail: state }));
                 }
             },
             { 
@@ -414,21 +441,21 @@ export const controlCenterView = {
             const el = container.querySelector(tile.id);
             if (el) {
                 el.onclick = async () => {
+                    if (el.classList.contains('is-busy')) return;
                     const currentVal = tile.isDefaultTrue 
                         ? localStorage.getItem(tile.key) !== 'false' 
                         : localStorage.getItem(tile.key) === 'true';
                     const newVal = !currentVal;
-                    localStorage.setItem(tile.key, newVal);
-                    el.classList.toggle('active', newVal);
-                    
-                    const statusText = el.querySelector('.ic-tile-status');
-                    if (statusText) {
-                        statusText.innerText = newVal ? 'Activé' : 'Désactivé';
+                    setTileState(el, tile.key, newVal);
+
+                    // Le cœur natif répond « ok » ou la raison de l'échec : on revient
+                    // en arrière au lieu d'afficher un état faux.
+                    el.classList.add('is-busy');
+                    const result = await tile.onToggle(newVal);
+                    el.classList.remove('is-busy');
+                    if (typeof result === 'string' && result !== 'ok') {
+                        setTileState(el, tile.key, currentVal, TOGGLE_ERRORS[result] || 'Échec');
                     }
-                    // La tuile allumée passe en verre teinté.
-                    this.syncGlassControls();
-                    
-                    await tile.onToggle(newVal);
                 };
             }
         });

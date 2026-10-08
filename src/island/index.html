@@ -46,6 +46,17 @@
           <!-- Rendu par DynamicIsland.js -->
         </div>
       </div>
+      <!-- Placement : visible seulement en mode déplacement (features/preferences.js) -->
+      <div id="layout-edit-toolbar" role="toolbar" aria-label="Placement de l’Island">
+        <div class="layout-edit-group">
+          <button type="button" data-layout="smaller" title="Plus petite"><i class="ph-bold ph-minus"></i></button>
+          <span class="layout-edit-scale" aria-live="polite">100 %</span>
+          <button type="button" data-layout="bigger" title="Plus grande"><i class="ph-bold ph-plus"></i></button>
+        </div>
+        <button type="button" class="layout-edit-text-btn" data-layout="center" title="Recentrer en haut de l’écran"><i class="ph ph-align-center-horizontal"></i>Centrer</button>
+        <button type="button" class="layout-edit-text-btn is-primary" data-layout="done"><i class="ph-bold ph-check"></i>Terminer</button>
+        <p class="layout-edit-hint">Glisser : déplacer · Molette : taille · Échap : terminer</p>
+      </div>
     </div>
 
     <script type="module" src="main.js"></script>

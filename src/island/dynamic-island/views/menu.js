@@ -22,7 +22,7 @@ export const menuView = {
             itemsHtml += `
             <div class="island-menu-item" onclick="event.stopPropagation(); window.island.setMode('music')">
                 <div class="menu-icon"><i class="ph-fill ph-music-notes"></i></div>
-                <span>Musique</span>
+                <span>Lecteur</span>
             </div>`;
 
             itemsHtml += `

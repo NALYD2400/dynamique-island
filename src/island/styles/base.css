@@ -76,12 +76,10 @@
         0 0 calc(var(--island-glow-size) * 0.8) rgba(var(--island-glow-rgb), calc(0.42 * var(--island-glow-opacity))),
         0 0 calc(var(--island-glow-size) * 1.8) rgba(var(--island-glow-rgb), calc(0.22 * var(--island-glow-opacity))),
         0 0 0 1px rgba(var(--island-glow-rgb), calc(0.22 * var(--island-glow-opacity)));
-    
-    /* Hardware GPU Acceleration & Composition Optimizations */
-    backface-visibility: hidden;
-    -webkit-backface-visibility: hidden;
-    transform: translate3d(0, 0, 0);
-    will-change: transform, width, height, border-radius, box-shadow;
+
+    /* Pas de will-change ni de translate3d ici : ils figent la pilule dans un calque
+     * dessiné à sa taille normale, et tout agrandissement (survol, glisser, zoom de
+     * la taille) étirait cette image au lieu de la redessiner, d'où le flou. */
 }
 
 /* --- Custom Graphic Materials & Textures --- */
@@ -164,10 +162,16 @@
 }
 
 
+/* ---------------------------------------------------------------- Mode placement
+ * On glisse l'Island pour la déplacer ; la barre en dessous règle la taille,
+ * recentre et termine. Aucun agrandissement de la pilule ici : la mise à
+ * l'échelle d'une surface déjà dessinée la rendait floue. */
 body.layout-edit-mode #dynamic-island-container {
     pointer-events: auto;
-    min-height: 110px;
-    padding: 12px 28px 36px;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 28px 16px;
     box-sizing: border-box;
     position: relative;
 }
@@ -176,55 +180,33 @@ body.layout-edit-mode #dynamic-island {
     pointer-events: auto;
     -webkit-app-region: drag;
     cursor: grab;
-    transition: transform 0.18s ease, box-shadow 0.22s ease, filter 0.22s ease;
+    outline: 1.5px dashed rgba(255, 255, 255, 0.5);
+    outline-offset: 6px;
+    transition: box-shadow 0.22s ease, outline-color 0.22s ease;
     box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.15),
         0 8px 24px rgba(0, 0, 0, 0.35),
-        0 0 18px rgba(var(--island-glow-rgb), 0.45),
-        0 0 0 1px rgba(var(--island-glow-rgb), 0.45),
-        0 0 0 2px rgba(255,255,255,0.12);
+        0 0 18px rgba(var(--island-glow-rgb), 0.4);
 }
 
 body.layout-edit-mode.layout-edit-armed #dynamic-island {
-    animation: layoutPlacementIntro 0.58s cubic-bezier(0.2, 0.9, 0.2, 1);
+    animation: layoutPlacementIntro 0.45s cubic-bezier(0.2, 0.9, 0.2, 1);
 }
 
+/* Zone de prise un peu plus large que la pilule, sans recouvrir la barre. */
 body.layout-edit-mode #layout-drag-surface {
     display: block;
     position: absolute;
-    top: 2px;
+    top: 0;
     left: 50%;
     width: 320px;
-    height: 96px;
+    height: 62px;
     transform: translateX(-50%);
     border-radius: 999px;
     pointer-events: auto;
     cursor: grab;
     -webkit-app-region: drag;
     z-index: 20;
-}
-
-body.layout-edit-mode #dynamic-island-container::before {
-    content: "";
-    position: absolute;
-    top: 2px;
-    left: 50%;
-    width: 320px;
-    height: 92px;
-    transform: translateX(-50%);
-    border-radius: 999px;
-    background:
-        radial-gradient(circle at center,
-            rgba(var(--island-glow-rgb), 0.2) 0%,
-            rgba(var(--island-glow-rgb), 0.08) 36%,
-            rgba(var(--island-glow-rgb), 0) 76%);
-    filter: blur(10px);
-    opacity: 0.32;
-    pointer-events: none;
-}
-
-body.layout-edit-mode.layout-edit-armed #dynamic-island-container::before {
-    animation: layoutFieldIntro 0.62s cubic-bezier(0.2, 0.9, 0.2, 1);
 }
 
 body.layout-edit-mode #dynamic-island:hover,
@@ -234,25 +216,7 @@ body.layout-edit-mode #dynamic-island.island-game-compact.island-active-music:ho
     transform: none !important;
 }
 
-body.layout-edit-mode #dynamic-island::after {
-    content: "";
-    position: absolute;
-    top: 10px;
-    right: 16px;
-    width: 12px;
-    height: 12px;
-    border-radius: 999px;
-    background: rgba(var(--island-glow-rgb), 0.88);
-    box-shadow: 0 0 12px rgba(var(--island-glow-rgb), 0.55);
-    z-index: 30;
-    pointer-events: none;
-    opacity: 0;
-}
-
-body.layout-edit-mode #dynamic-island .island-content {
-    pointer-events: none;
-}
-
+body.layout-edit-mode #dynamic-island .island-content,
 body.layout-edit-mode #dynamic-island .island-bg-layer,
 body.layout-edit-mode #dynamic-island::before {
     pointer-events: none;
@@ -265,105 +229,122 @@ body.layout-edit-mode.layout-edit-dragging #dynamic-island {
 }
 
 body.layout-edit-mode.layout-edit-dragging #dynamic-island {
-    transform: scale(1.045);
-    filter: brightness(1.06);
+    outline-color: rgba(var(--island-glow-rgb), 0.9);
     box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.18),
-        0 14px 34px rgba(0, 0, 0, 0.42),
-        0 0 28px rgba(var(--island-glow-rgb), 0.58),
-        0 0 0 1px rgba(var(--island-glow-rgb), 0.55),
-        0 0 0 3px rgba(255,255,255,0.1);
-    animation: layoutDraggingPulse 0.95s ease-in-out infinite;
-}
-
-body.layout-edit-mode.layout-edit-dragging #dynamic-island-container::before {
-    opacity: 1;
-    animation: layoutFieldDragPulse 0.95s ease-in-out infinite;
-}
-
-body.layout-edit-mode.layout-edit-dragging #dynamic-island::after {
-    opacity: 1;
-    animation: layoutDragDotPulse 0.95s ease-in-out infinite;
+        0 16px 36px rgba(0, 0, 0, 0.45),
+        0 0 26px rgba(var(--island-glow-rgb), 0.55);
 }
 
 @keyframes layoutPlacementIntro {
-    0% {
-        transform: translateY(-8px) scale(0.92);
-        filter: brightness(1.12);
+    from {
+        opacity: 0.4;
+        transform: translateY(-6px);
     }
-    55% {
-        transform: translateY(2px) scale(1.04);
-        filter: brightness(1.2);
-    }
-    100% {
-        transform: translateY(0) scale(1);
-        filter: brightness(1);
+    to {
+        opacity: 1;
+        transform: translateY(0);
     }
 }
 
-@keyframes layoutPlacementBreath {
-    0%, 100% {
-        transform: translateY(0) scale(1);
-    }
-    50% {
-        transform: translateY(-1px) scale(1.018);
-    }
+/* Barre de placement */
+#layout-edit-toolbar {
+    display: none;
 }
 
-@keyframes layoutFieldIntro {
-    0% {
+body.layout-edit-mode #layout-edit-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    max-width: 320px;
+    padding: 6px;
+    position: relative;
+    z-index: 30;
+    -webkit-app-region: no-drag;
+    border-radius: 18px;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0) 45%),
+        rgba(22, 22, 28, 0.88);
+    border: 0.5px solid rgba(255, 255, 255, 0.16);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.16),
+        0 12px 30px rgba(0, 0, 0, 0.4);
+    color: #fff;
+    font-size: 12px;
+    animation: layoutToolbarIn 0.3s cubic-bezier(0.2, 0.9, 0.25, 1.1);
+}
+
+.layout-edit-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 2px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.07);
+}
+
+#layout-edit-toolbar button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 28px;
+    min-width: 28px;
+    padding: 0 8px;
+    border: none;
+    border-radius: 10px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+#layout-edit-toolbar button:hover,
+#layout-edit-toolbar button:focus-visible {
+    background: rgba(255, 255, 255, 0.14);
+    outline: none;
+}
+
+#layout-edit-toolbar .layout-edit-text-btn {
+    background: rgba(255, 255, 255, 0.07);
+}
+
+#layout-edit-toolbar .layout-edit-text-btn.is-primary {
+    background: #0a84ff;
+    color: #fff;
+}
+
+#layout-edit-toolbar .layout-edit-text-btn.is-primary:hover {
+    filter: brightness(1.1);
+}
+
+.layout-edit-scale {
+    min-width: 46px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+}
+
+.layout-edit-hint {
+    flex-basis: 100%;
+    margin: 2px 0 0;
+    text-align: center;
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.55);
+}
+
+@keyframes layoutToolbarIn {
+    from {
         opacity: 0;
-        transform: translateX(-50%) scale(0.84);
+        transform: translateY(-6px);
     }
-    60% {
+    to {
         opacity: 1;
-        transform: translateX(-50%) scale(1.08);
-    }
-    100% {
-        opacity: 0.9;
-        transform: translateX(-50%) scale(1);
-    }
-}
-
-@keyframes layoutFieldBreath {
-    0%, 100% {
-        opacity: 0.7;
-        transform: translateX(-50%) scale(0.98);
-    }
-    50% {
-        opacity: 1;
-        transform: translateX(-50%) scale(1.04);
-    }
-}
-
-@keyframes layoutDraggingPulse {
-    0%, 100% {
-        transform: scale(1.035);
-    }
-    50% {
-        transform: scale(1.055);
-    }
-}
-
-@keyframes layoutFieldDragPulse {
-    0%, 100% {
-        opacity: 0.72;
-        transform: translateX(-50%) scale(1);
-    }
-    50% {
-        opacity: 1;
-        transform: translateX(-50%) scale(1.08);
-    }
-}
-
-@keyframes layoutDragDotPulse {
-    0%, 100% {
-        transform: scale(0.92);
-        opacity: 0.72;
-    }
-    50% {
-        transform: scale(1.2);
-        opacity: 1;
+        transform: translateY(0);
     }
 }
 
@@ -594,4 +575,10 @@ body.motion-vivid .inner-action-btn:hover {
     width: 100%;
     height: 100%;
     color: #fff;
+}
+
+/* Mode Focus (tuile du centre de contrôle) : la pilule au repos se fait discrète. */
+body.focus-mode-active #dynamic-island.island-idle:not(:hover) {
+    opacity: 0.45;
+    transition: opacity 0.4s ease;
 }

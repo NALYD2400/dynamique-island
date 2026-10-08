@@ -37,7 +37,7 @@ function ShortcutRow({ index, shortcut, onChange }) {
                     />
                     <input
                         className="text-input text-input-wide"
-                        placeholder="Chemin, lien https:// ou ms-settings:"
+                        placeholder="Programme (C:\…\app.exe), lien https://, ms-settings:, discord:…"
                         value={shortcut.cmd}
                         onChange={(event) => onChange({ ...shortcut, cmd: event.target.value })}
                     />

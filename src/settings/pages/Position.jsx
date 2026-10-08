@@ -23,13 +23,13 @@ export default function Position() {
                 />
             </Card>
 
-            <Card footer={editMode ? 'Fais glisser l’Island à l’endroit voulu, puis clique sur Terminer.' : undefined}>
-                <Row label="Déplacer l’Island" description="Active le placement libre à la souris.">
+            <Card footer={editMode ? 'Fais glisser l’Island. La barre sous elle (ou la molette) règle la taille ; Terminer ou Échap pour valider.' : undefined}>
+                <Row label="Déplacer l’Island" description="Aussi accessible par clic droit sur l’Island.">
                     <Button icon={editMode ? 'ph-check' : 'ph-hand-grabbing'} tone={editMode ? 'accent' : undefined} onClick={toggleEditMode}>
                         {editMode ? 'Terminer' : 'Déplacer'}
                     </Button>
                 </Row>
-                <Row label="Position d’origine" description="En haut, au centre de l’écran.">
+                <Row label="Recentrer" description="En haut, au centre de l’écran, sans changer la taille.">
                     <Button icon="ph-arrows-in-cardinal" onClick={recenter}>Recentrer</Button>
                 </Row>
             </Card>

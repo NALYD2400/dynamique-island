@@ -1334,3 +1334,10 @@ body.eco-mode .music-viz-canvas {
 #dynamic-island.glass-controls .control-btn-music.lg-surface {
     visibility: visible;
 }
+
+/* Vider l'historique : premier clic = armé (confirmation), second clic = vide. */
+.island-action-btn.music-history-clear.is-armed {
+    background: rgba(255, 69, 58, 0.22);
+    border-color: rgba(255, 69, 58, 0.55);
+    color: #ff6961;
+}

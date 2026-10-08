@@ -95,14 +95,14 @@ export const navigationMethods = {
             const rawCommand = String(command).trim();
             if (rawCommand.startsWith('liquid:')) {
                 this.runInternalShortcut(rawCommand);
-                return;
+                return true;
             }
 
-            if (ipcRenderer) {
-                await ipcRenderer.invoke('launch-shortcut', rawCommand);
-            }
+            // `false` : commande introuvable ou refusée par le cœur natif.
+            return Boolean(await ipcRenderer.invoke('launch-shortcut', rawCommand));
         } catch (e) {
             console.error("Failed to launch shortcut:", command, e);
+            return false;
         }
     },
 
@@ -178,6 +178,8 @@ export const navigationMethods = {
 
     showNotification(title, message, icon = 'ph-bell') {
         if (localStorage.getItem('liquid_notifications_enabled') === 'false') return;
+        // Mode Focus : l'Island ne s'ouvre plus d'elle-même pour une notification.
+        if (localStorage.getItem('liquid_focus_mode') === 'true') return;
 
         this.notificationData = { title, message, icon };
         // Don't overwrite previousMode if we are already in notification mode (e.g. rapid notifications)

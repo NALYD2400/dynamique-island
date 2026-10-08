@@ -178,7 +178,7 @@ export const musicHistoryMethods = {
     async toggleCurrentMusicFavorite() {
         const data = this.musicData || {};
         if (!isHistoryTrack(data)) {
-            this.showIslandFeedback('Aucun morceau a favoriser', 'ph-star');
+            this.showIslandFeedback('Aucun morceau à ajouter aux favoris', 'ph-star');
             return;
         }
 
@@ -345,16 +345,16 @@ export const musicHistoryMethods = {
             ? `Top: ${escapeHtml(topTrack.title)} (${topTrack.playCount}x)`
             : `${totalPlays} lecture${totalPlays > 1 ? 's' : ''}`;
         const emptyText = query
-            ? 'Aucun morceau trouve.'
+            ? 'Aucun morceau trouvé.'
             : historyFilter === 'favorites'
                 ? 'Aucun favori pour le moment.'
                 : historyFilter === 'recent'
-                    ? 'Aucun morceau recent pour le moment.'
-            : 'Les prochains morceaux detectes apparaitront ici.';
+                    ? 'Aucun morceau récent pour le moment.'
+            : 'Les prochains morceaux écoutés apparaîtront ici.';
         const historyFilterOptions = [
             { key: 'all', label: 'Tous', count: totalCount },
             { key: 'favorites', label: 'Favoris', count: allFavoriteCount },
-            { key: 'recent', label: 'Recents', count: allRecentCount }
+            { key: 'recent', label: 'Récents', count: allRecentCount }
         ];
 
         this.content.innerHTML = `
@@ -364,9 +364,9 @@ export const musicHistoryMethods = {
             <i class="ph-bold ph-arrow-left"></i>
           </button>
           <div class="music-history-heading">
-            <span>Recently played</span>
+            <span>Historique</span>
           </div>
-          <button class="island-action-btn music-history-clear" id="music-history-clear" title="Vider">
+          <button class="island-action-btn music-history-clear" id="music-history-clear" title="Vider l’historique">
             <i class="ph-bold ph-trash"></i>
           </button>
         </div>
@@ -374,7 +374,7 @@ export const musicHistoryMethods = {
         <div class="music-history-search-filter-row">
           <div class="music-history-search">
             <i class="ph-bold ph-magnifying-glass"></i>
-            <input id="music-history-search-input" type="text" value="${escapeHtml(this.musicHistoryQuery || '')}" placeholder="Rechercher...">
+            <input id="music-history-search-input" type="text" value="${escapeHtml(this.musicHistoryQuery || '')}" placeholder="Rechercher…">
             ${(this.musicHistoryQuery || '').trim() ? '<button id="music-history-search-clear" title="Effacer"><i class="ph-bold ph-x"></i></button>' : ''}
           </div>
 
@@ -394,7 +394,7 @@ export const musicHistoryMethods = {
             ${favoriteRows}
           ` : ''}
           ${recentRows ? `
-            <div class="music-history-section-title"><i class="ph-fill ph-clock-counter-clockwise"></i> Recents</div>
+            <div class="music-history-section-title"><i class="ph-fill ph-clock-counter-clockwise"></i> Récents</div>
             ${recentRows}
           ` : ''}
           ${favoriteRows || recentRows ? '' : `
@@ -420,6 +420,18 @@ export const musicHistoryMethods = {
         });
         clearBtn.addEventListener('click', (e) => {
             e.stopPropagation();
+            // Deux clics : le premier arme le bouton (rouge), le second vide l'historique.
+            if (!clearBtn.classList.contains('is-armed')) {
+                clearBtn.classList.add('is-armed');
+                clearBtn.title = 'Cliquer encore pour vider (les favoris sont gardés)';
+                clearTimeout(this._historyClearTimer);
+                this._historyClearTimer = setTimeout(() => {
+                    clearBtn.classList.remove('is-armed');
+                    clearBtn.title = 'Vider l’historique';
+                }, 3000);
+                return;
+            }
+            clearTimeout(this._historyClearTimer);
             this.clearMusicHistory();
         });
         searchInput.addEventListener('click', (e) => e.stopPropagation());

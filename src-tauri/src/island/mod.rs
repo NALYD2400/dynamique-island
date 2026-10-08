@@ -113,6 +113,32 @@ fn on_moved(app: &AppHandle) {
     *state.layout.lock() = clamped.clone();
     layout::save(&state.data_dir, &clamped);
     broadcast_layout(app);
+    schedule_center_snap(app);
+}
+
+/// Écart (pixels logiques) en dessous duquel l'Island lâchée se cale au centre de l'écran.
+const CENTER_SNAP_DISTANCE: f64 = 28.0;
+
+/// Aimantation : quand le déplacement s'arrête près du centre horizontal, on centre.
+/// Chaque mouvement relance l'attente, donc rien ne bouge pendant le glisser.
+fn schedule_center_snap(app: &AppHandle) {
+    use std::sync::atomic::AtomicU64;
+    static GENERATION: AtomicU64 = AtomicU64::new(0);
+    let generation = GENERATION.fetch_add(1, Ordering::SeqCst) + 1;
+    let handle = app.clone();
+    tauri::async_runtime::spawn(async move {
+        tokio::time::sleep(Duration::from_millis(350)).await;
+        if GENERATION.load(Ordering::SeqCst) != generation {
+            return;
+        }
+        let state = handle.state::<AppState>();
+        let current = state.layout.lock().clone();
+        let centered = layout::centered_on(&handle, &current);
+        let distance = (centered.x - current.x).abs();
+        if distance > 0.5 && distance <= CENTER_SNAP_DISTANCE {
+            update_layout(&handle, Layout { x: centered.x, ..current });
+        }
+    });
 }
 
 pub fn broadcast_layout(app: &AppHandle) {

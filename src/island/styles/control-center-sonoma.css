@@ -234,3 +234,30 @@
 #dynamic-island.glass-controls .ic-vertical-slider.lg-surface .ic-slider-fill {
     background: rgba(255, 255, 255, 0.78);
 }
+
+/* ---------------------------------------------------------------- États des tuiles et raccourcis */
+.ic-tile.is-busy {
+    cursor: progress;
+    opacity: 0.75;
+}
+
+.ic-tile.has-error .ic-tile-status {
+    color: #ff6961;
+    opacity: 1;
+}
+
+.ic-tile.is-unavailable {
+    opacity: 0.45;
+    cursor: default;
+}
+
+.ic-launchpad-btn.is-error {
+    animation: ic-shortcut-error 0.45s ease;
+    color: #ff6961;
+}
+
+@keyframes ic-shortcut-error {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-4px); }
+    40%, 80% { transform: translateX(4px); }
+}

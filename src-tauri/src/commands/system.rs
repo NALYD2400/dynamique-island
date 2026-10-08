@@ -98,9 +98,16 @@ pub async fn get_desktop_sources() -> Vec<DesktopSource> {
 /// Lance un raccourci du centre de contrôle (chemin, URL autorisée ou outil Windows).
 #[tauri::command]
 pub async fn launch_shortcut(command: String) -> bool {
-    let raw = command.trim().to_string();
+    let mut raw = command.trim().to_string();
     if !is_safe_text(&raw) {
         return false;
+    }
+    // Paint et l'Outil Capture ne sont plus dans System32 sous Windows 11 (applications
+    // du Store) : les anciens raccourcis enregistrés passent par leurs protocoles.
+    match raw.to_lowercase().as_str() {
+        "mspaint.exe" => raw = "ms-paint:".into(),
+        "snippingtool.exe" => raw = "ms-screenclip:".into(),
+        _ => {}
     }
 
     let bytes = raw.as_bytes();
@@ -110,15 +117,18 @@ pub async fn launch_shortcut(command: String) -> bool {
         .map(|(scheme, _)| scheme.to_lowercase())
         .filter(|s| s.chars().next().is_some_and(|c| c.is_ascii_alphabetic()) && s.chars().all(|c| c.is_ascii_alphanumeric() || "+.-".contains(c)))
         .unwrap_or_default();
-    const ALLOWED_PROTOCOLS: [&str; 5] = ["http", "https", "mailto", "ms-settings", "spotify"];
+    // Protocoles ouverts par Windows (applications du Store, liens, applications courantes).
+    const ALLOWED_PROTOCOLS: [&str; 14] = [
+        "http", "https", "mailto", "ms-settings", "ms-screenclip", "ms-paint", "ms-calculator", "ms-clock",
+        "ms-photos", "ms-windows-store", "spotify", "discord", "steam", "zoommtg",
+    ];
 
     let system_root = std::env::var("SystemRoot").unwrap_or_else(|_| "C:\\Windows".into());
     let allowed_exe = match raw.to_lowercase().as_str() {
         "explorer.exe" => Some(Path::new(&system_root).join("explorer.exe")),
-        "taskmgr.exe" | "calc.exe" | "cmd.exe" | "notepad.exe" | "mspaint.exe" => {
+        "taskmgr.exe" | "calc.exe" | "cmd.exe" | "notepad.exe" => {
             Some(Path::new(&system_root).join("System32").join(raw.to_lowercase()))
         }
-        "snippingtool.exe" => Some(Path::new(&system_root).join("System32").join("SnippingTool.exe")),
         _ => None,
     };
 

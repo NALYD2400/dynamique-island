@@ -101,11 +101,13 @@
 /* Apps Menu */
 .island-menu-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    /* 4 items per row */
-    gap: 10px;
-    padding: 20px;
+    /* 3 par rangée : les 6 modules forment deux rangées pleines, centrées. */
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px 10px;
+    padding: 18px 24px;
     height: 100%;
+    box-sizing: border-box;
+    align-content: center;
     align-items: start;
     overflow-y: auto;
 }
