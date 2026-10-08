@@ -441,7 +441,7 @@ export const mixerMethods = {
                                 <input type="range" class="mixer-volume-slider" data-pid="${s.pid}" min="0" max="100" value="${activeVol}">
                             </div>
                         </div>
-                        <button class="mixer-mute-btn ${btnMutedClass}" data-pid="${s.pid}">
+                        <button class="mixer-mute-btn ${btnMutedClass}" data-pid="${s.pid}" title="${isMuted ? 'Réactiver le son' : 'Couper le son'}" aria-label="${isMuted ? 'Réactiver le son' : 'Couper le son'}">
                             <i class="ph-fill ${muteIcon}"></i>
                         </button>
                     </div>
@@ -497,7 +497,7 @@ export const mixerMethods = {
                     <div class="audio-device-dropdown" id="audio-device-dropdown">
                         <div class="audio-device-dropdown-header">
                             <span class="audio-device-dropdown-title">Sortie Audio</span>
-                            <button class="audio-device-dropdown-close" onclick="event.stopPropagation(); window.island.toggleAudioDeviceDropdown()">
+                            <button class="audio-device-dropdown-close" title="Fermer" aria-label="Fermer" onclick="event.stopPropagation(); window.island.toggleAudioDeviceDropdown()">
                                 <i class="ph-bold ph-x"></i>
                             </button>
                         </div>
@@ -509,7 +509,7 @@ export const mixerMethods = {
                     <div class="audio-device-dropdown" id="mic-device-dropdown">
                         <div class="audio-device-dropdown-header">
                             <span class="audio-device-dropdown-title">Entrée Audio / Micro</span>
-                            <button class="audio-device-dropdown-close" onclick="event.stopPropagation(); window.island.toggleMicDeviceDropdown()">
+                            <button class="audio-device-dropdown-close" title="Fermer" aria-label="Fermer" onclick="event.stopPropagation(); window.island.toggleMicDeviceDropdown()">
                                 <i class="ph-bold ph-x"></i>
                             </button>
                         </div>

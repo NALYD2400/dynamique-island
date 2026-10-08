@@ -343,7 +343,7 @@ export const eventMethods = {
             <div class="context-menu-separator"></div>
             ${item('music', 'ph-music-notes', 'Lecteur')}
             ${item('control', 'ph-sliders', 'Centre de contrôle')}
-            ${item('mixer', 'ph-sliders-horizontal', 'Mélangeur audio')}
+            ${item('mixer', 'ph-sliders-horizontal', 'Mélangeur')}
             <div class="context-menu-separator"></div>
             ${item('layout', 'ph-arrows-out-cardinal', 'Déplacer et redimensionner')}
             ${item('settings', 'ph-gear-six', 'Réglages…')}

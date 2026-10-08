@@ -228,9 +228,9 @@ export const controlCenterView = {
                                 <span class="ic-np-artist" id="ic-np-artist-val">${escapeHtml(musicData.artist)}</span>
                             </div>
                             <div class="ic-np-controls">
-                                <button class="ic-np-btn" onclick="event.stopPropagation(); window.spotifyControl('prev')"><i class="ph-fill ph-skip-back"></i></button>
-                                <button class="ic-np-btn play" id="ic-np-play-btn-val" onclick="event.stopPropagation(); window.spotifyControl('toggle')"><i class="ph-fill ph-${musicData.isPlaying ? 'pause' : 'play'}"></i></button>
-                                <button class="ic-np-btn" onclick="event.stopPropagation(); window.spotifyControl('next')"><i class="ph-fill ph-skip-forward"></i></button>
+                                <button class="ic-np-btn" title="Précédent" aria-label="Précédent" onclick="event.stopPropagation(); window.spotifyControl('prev')"><i class="ph-fill ph-skip-back"></i></button>
+                                <button class="ic-np-btn play" id="ic-np-play-btn-val" title="${musicData.isPlaying ? 'Pause' : 'Lecture'}" aria-label="${musicData.isPlaying ? 'Pause' : 'Lecture'}" onclick="event.stopPropagation(); window.spotifyControl('toggle')"><i class="ph-fill ph-${musicData.isPlaying ? 'pause' : 'play'}"></i></button>
+                                <button class="ic-np-btn" title="Suivant" aria-label="Suivant" onclick="event.stopPropagation(); window.spotifyControl('next')"><i class="ph-fill ph-skip-forward"></i></button>
                             </div>
                         </div>
 

@@ -87,7 +87,7 @@ export const WIDGET_OPTIONS = [
     { value: 'stats', label: 'Performance', icon: 'ph-chart-line' },
     { value: 'machine', label: 'Batterie', icon: 'ph-battery-high' },
     { value: 'weather', label: 'Météo', icon: 'ph-cloud-sun' },
-    { value: 'mixer', label: 'Mixeur', icon: 'ph-sliders-horizontal' },
+    { value: 'mixer', label: 'Mélangeur', icon: 'ph-sliders-horizontal' },
 ];
 
 /** Profils rapides (mêmes valeurs que la version précédente). */

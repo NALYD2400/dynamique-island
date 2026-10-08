@@ -34,7 +34,7 @@ function Profiles({ store }) {
                 ))}
                 {customProfiles.map((profile) => (
                     <div key={profile.id} className={`profile${settings.activeProfile === profile.id ? ' is-selected' : ''}`}>
-                        <button type="button" className="profile-main" onClick={() => applyCustomProfile(profile)}>
+                        <button type="button" className="profile-main" title={`Appliquer le profil ${profile.name}`} onClick={() => applyCustomProfile(profile)}>
                             <span className="profile-icon profile-custom"><Icon name="ph-user-circle" /></span>
                             <span>{profile.name}</span>
                         </button>

@@ -4,14 +4,14 @@ import { Button, Card, Icon, Row } from '../components/controls.jsx';
 import { useUpdates } from '../state/useSettings.js';
 
 const UPDATE_COPY = {
-    idle: { icon: 'ph-shield-check', title: 'Mises à jour', text: 'Vérifie s’il existe une nouvelle version.' },
+    idle: { icon: 'ph-shield-check', title: 'Version installée', text: 'Vérifie s’il existe une nouvelle version.' },
     dev: { icon: 'ph-code', title: 'Version de développement', text: 'Les mises à jour sont actives dans la version installée.' },
     checking: { icon: 'ph-arrows-clockwise', title: 'Recherche en cours…', text: 'Vérification de la dernière version.' },
-    'up-to-date': { icon: 'ph-check-circle', title: 'Liquid Island est à jour', text: 'Tu as la dernière version.' },
+    'up-to-date': { icon: 'ph-check-circle', title: 'Application à jour', text: 'Tu as la dernière version.' },
     available: { icon: 'ph-download-simple', title: 'Nouvelle version disponible', text: 'Elle sera téléchargée seulement si tu le demandes.' },
     downloading: { icon: 'ph-cloud-arrow-down', title: 'Téléchargement…', text: 'Tu pourras l’installer juste après.' },
     downloaded: { icon: 'ph-rocket-launch', title: 'Prête à installer', text: 'L’application redémarrera pour appliquer la mise à jour.' },
-    installing: { icon: 'ph-rocket-launch', title: 'Installation…', text: 'Liquid Island va redémarrer.' },
+    installing: { icon: 'ph-rocket-launch', title: 'Installation…', text: 'L’application va redémarrer.' },
     error: { icon: 'ph-warning-circle', title: 'Vérification impossible', text: '' },
 };
 
@@ -88,7 +88,7 @@ export default function About({ store }) {
             </Card>
 
             <Card>
-                <Row label="Quitter Liquid Island" description="Ferme l’Island et rétablit ton fond d’écran.">
+                <Row label="Quitter l’application" description="Ferme l’Island et rétablit ton fond d’écran.">
                     <Button tone="danger" icon="ph-power" onClick={() => ipcRenderer.send('exit-app')}>Quitter</Button>
                 </Row>
             </Card>

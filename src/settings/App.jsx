@@ -57,7 +57,7 @@ export default function App() {
                 <header className="sidebar-header">
                     <img src="/assets/app-logo.png" alt="" />
                     <div>
-                        <strong>Liquid Island</strong>
+                        <strong>Liquid Dynamic Island</strong>
                         <span>Réglages</span>
                     </div>
                 </header>
