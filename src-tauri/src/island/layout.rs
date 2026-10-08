@@ -119,19 +119,27 @@ pub fn merge(base: &Layout, patch: &LayoutPatch) -> Layout {
 /// Garde la fenêtre dans la zone de travail de son écran (40 px de marge en haut).
 /// Décalage du haut de la pilule dans la fenêtre, en pixels CSS (`top: 50px` de l'interface).
 const PILL_TOP_OFFSET: f64 = 50.0;
+/// Demi-largeur visible minimale de la pilule repliée (120 px) et hauteur qui doit rester à l'écran.
+const PILL_MIN_VISIBLE_WIDTH: f64 = 60.0;
+const PILL_MIN_VISIBLE_HEIGHT: f64 = 40.0;
 
 pub fn clamp(app: &AppHandle, layout: &Layout) -> Layout {
     let monitor = target_monitor(app, &layout.display_id);
     let area = monitor.as_ref().map(work_area).unwrap_or_else(fallback_area);
     let scale = clamp_scale(layout.scale);
-    let (w, h) = ((BASE_WIDTH * scale).round(), (BASE_HEIGHT * scale).round());
-    let max_x = (area.x + area.width - w).max(area.x);
-    // La pilule est posée à 50 px du haut de la fenêtre (× taille) : la fenêtre peut donc
-    // remonter jusqu'à ce que la pilule touche le bord de l'écran, sans être bloquée plus haut.
+    let w = (BASE_WIDTH * scale).round();
+    // Les limites suivent la pilule, pas la fenêtre (qui grandit avec la taille) :
+    // la pilule peut aller jusqu'au bord de l'écran, quelle que soit la taille choisie.
+    // La fenêtre reste transparente, elle peut donc dépasser de l'écran.
+    let centre_min_x = area.x + PILL_MIN_VISIBLE_WIDTH * scale;
+    let centre_max_x = area.x + area.width - PILL_MIN_VISIBLE_WIDTH * scale;
+    let min_x = centre_min_x - w / 2.0;
+    let max_x = (centre_max_x - w / 2.0).max(min_x);
+    // Le haut de la pilule peut toucher le bord supérieur ; il reste une bande visible en bas.
     let min_y = area.y - PILL_TOP_OFFSET * scale;
-    let max_y = (area.y + area.height - h).max(min_y);
+    let max_y = (area.y + area.height - (PILL_TOP_OFFSET + PILL_MIN_VISIBLE_HEIGHT) * scale).max(min_y);
     Layout {
-        x: layout.x.clamp(area.x, max_x),
+        x: layout.x.clamp(min_x, max_x),
         y: layout.y.clamp(min_y, max_y),
         scale,
         // Un identifiant inconnu (écran débranché, ancienne config) retombe sur l'écran réel.
