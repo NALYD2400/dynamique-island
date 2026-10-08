@@ -1,6 +1,7 @@
 //! Fenêtre de l'Island : création, position, premier plan, clic traversant.
 
 pub mod displays;
+pub mod drag;
 pub mod hit_test;
 pub mod layout;
 

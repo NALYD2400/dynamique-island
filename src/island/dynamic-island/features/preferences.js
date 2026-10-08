@@ -29,8 +29,45 @@ export const preferenceMethods = {
         ipcRenderer.send('layout-config-changed', { scale: next });
     },
 
+    /**
+     * Glisser de l'Island en mode placement. Le curseur est suivi côté Rust : le glisser natif de
+     * Windows ne laisse pas remonter la fenêtre au-dessus du bord de l'écran.
+     */
+    bindLayoutDrag() {
+        for (const target of [document.getElementById('layout-drag-surface'), document.getElementById('dynamic-island')]) {
+            if (!target || target.dataset.layoutDrag) continue; // une seule fois, même après plusieurs activations
+            target.dataset.layoutDrag = 'true';
+            target.addEventListener('pointerdown', (e) => {
+                if (!this._layoutEditMode || e.button !== 0) return;
+                e.preventDefault();
+                target.setPointerCapture(e.pointerId);
+                ipcRenderer.send('layout-drag-begin');
+
+                let frame = 0;
+                const onMove = () => {
+                    if (frame) return;
+                    frame = requestAnimationFrame(() => {
+                        frame = 0;
+                        ipcRenderer.send('layout-drag-move');
+                    });
+                };
+                const onUp = () => {
+                    target.removeEventListener('pointermove', onMove);
+                    target.removeEventListener('pointerup', onUp);
+                    target.removeEventListener('pointercancel', onUp);
+                    if (frame) cancelAnimationFrame(frame);
+                    ipcRenderer.send('layout-drag-end');
+                };
+                target.addEventListener('pointermove', onMove);
+                target.addEventListener('pointerup', onUp);
+                target.addEventListener('pointercancel', onUp);
+            });
+        }
+    },
+
     /** Barre de placement sous l'Island : taille, recentrage, fin du mode. Branchée une seule fois. */
     initLayoutEditToolbar() {
+        this.bindLayoutDrag();
         const toolbar = document.getElementById('layout-edit-toolbar');
         if (!toolbar || toolbar.dataset.ready) return;
         toolbar.dataset.ready = 'true';

@@ -27,6 +27,8 @@ function isDragRegion(target) {
 export function enableWindowDragging() {
     document.addEventListener('mousedown', (event) => {
         if (event.button !== 0 || event.detail > 1) return;
+        // En mode placement, le glisser est géré par features/preferences.js (bindLayoutDrag).
+        if (document.body.classList.contains('layout-edit-mode')) return;
         if (!isDragRegion(event.target)) return;
         native.startDragging().catch(() => {});
     });

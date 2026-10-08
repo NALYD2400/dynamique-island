@@ -43,6 +43,22 @@ pub fn reset_layout(app: AppHandle) {
     island::update_layout(&app, layout::centered_on(&app, &current));
 }
 
+/// Glisser de l'Island en mode placement : le curseur est suivi côté Rust (voir island/drag.rs).
+#[tauri::command]
+pub fn layout_drag_begin(app: AppHandle) {
+    island::drag::begin(&app);
+}
+
+#[tauri::command]
+pub fn layout_drag_move(app: AppHandle) {
+    island::drag::update(&app);
+}
+
+#[tauri::command]
+pub fn layout_drag_end(app: AppHandle) {
+    island::drag::end(&app);
+}
+
 #[tauri::command]
 pub fn set_layout_edit_mode(app: AppHandle, enabled: bool) {
     island::set_layout_edit_mode(&app, enabled);
