@@ -1,0 +1,35 @@
+========================================================================
+             CONTRAT D'UTILISATION DE LICENCE (EULA)
+                      Liquid Dynamic Island
+========================================================================
+
+Merci d'installer Liquid Dynamic Island.
+
+1. DESCRIPTION DU LOGICIEL
+Cette application fournit une interface de type "Dynamic Island" pour 
+le système d'exploitation Windows, intégrant un rendu moderne en 
+glassmorphism, des contrôles multimédias avancés, des raccourcis 
+système ainsi que des modules de visualisation audio en temps réel.
+
+2. CONDITIONS D'UTILISATION ET RESPONSABILITÉ
+En installant cette application, vous acceptez expressément de l'utiliser 
+sur votre ordinateur personnel ou professionnel sous votre entière 
+responsabilité. Le logiciel est fourni "en l'état", sans garantie 
+explicite ou implicite concernant sa compatibilité absolue avec 
+l'ensemble des configurations matérielles, périphériques et pilotes audio, 
+logiciels tiers ou futures versions de Windows.
+
+3. ACCÈS AUX FONCTIONNALITÉS ET AUTORISATIONS
+Pour assurer son bon fonctionnement, l'application peut utiliser des 
+autorisations locales de capture audio, de capture d'écran et de contrôle 
+système, uniquement dans le but d'activer ses fonctionnalités visibles 
+dans l'interface graphique. Ces processus sont purement locaux. Aucune 
+garantie de disponibilité permanente ou ininterrompue de ces 
+fonctionnalités n'est fournie.
+
+4. RÉSILIATION ET DÉSINSTALLATION
+Vous pouvez mettre fin à ce contrat à tout moment en procédant à la 
+désinstallation complète de Liquid Dynamic Island. Celle-ci peut être 
+effectuée depuis les Paramètres de Windows ou via le raccourci de 
+désinstallation généré par l'assistant d'installation.
+========================================================================

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Island Overlay</title>
+
+    <link rel="icon" href="/assets/app-logo.png">
+    <link rel="stylesheet" href="/assets/fonts/fonts.css">
+    <link rel="stylesheet" href="/assets/icons/phosphor.css">
+    <link rel="stylesheet" href="styles/index.css">
+
+    <style>
+        /* Transparent overlay positioning */
+        html, body {
+            background: transparent !important;
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            font-family: 'Inter', sans-serif;
+        }
+
+        #dynamic-island-container {
+            position: fixed;
+            top: 50px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            z-index: 1000;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="dynamic-island-container">
+      <div id="layout-drag-surface" aria-hidden="true"></div>
+      <div id="dynamic-island" class="island-idle">
+        <div class="island-glass-backdrop"><div class="island-bg-layer"></div></div>
+        <div class="island-content">
+          <!-- Rendu par DynamicIsland.js -->
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="main.js"></script>
+</body>
+</html>

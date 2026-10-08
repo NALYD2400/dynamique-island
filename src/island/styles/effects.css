@@ -1,0 +1,141 @@
+/* Effets premium (pochette 3D, aura, météo) */
+
+/* ==========================================================================
+   💎 PREMIUM APPLE-STYLE ENHANCEMENTS (MAY 2026)
+   ========================================================================== */
+
+/* 1. 3D Album Art Entry Transition */
+@keyframes albumArtFlip {
+    0% {
+        transform: rotateY(-90deg) scale(0.85);
+        opacity: 0;
+        filter: brightness(0.5);
+    }
+    100% {
+        transform: rotateY(0deg) scale(1);
+        opacity: 1;
+        filter: brightness(1);
+    }
+}
+
+.album-art, .ic-np-cover, .viz-dash-cover {
+    backface-visibility: hidden;
+    perspective: 1000px;
+    transform-origin: center left;
+}
+
+.album-art.flip-active, .ic-np-cover.flip-active, .viz-dash-cover.flip-active {
+    animation: albumArtFlip 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+/* 2. Slow Breathing Aura Glow Pulse */
+@keyframes islandGlowPulse {
+    0% {
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15),
+                    0 8px 24px rgba(0, 0, 0, 0.4),
+                    0 0 calc(var(--island-glow-size, 20px) * 0.8) rgba(var(--island-glow-rgb, 0, 243, 255), calc(0.38 * var(--island-glow-opacity, 1))),
+                    0 0 calc(var(--island-glow-size, 20px) * 1.8) rgba(var(--island-glow-rgb, 0, 243, 255), calc(0.18 * var(--island-glow-opacity, 1))),
+                    0 0 0 1px rgba(var(--island-glow-rgb, 0, 243, 255), calc(0.22 * var(--island-glow-opacity, 1)));
+    }
+    50% {
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15),
+                    0 8px 24px rgba(0, 0, 0, 0.4),
+                    0 0 calc(var(--island-glow-size, 20px) * 1.2) rgba(var(--island-glow-rgb, 0, 243, 255), calc(0.58 * var(--island-glow-opacity, 1))),
+                    0 0 calc(var(--island-glow-size, 20px) * 2.5) rgba(var(--island-glow-rgb, 0, 243, 255), calc(0.3 * var(--island-glow-opacity, 1))),
+                    0 0 0 1px rgba(var(--island-glow-rgb, 0, 243, 255), calc(0.3 * var(--island-glow-opacity, 1)));
+    }
+    100% {
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15),
+                    0 8px 24px rgba(0, 0, 0, 0.4),
+                    0 0 calc(var(--island-glow-size, 20px) * 0.8) rgba(var(--island-glow-rgb, 0, 243, 255), calc(0.38 * var(--island-glow-opacity, 1))),
+                    0 0 calc(var(--island-glow-size, 20px) * 1.8) rgba(var(--island-glow-rgb, 0, 243, 255), calc(0.18 * var(--island-glow-opacity, 1))),
+                    0 0 0 1px rgba(var(--island-glow-rgb, 0, 243, 255), calc(0.22 * var(--island-glow-opacity, 1)));
+    }
+}
+
+#dynamic-island.playing-music-glow {
+    animation: islandGlowPulse 4s infinite ease-in-out;
+}
+
+/* 3. Apple Weather Widget Card */
+.ic-weather-card {
+    height: 68px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    padding: 10px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-sizing: border-box;
+    position: relative;
+    overflow: hidden;
+}
+
+.ic-weather-info {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.ic-weather-label {
+    font-size: 8px;
+    font-weight: 700;
+    opacity: 0.55;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.ic-weather-val {
+    font-size: 18px;
+    font-family: var(--font-display, 'Outfit', sans-serif);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.5px;
+    color: #fff;
+    margin-top: 1px;
+}
+
+.ic-weather-condition {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 1px;
+    margin-right: 32px; /* space for icon */
+}
+
+.ic-weather-desc {
+    font-size: 11px;
+    font-weight: 600;
+    color: #fff;
+}
+
+.ic-weather-hl {
+    font-size: 8px;
+    opacity: 0.55;
+    font-weight: 500;
+}
+
+.ic-weather-icon-wrapper {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ic-weather-icon {
+    filter: drop-shadow(0 0 8px rgba(255, 159, 10, 0.3));
+    animation: weatherFloat 3s infinite ease-in-out;
+}
+
+@keyframes weatherFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-3px); }
+}

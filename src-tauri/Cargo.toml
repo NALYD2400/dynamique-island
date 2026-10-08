@@ -1,0 +1,70 @@
+[package]
+name = "liquid-dynamic-island"
+version = "2.0.0"
+description = "Liquid Dynamic Island — widget Dynamic Island pour Windows"
+authors = ["NALYD2400"]
+edition = "2021"
+rust-version = "1.82"
+
+[lib]
+name = "liquid_island_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon", "image-ico"] }
+tauri-plugin-global-shortcut = "2"
+tauri-plugin-autostart = "2"
+tauri-plugin-single-instance = "2"
+tauri-plugin-updater = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+base64 = "0.22"
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "webp", "bmp", "gif"] }
+parking_lot = "0.12"
+rand = "0.9"
+tokio = { version = "1", features = ["time"] }
+rusty-leveldb = "4.0.1"
+
+[dependencies.windows]
+version = "0.62"
+features = [
+    "Foundation",
+    "Foundation_Collections",
+    "Media_Control",
+    "Storage_Streams",
+    "Devices_Radios",
+    "Web_Http",
+    "Win32_Foundation",
+    "Win32_Graphics_Gdi",
+    "Win32_Media_Audio",
+    "Win32_Media_Audio_Endpoints",
+    "Win32_NetworkManagement_IpHelper",
+    "Win32_NetworkManagement_Ndis",
+    "Win32_Networking_WinSock",
+    "Win32_System_Com",
+    "Win32_System_Com_StructuredStorage",
+    "Win32_System_Registry",
+    "Win32_System_Threading",
+    "Win32_System_SystemInformation",
+    "Win32_System_Variant",
+    "Win32_UI_Input_KeyboardAndMouse",
+    "Win32_UI_Shell",
+    "Win32_UI_Shell_PropertiesSystem",
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_Devices_FunctionDiscovery",
+    "Win32_Devices_Display",
+    "Win32_Storage_FileSystem",
+    "Win32_System_Diagnostics_ToolHelp",
+]
+
+[dependencies.windows-core]
+version = "0.62"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true

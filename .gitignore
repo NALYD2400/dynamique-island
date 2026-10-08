@@ -1,0 +1,11 @@
+# Dépendances et compilation
+node_modules/
+src-tauri/target/
+src-tauri/gen/
+
+# Clé privée de signature des mises à jour : NE JAMAIS la publier
+keys/updater.key
+
+# Journaux
+*.log
+dist/

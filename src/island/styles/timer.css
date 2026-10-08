@@ -1,0 +1,124 @@
+/* Minuteur */
+
+/* ========== Refined Timer ========== */
+.island-timer-container {
+    width: 100%;
+    height: 100%;
+    padding: 18px 20px 20px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.island-timer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+}
+
+.timer-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: rgba(255, 255, 255, 0.82);
+    font-size: 12px;
+    font-weight: 750;
+    text-transform: uppercase;
+    letter-spacing: 0;
+}
+
+.timer-title i {
+    color: var(--neon-primary);
+    font-size: 15px;
+    filter: drop-shadow(0 0 6px rgba(var(--neon-primary-rgb), 0.35));
+}
+
+.timer-stage {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.timer-status {
+    padding: 4px 9px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.055);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    color: rgba(255, 255, 255, 0.58);
+    font-size: 9px;
+    font-weight: 650;
+    line-height: 1;
+}
+
+.timer-readout {
+    font-family: var(--font-mono, monospace);
+    font-size: 46px;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: 0;
+    color: #fff;
+    text-shadow:
+        0 0 14px rgba(var(--neon-primary-rgb), 0.18),
+        0 6px 18px rgba(0, 0, 0, 0.35);
+}
+
+.timer-controls {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.timer-control-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.055);
+    color: rgba(255, 255, 255, 0.82);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.timer-control-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.16);
+    color: #fff;
+    transform: translateY(-1px);
+}
+
+.timer-control-btn.primary {
+    width: 42px;
+    height: 42px;
+    background: rgba(var(--neon-primary-rgb), 0.2);
+    border-color: rgba(var(--neon-primary-rgb), 0.42);
+    color: #fff;
+    box-shadow: 0 0 14px rgba(var(--neon-primary-rgb), 0.18);
+}
+
+.timer-control-btn.primary.is-running {
+    background: rgba(255, 255, 255, 0.14);
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: none;
+}
+
+.timer-control-btn i {
+    font-size: 15px;
+}
+
+.timer-control-btn.primary i {
+    font-size: 18px;
+}

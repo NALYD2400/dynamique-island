@@ -1,0 +1,409 @@
+/* Modes réseau et statistiques de performance */
+
+/* ========== Network Pulse Mode ========== */
+.network-pulse-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    padding: 15px 20px;
+    gap: 10px;
+}
+
+.network-pulse-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.network-pulse-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    opacity: 0.7;
+    text-transform: uppercase;
+}
+
+.network-pulse-title i {
+    font-size: 16px;
+    color: var(--neon-primary);
+}
+
+.network-speed-display {
+    display: flex;
+    gap: 20px;
+    font-family: var(--font-mono, monospace);
+}
+
+.speed-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.speed-label {
+    font-size: 10px;
+    opacity: 0.5;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.speed-label i {
+    font-size: 12px;
+}
+
+.speed-value {
+    font-size: 18px;
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 0 0 10px currentColor;
+}
+
+.speed-unit {
+    font-size: 10px;
+    opacity: 0.6;
+    margin-left: 2px;
+}
+
+/* Pulse Wave Container */
+.network-pulse-wave {
+    width: 100%;
+    height: 50px;
+    position: relative;
+    overflow: hidden;
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.pulse-wave-svg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 200%;
+    height: 100%;
+}
+
+/* Download Wave - Flows Right */
+.download-wave {
+    animation: waveFlowRight 2s linear infinite;
+}
+
+/* Upload Wave - Flows Left */
+.upload-wave {
+    animation: waveFlowLeft 2s linear infinite;
+}
+
+@keyframes waveFlowRight {
+    0% {
+        transform: translateX(-50%);
+    }
+
+    100% {
+        transform: translateX(0);
+    }
+}
+
+@keyframes waveFlowLeft {
+    0% {
+        transform: translateX(0);
+    }
+
+    100% {
+        transform: translateX(-50%);
+    }
+}
+
+/* Speed-based color classes */
+.network-pulse-wave.speed-slow {
+    --wave-color: #00a8ff;
+    --wave-glow: rgba(0, 168, 255, 0.4);
+}
+
+.network-pulse-wave.speed-medium {
+    --wave-color: #9c27b0;
+    --wave-glow: rgba(156, 39, 176, 0.4);
+}
+
+.network-pulse-wave.speed-fast {
+    --wave-color: #bc13fe;
+    --wave-glow: rgba(188, 19, 254, 0.5);
+}
+
+.network-pulse-wave.speed-fiber {
+    --wave-color: #ff00ff;
+    --wave-glow: rgba(255, 0, 255, 0.6);
+    animation: pulseGlow 1s ease-in-out infinite alternate;
+}
+
+@keyframes pulseGlow {
+    from {
+        box-shadow: 0 0 10px var(--wave-glow), inset 0 0 10px var(--wave-glow);
+    }
+
+    to {
+        box-shadow: 0 0 25px var(--wave-glow), inset 0 0 20px var(--wave-glow);
+    }
+}
+
+/* Mini Network Indicator (Idle State) */
+.network-mini-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    height: 100%;
+    padding: 0 15px;
+}
+
+.network-mini-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.network-mini-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--neon-primary), var(--neon-secondary));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+}
+
+.network-mini-waves {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 18px;
+}
+
+.network-wave-bar {
+    width: 3px;
+    background: var(--neon-primary);
+    border-radius: 2px;
+    animation: networkWave 1.2s ease-in-out infinite;
+}
+
+.network-wave-bar:nth-child(1) {
+    animation-delay: 0s;
+    height: 40%;
+}
+
+.network-wave-bar:nth-child(2) {
+    animation-delay: 0.1s;
+    height: 70%;
+}
+
+.network-wave-bar:nth-child(3) {
+    animation-delay: 0.2s;
+    height: 100%;
+}
+
+.network-wave-bar:nth-child(4) {
+    animation-delay: 0.3s;
+    height: 60%;
+}
+
+.network-wave-bar:nth-child(5) {
+    animation-delay: 0.4s;
+    height: 30%;
+}
+
+@keyframes networkWave {
+
+    0%,
+    100% {
+        opacity: 0.4;
+        transform: scaleY(0.6);
+    }
+
+    50% {
+        opacity: 1;
+        transform: scaleY(1);
+    }
+}
+
+.network-mini-speed {
+    font-family: var(--font-mono, monospace);
+    font-size: 14px;
+    font-weight: bold;
+    color: var(--neon-primary);
+    text-shadow: 0 0 10px var(--neon-primary);
+}
+
+/* Network Status Dot */
+.network-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #4caf50;
+    box-shadow: 0 0 10px #4caf50;
+    animation: statusPulse 2s ease-in-out infinite;
+}
+
+.network-status-dot.offline {
+    background: #ff5252;
+    box-shadow: 0 0 10px #ff5252;
+}
+
+@keyframes statusPulse {
+
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.6;
+        transform: scale(0.9);
+    }
+}
+
+@keyframes island-pulse-custom {
+    0% {
+        box-shadow: 0 5px 10px var(--pulse-color);
+    }
+
+    50% {
+        box-shadow: 0 5px 25px var(--pulse-color);
+    }
+
+    100% {
+        box-shadow: 0 5px 10px var(--pulse-color);
+    }
+}
+
+/* ========== Performance Pulse Stats ========== */
+.stats-pulse-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    padding: 15px 20px;
+    gap: 10px;
+}
+
+.stats-pulse-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    margin-bottom: 5px;
+}
+
+.stats-pulse-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    opacity: 0.8;
+    text-transform: uppercase;
+}
+
+.stats-pulse-title i {
+    font-size: 16px;
+    color: var(--neon-accent);
+}
+
+.stats-gauges-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 40px;
+    width: 100%;
+    height: 100px;
+}
+
+.gauge-wrapper {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.gauge-svg {
+    transform: rotate(-90deg);
+    width: 100%;
+    height: 100%;
+}
+
+.gauge-bg {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.1);
+    stroke-width: 8;
+    stroke-linecap: round;
+}
+
+.gauge-progress {
+    fill: none;
+    stroke-width: 8;
+    stroke-linecap: round;
+    stroke-dasharray: 220;
+    /* 2 * PI * 35 (radius) approx */
+    stroke-dashoffset: 220;
+    transition: stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.gauge-cpu .gauge-progress {
+    stroke: var(--neon-primary);
+    filter: drop-shadow(0 0 5px var(--neon-primary));
+}
+
+.gauge-ram .gauge-progress {
+    stroke: var(--neon-secondary);
+    filter: drop-shadow(0 0 5px var(--neon-secondary));
+}
+
+.gauge-gpu .gauge-progress {
+    stroke: #ff3b30;
+    filter: drop-shadow(0 0 5px rgba(255, 59, 48, 0.6));
+}
+
+.gauge-content {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.gauge-icon {
+    font-size: 16px;
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: 2px;
+}
+
+.gauge-value {
+    font-family: var(--font-mono, monospace);
+    font-size: 16px;
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+}
+
+.gauge-label {
+    font-size: 10px;
+    opacity: 0.5;
+    text-transform: uppercase;
+    margin-top: 2px;
+    letter-spacing: 0.5px;
+}

@@ -1,0 +1,192 @@
+/* Centre de contrôle façon macOS Sonoma */
+
+/* macOS Sonoma Control Center Layout & Vertical Sliders Styles */
+.ic-main-layout {
+    display: flex;
+    justify-content: space-between;
+    align-items: stretch; /* Stretch slider to full height */
+    width: 100%;
+    flex: 1;
+    min-height: 0;
+    box-sizing: border-box;
+    gap: 14px;
+}
+
+.ic-control-stack {
+    display: flex;
+    flex-direction: column;
+    width: 270px;
+    gap: 10px;
+    height: 100%;
+    min-width: 0;
+    justify-content: space-between;
+}
+
+.ic-toggles-grid {
+    width: 100%; /* Spans the full left column width */
+    height: 110px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: repeat(3, 32px);
+    gap: 7px;
+    box-sizing: border-box;
+}
+
+.ic-tile {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 10px;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+    box-sizing: border-box;
+    height: 32px;
+    user-select: none;
+    min-width: 0;
+    overflow: hidden;
+    width: 100%;
+}
+
+.ic-tile-text {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;
+}
+
+.ic-tile-label {
+    font-size: 10px;
+    font-weight: 700;
+    opacity: 0.9;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.1;
+}
+
+.ic-tile-status {
+    font-size: 7.5px;
+    font-weight: 500;
+    opacity: 0.55;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1;
+    margin-top: 1px;
+}
+
+.ic-tile.active .ic-tile-status {
+    opacity: 0.8;
+}
+
+.ic-tile i {
+    font-size: 16px;
+    opacity: 0.6;
+    transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+    flex-shrink: 0;
+}
+
+.ic-tile-label {
+    font-size: 10px;
+    font-weight: 700;
+    opacity: 0.8;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ic-tile:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateY(-1px);
+}
+
+/* Apple-style colors for active tiles */
+.ic-tile.active {
+    background: #007aff; /* Apple Blue */
+    border-color: #007aff;
+    box-shadow: 0 2px 8px rgba(0, 122, 255, 0.4);
+}
+
+.ic-tile.active i, .ic-tile.active .ic-tile-label {
+    color: white;
+    opacity: 1;
+}
+
+#ic-eco.active {
+    background: #34c759; /* Apple Green */
+    border-color: #34c759;
+    box-shadow: 0 2px 8px rgba(52, 199, 89, 0.4);
+}
+
+#ic-focus.active {
+    background: #5856d6; /* Apple Purple */
+    border-color: #5856d6;
+    box-shadow: 0 2px 8px rgba(88, 86, 214, 0.4);
+}
+
+#ic-dnd.active {
+    background: #af52de; /* Apple Indigo Purple */
+    border-color: #af52de;
+    box-shadow: 0 2px 8px rgba(175, 82, 222, 0.4);
+}
+
+/* #ic-night.active removed */
+
+
+/* Dual Vertical Pill Sliders */
+.ic-sliders-layout {
+    display: flex;
+    gap: 12px;
+    width: 112px;
+    box-sizing: border-box;
+}
+
+.ic-vertical-slider {
+    flex: 1;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 18px;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.2s;
+    user-select: none;
+}
+
+.ic-vertical-slider:hover, .ic-vertical-slider.active {
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: scale(1.02);
+}
+
+.ic-slider-fill {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: var(--slider-val-pct, 50%);
+    background: rgba(255, 255, 255, 0.85); /* macOS exact fill styling */
+    pointer-events: none;
+    transition: height 0.05s linear;
+}
+
+.ic-slider-icon {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    pointer-events: none;
+    z-index: 2;
+    mix-blend-mode: difference;
+    color: white;
+}
+
+.ic-slider-icon i {
+    font-size: 14px;
+}
+
+
+/* Cozy amber tint effect for Night Light toggle removed */

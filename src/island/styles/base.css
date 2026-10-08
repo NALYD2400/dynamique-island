@@ -1,0 +1,597 @@
+/* Capsule : forme, matériaux, tailles par mode */
+
+.hidden {
+    display: none !important;
+}
+
+:root {
+    /* Police « monospace » d'origine (Electron utilisait Courier New, WebView2 prendrait Consolas). */
+    --font-mono: 'Courier New', monospace;
+}
+
+/* --- Dynamic Island --- */
+#dynamic-island-container {
+    position: fixed;
+    top: 50px;
+    left: 0;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    z-index: 1000;
+    pointer-events: none;
+    /* transform: scale(var(--island-layout-scale, 1)); */
+    transform-origin: top center;
+    transition: transform 0.25s ease;
+}
+
+#dynamic-island,
+#dynamic-island * {
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+#dynamic-island input,
+#dynamic-island textarea,
+#dynamic-island [contenteditable="true"] {
+    -webkit-user-select: text;
+    user-select: text;
+}
+
+#layout-drag-surface {
+    display: none;
+}
+
+#dynamic-island {
+    /* Custom fluid dark crystal settings */
+    --island-bg: rgba(10, 10, 15, 0.92);
+    --island-blur: 16px;
+    --island-glow-size: 20px;
+    --island-glow-rgb: 0, 243, 255;
+    --island-glow-opacity: 1;
+
+    background: var(--island-bg);
+    backdrop-filter: blur(var(--island-blur));
+    -webkit-backdrop-filter: blur(var(--island-blur));
+    border-radius: 50px;
+    /* Spring-like bezier for a more organic, adaptive feel */
+    transition: width 0.6s cubic-bezier(0.2, 0.8, 0.2, 1),
+        height 0.6s cubic-bezier(0.2, 0.8, 0.2, 1),
+        border-radius 0.4s cubic-bezier(0.2, 0.8, 0.2, 1),
+        background-color 0.3s ease,
+        box-shadow 0.25s ease;
+    pointer-events: auto;
+    position: relative;
+    overflow: hidden;
+    
+    /* Fine specular bevel catches the light */
+    border-top: 1px solid rgba(255, 255, 255, 0.25);
+    border-left: 1px solid rgba(255, 255, 255, 0.15);
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.3);
+
+    /* Ice shadow + inner glare line */
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.15),
+        0 8px 24px rgba(0, 0, 0, 0.4),
+        0 0 calc(var(--island-glow-size) * 0.8) rgba(var(--island-glow-rgb), calc(0.42 * var(--island-glow-opacity))),
+        0 0 calc(var(--island-glow-size) * 1.8) rgba(var(--island-glow-rgb), calc(0.22 * var(--island-glow-opacity))),
+        0 0 0 1px rgba(var(--island-glow-rgb), calc(0.22 * var(--island-glow-opacity)));
+    
+    /* Hardware GPU Acceleration & Composition Optimizations */
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    transform: translate3d(0, 0, 0);
+    will-change: transform, width, height, border-radius, box-shadow;
+}
+
+/* --- Custom Graphic Materials & Textures --- */
+
+/* 1. Verre Dépoli Classique (Default) */
+#dynamic-island.material-glass {
+    background: var(--island-bg);
+    backdrop-filter: blur(var(--island-blur));
+    -webkit-backdrop-filter: blur(var(--island-blur));
+}
+
+/* 2. Métal Brossé Sombre */
+#dynamic-island.material-metal {
+    background: repeating-linear-gradient(90deg, rgba(255,255,255,0.012) 0px, rgba(255,255,255,0.012) 1px, transparent 1px, transparent 4px),
+                linear-gradient(135deg, #101012 0%, #1a1a1d 50%, #121214 100%) !important;
+    backdrop-filter: blur(var(--island-blur));
+    -webkit-backdrop-filter: blur(var(--island-blur));
+    border-top: 1px solid rgba(255, 255, 255, 0.28) !important;
+    border-left: 1px solid rgba(255, 255, 255, 0.16) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.45) !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.16),
+        0 8px 24px rgba(0, 0, 0, 0.55),
+        0 0 calc(var(--island-glow-size) * 0.8) rgba(var(--island-glow-rgb), calc(0.42 * var(--island-glow-opacity))),
+        0 0 calc(var(--island-glow-size) * 1.8) rgba(var(--island-glow-rgb), calc(0.22 * var(--island-glow-opacity))),
+        0 0 0 1px rgba(var(--island-glow-rgb), calc(0.22 * var(--island-glow-opacity))) !important;
+}
+
+/* 3. Reflets Holographiques */
+#dynamic-island.material-holo {
+    background: linear-gradient(135deg, rgba(12, 10, 24, 0.82) 0%, rgba(18, 12, 36, 0.82) 100%) !important;
+    backdrop-filter: blur(var(--island-blur));
+    -webkit-backdrop-filter: blur(var(--island-blur));
+    position: relative;
+}
+
+#dynamic-island.material-holo::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    border-radius: inherit;
+    background: linear-gradient(45deg, rgba(0, 243, 255, 0.14), rgba(188, 19, 254, 0.14), rgba(255, 45, 85, 0.14), rgba(0, 243, 255, 0.14));
+    background-size: 300% 300%;
+    animation: holoGradientShift 6s ease infinite;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.9;
+}
+
+@keyframes holoGradientShift {
+    0% { background-position: 0% 50% }
+    50% { background-position: 100% 50% }
+    100% { background-position: 0% 50% }
+}
+
+/* 4. Film Grain Cinematic Overlay */
+#dynamic-island.effect-grain-light::after {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    border-radius: inherit;
+    /* High Performance: numOctaves='1' (instead of 3) achieves buttery-smooth 60fps rendering */
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='1' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.038'/%3E%3C/svg%3E");
+    z-index: 2;
+    pointer-events: none;
+    mix-blend-mode: overlay;
+}
+
+#dynamic-island.effect-grain-medium::after {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    border-radius: inherit;
+    /* High Performance: numOctaves='1' (instead of 3) achieves buttery-smooth 60fps rendering */
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='1' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.075'/%3E%3C/svg%3E");
+    z-index: 2;
+    pointer-events: none;
+    mix-blend-mode: overlay;
+}
+
+
+body.layout-edit-mode #dynamic-island-container {
+    pointer-events: auto;
+    min-height: 110px;
+    padding: 12px 28px 36px;
+    box-sizing: border-box;
+    position: relative;
+}
+
+body.layout-edit-mode #dynamic-island {
+    pointer-events: auto;
+    -webkit-app-region: drag;
+    cursor: grab;
+    transition: transform 0.18s ease, box-shadow 0.22s ease, filter 0.22s ease;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.15),
+        0 8px 24px rgba(0, 0, 0, 0.35),
+        0 0 18px rgba(var(--island-glow-rgb), 0.45),
+        0 0 0 1px rgba(var(--island-glow-rgb), 0.45),
+        0 0 0 2px rgba(255,255,255,0.12);
+}
+
+body.layout-edit-mode.layout-edit-armed #dynamic-island {
+    animation: layoutPlacementIntro 0.58s cubic-bezier(0.2, 0.9, 0.2, 1);
+}
+
+body.layout-edit-mode #layout-drag-surface {
+    display: block;
+    position: absolute;
+    top: 2px;
+    left: 50%;
+    width: 320px;
+    height: 96px;
+    transform: translateX(-50%);
+    border-radius: 999px;
+    pointer-events: auto;
+    cursor: grab;
+    -webkit-app-region: drag;
+    z-index: 20;
+}
+
+body.layout-edit-mode #dynamic-island-container::before {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 50%;
+    width: 320px;
+    height: 92px;
+    transform: translateX(-50%);
+    border-radius: 999px;
+    background:
+        radial-gradient(circle at center,
+            rgba(var(--island-glow-rgb), 0.2) 0%,
+            rgba(var(--island-glow-rgb), 0.08) 36%,
+            rgba(var(--island-glow-rgb), 0) 76%);
+    filter: blur(10px);
+    opacity: 0.32;
+    pointer-events: none;
+}
+
+body.layout-edit-mode.layout-edit-armed #dynamic-island-container::before {
+    animation: layoutFieldIntro 0.62s cubic-bezier(0.2, 0.9, 0.2, 1);
+}
+
+body.layout-edit-mode #dynamic-island:hover,
+body.layout-edit-mode .island-idle:hover,
+body.layout-edit-mode #dynamic-island.island-game-compact.island-idle:hover,
+body.layout-edit-mode #dynamic-island.island-game-compact.island-active-music:hover {
+    transform: none !important;
+}
+
+body.layout-edit-mode #dynamic-island::after {
+    content: "";
+    position: absolute;
+    top: 10px;
+    right: 16px;
+    width: 12px;
+    height: 12px;
+    border-radius: 999px;
+    background: rgba(var(--island-glow-rgb), 0.88);
+    box-shadow: 0 0 12px rgba(var(--island-glow-rgb), 0.55);
+    z-index: 30;
+    pointer-events: none;
+    opacity: 0;
+}
+
+body.layout-edit-mode #dynamic-island .island-content {
+    pointer-events: none;
+}
+
+body.layout-edit-mode #dynamic-island .island-bg-layer,
+body.layout-edit-mode #dynamic-island::before {
+    pointer-events: none;
+}
+
+body.layout-edit-mode.layout-edit-dragging #dynamic-island-container,
+body.layout-edit-mode.layout-edit-dragging #layout-drag-surface,
+body.layout-edit-mode.layout-edit-dragging #dynamic-island {
+    cursor: grabbing;
+}
+
+body.layout-edit-mode.layout-edit-dragging #dynamic-island {
+    transform: scale(1.045);
+    filter: brightness(1.06);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.18),
+        0 14px 34px rgba(0, 0, 0, 0.42),
+        0 0 28px rgba(var(--island-glow-rgb), 0.58),
+        0 0 0 1px rgba(var(--island-glow-rgb), 0.55),
+        0 0 0 3px rgba(255,255,255,0.1);
+    animation: layoutDraggingPulse 0.95s ease-in-out infinite;
+}
+
+body.layout-edit-mode.layout-edit-dragging #dynamic-island-container::before {
+    opacity: 1;
+    animation: layoutFieldDragPulse 0.95s ease-in-out infinite;
+}
+
+body.layout-edit-mode.layout-edit-dragging #dynamic-island::after {
+    opacity: 1;
+    animation: layoutDragDotPulse 0.95s ease-in-out infinite;
+}
+
+@keyframes layoutPlacementIntro {
+    0% {
+        transform: translateY(-8px) scale(0.92);
+        filter: brightness(1.12);
+    }
+    55% {
+        transform: translateY(2px) scale(1.04);
+        filter: brightness(1.2);
+    }
+    100% {
+        transform: translateY(0) scale(1);
+        filter: brightness(1);
+    }
+}
+
+@keyframes layoutPlacementBreath {
+    0%, 100% {
+        transform: translateY(0) scale(1);
+    }
+    50% {
+        transform: translateY(-1px) scale(1.018);
+    }
+}
+
+@keyframes layoutFieldIntro {
+    0% {
+        opacity: 0;
+        transform: translateX(-50%) scale(0.84);
+    }
+    60% {
+        opacity: 1;
+        transform: translateX(-50%) scale(1.08);
+    }
+    100% {
+        opacity: 0.9;
+        transform: translateX(-50%) scale(1);
+    }
+}
+
+@keyframes layoutFieldBreath {
+    0%, 100% {
+        opacity: 0.7;
+        transform: translateX(-50%) scale(0.98);
+    }
+    50% {
+        opacity: 1;
+        transform: translateX(-50%) scale(1.04);
+    }
+}
+
+@keyframes layoutDraggingPulse {
+    0%, 100% {
+        transform: scale(1.035);
+    }
+    50% {
+        transform: scale(1.055);
+    }
+}
+
+@keyframes layoutFieldDragPulse {
+    0%, 100% {
+        opacity: 0.72;
+        transform: translateX(-50%) scale(1);
+    }
+    50% {
+        opacity: 1;
+        transform: translateX(-50%) scale(1.08);
+    }
+}
+
+@keyframes layoutDragDotPulse {
+    0%, 100% {
+        transform: scale(0.92);
+        opacity: 0.72;
+    }
+    50% {
+        transform: scale(1.2);
+        opacity: 1;
+    }
+}
+
+#dynamic-island .island-content {
+    opacity: 1;
+    transition: opacity 0.2s ease-in-out;
+}
+
+#dynamic-island.animating .island-content {
+    opacity: 0;
+    transition: opacity 0.1s ease-in-out;
+}
+
+.island-idle {
+    width: 120px;
+    height: 35px;
+    cursor: pointer;
+}
+
+.island-idle:hover {
+    transform: scale(1.02);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+#dynamic-island.island-game-compact.island-idle,
+#dynamic-island.island-game-compact.island-active-music {
+    width: 74px;
+    height: 24px;
+    opacity: 0.58;
+    border-radius: 999px;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.1),
+        0 4px 14px rgba(0, 0, 0, 0.32),
+        0 0 14px rgba(var(--island-glow-rgb), calc(0.18 * var(--island-glow-opacity)));
+}
+
+#dynamic-island.island-game-compact.island-idle:hover,
+#dynamic-island.island-game-compact.island-active-music:hover {
+    width: 120px;
+    height: 35px;
+    opacity: 1;
+}
+
+#dynamic-island.island-game-compact .island-content {
+    transform: scale(0.72);
+    transform-origin: center;
+}
+
+.island-active-music {
+    width: 200px;
+    height: 35px;
+    animation: islandGlowPulse 3s infinite ease-in-out;
+}
+
+body.motion-sober #dynamic-island {
+    transition: width 0.26s ease,
+        height 0.26s ease,
+        border-radius 0.22s ease,
+        background-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+body.motion-sober #dynamic-island.playing-music-glow,
+body.motion-sober .island-active-music {
+    animation: none;
+}
+
+body.motion-sober .island-settings-container,
+body.motion-sober .music-player,
+body.motion-sober .music-history-panel,
+body.motion-sober .music-search-panel,
+body.motion-sober .island-control-container,
+body.motion-sober .island-menu-grid {
+    animation-duration: 0.16s;
+    animation-timing-function: ease-out;
+}
+
+body.motion-vivid #dynamic-island {
+    transition: width 0.72s cubic-bezier(0.18, 0.95, 0.2, 1),
+        height 0.72s cubic-bezier(0.18, 0.95, 0.2, 1),
+        border-radius 0.5s cubic-bezier(0.18, 0.95, 0.2, 1),
+        background-color 0.28s ease,
+        box-shadow 0.28s ease;
+}
+
+body.motion-vivid #dynamic-island.playing-music-glow,
+body.motion-vivid .island-active-music {
+    animation-duration: 2.4s;
+}
+
+body.motion-vivid .island-action-btn:hover,
+body.motion-vivid .music-history-action:hover,
+body.motion-vivid .inner-action-btn:hover {
+    transform: translateY(-2px) scale(1.05);
+}
+
+@keyframes island-pulse {
+
+    0%,
+    100% {
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.15),
+            0 8px 24px rgba(0, 0, 0, 0.4),
+            0 0 calc(var(--island-glow-size, 20px) * 0.8) rgba(var(--island-glow-rgb, 0, 243, 255), calc(0.38 * var(--island-glow-opacity, 1))),
+            0 0 calc(var(--island-glow-size, 20px) * 1.8) rgba(var(--island-glow-rgb, 0, 243, 255), calc(0.18 * var(--island-glow-opacity, 1))),
+            0 0 0 1px rgba(var(--island-glow-rgb, 0, 243, 255), calc(0.22 * var(--island-glow-opacity, 1)));
+    }
+
+    50% {
+        box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.15),
+            0 8px 24px rgba(0, 0, 0, 0.4),
+            0 0 calc(var(--island-glow-size, 20px) * 1.2) rgba(var(--island-glow-rgb, 0, 243, 255), calc(0.58 * var(--island-glow-opacity, 1))),
+            0 0 calc(var(--island-glow-size, 20px) * 2.5) rgba(var(--island-glow-rgb, 0, 243, 255), calc(0.3 * var(--island-glow-opacity, 1))),
+            0 0 0 1px rgba(var(--island-glow-rgb, 0, 243, 255), calc(0.3 * var(--island-glow-opacity, 1)));
+    }
+}
+
+.island-expanded {
+    width: 380px;
+    height: 215px;
+    border-radius: 45px;
+}
+
+.island-large {
+    width: 380px;
+    height: 410px;
+    border-radius: 45px;
+}
+
+/* Nouvelle classe pour une notification temporaire allongée */
+.island-notifying {
+    width: 280px;
+    /* Taille intermédiaire pour une alerte */
+    height: 35px;
+    cursor: pointer;
+}
+
+/* Mode-specific expanded sizes. These override the broad legacy size classes. */
+.island-mode-music {
+    width: 380px;
+    height: 215px;
+    border-radius: 45px;
+}
+
+.island-mode-notification {
+    width: 330px;
+    height: 155px;
+    border-radius: 34px;
+}
+
+.island-mode-timer {
+    width: 340px;
+    height: 215px;
+    border-radius: 42px;
+}
+
+.island-mode-network {
+    width: 360px;
+    height: 230px;
+    border-radius: 42px;
+}
+
+.island-mode-menu {
+    width: 360px;
+    height: 230px;
+    border-radius: 38px;
+}
+
+.island-mode-search {
+    width: 390px;
+    height: 230px;
+    border-radius: 38px;
+}
+
+.island-mode-music-search {
+    width: 390px;
+    height: 200px;
+    border-radius: 38px;
+}
+
+.island-mode-music-history {
+    width: 460px;
+    height: 300px;
+    border-radius: 38px;
+}
+
+.island-mode-control {
+    width: 392px;
+    height: 370px;
+    border-radius: 42px;
+}
+
+.island-mode-mixer {
+    width: 430px;
+    height: 380px;
+    border-radius: 38px;
+}
+
+.island-bg-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    opacity: 0;
+    transition: opacity 0.55s ease, filter 0.55s ease;
+    z-index: 0;
+}
+
+/* Couche réfractée par les boutons en verre (features/glass.js).
+ * overflow: hidden est indispensable : sans lui, le flou de la pochette déborde,
+ * Chrome agrandit la boîte de référence du filtre SVG et les lentilles se décalent. */
+.island-glass-backdrop {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    border-radius: inherit;
+    pointer-events: none;
+}
+
+.island-content {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    color: #fff;
+}

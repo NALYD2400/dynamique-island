@@ -1,0 +1,290 @@
+/* Menu contextuel et fenêtre de confirmation */
+
+/* Menu clic droit, style Liquid Glass.
+ * Il déborde de la pilule au-dessus du bureau : rien à réfracter dessous, donc
+ * le verre est imité en CSS (fond sombre translucide, liseré lumineux, reflet). */
+.context-menu {
+    position: absolute;
+    z-index: 999999 !important;
+    isolation: isolate;
+    min-width: 196px;
+    padding: 5px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    border-radius: 16px;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0) 42%),
+        rgba(22, 22, 28, 0.86);
+    backdrop-filter: blur(30px) saturate(180%);
+    -webkit-backdrop-filter: blur(30px) saturate(180%);
+    border: 0.5px solid rgba(255, 255, 255, 0.16);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.18),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.04),
+        0 16px 40px rgba(0, 0, 0, 0.45),
+        0 2px 8px rgba(0, 0, 0, 0.3);
+    color: rgba(255, 255, 255, 0.92);
+    font-family: inherit;
+    outline: none;
+    animation: menuOpen 0.22s cubic-bezier(0.2, 0.9, 0.25, 1.15);
+    pointer-events: auto !important; /* Ensure context menu is always clickable */
+    overflow: hidden;
+}
+
+@keyframes menuOpen {
+    from {
+        opacity: 0;
+        transform: scale(0.88);
+        filter: blur(4px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+        filter: blur(0);
+    }
+}
+
+/* Pochette floutée en fond, discrète */
+.context-menu-bg {
+    position: absolute;
+    inset: -20px;
+    background-size: cover;
+    background-position: center;
+    opacity: 0;
+    filter: blur(26px) saturate(170%);
+    z-index: -1;
+    pointer-events: none;
+}
+
+/* Rangée lecture : précédent / lecture / suivant */
+.context-menu-media {
+    display: flex;
+    gap: 4px;
+    padding: 2px;
+}
+
+.context-menu-media-btn {
+    flex: 1;
+    height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 11px;
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 15px;
+    cursor: pointer;
+    outline: none;
+    transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.context-menu-media-btn.is-primary {
+    background: rgba(255, 255, 255, 0.14);
+    color: #fff;
+}
+
+.context-menu-media-btn:hover,
+.context-menu-media-btn:focus {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.context-menu-media-btn:active {
+    transform: scale(0.94);
+}
+
+/* Lignes du menu */
+.context-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    width: 100%;
+    min-height: 30px;
+    padding: 0 10px;
+    border: none;
+    border-radius: 10px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    text-align: left;
+    cursor: pointer;
+    outline: none;
+    user-select: none;
+    transition: background 0.12s ease, color 0.12s ease;
+}
+
+.context-menu-item > span {
+    flex: 1;
+}
+
+.context-menu-item > i:first-child {
+    width: 16px;
+    font-size: 15px;
+    text-align: center;
+    opacity: 0.8;
+}
+
+.context-menu-check {
+    font-size: 12px;
+    color: var(--neon-primary, #0a84ff);
+}
+
+/* Survol et clavier : capsule claire, comme les menus Liquid Glass */
+.context-menu-item:hover,
+.context-menu-item:focus {
+    background: rgba(255, 255, 255, 0.13);
+}
+
+.context-menu-item:active {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.context-menu-item.danger {
+    color: #ff6961;
+}
+
+.context-menu-item.danger:hover,
+.context-menu-item.danger:focus {
+    background: rgba(255, 69, 58, 0.22);
+    color: #ff8a84;
+}
+
+.context-menu-separator {
+    height: 0.5px;
+    margin: 4px 10px;
+    background: rgba(255, 255, 255, 0.12);
+    flex: 0 0 auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .context-menu { animation: menuFadeOnly 0.01s; }
+}
+
+body.motion-sober .context-menu {
+    animation: menuFadeOnly 0.12s ease-out;
+}
+
+@keyframes menuFadeOnly {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Premium iOS/Sonoma Modal Confirmation Overlay */
+.ic-confirm-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(10, 10, 15, 0.4);
+    backdrop-filter: blur(16px) saturate(120%);
+    -webkit-backdrop-filter: blur(16px) saturate(120%);
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    animation: confirmFadeIn 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+    box-sizing: border-box;
+    padding: 15px;
+}
+
+@keyframes confirmFadeIn {
+    from {
+        opacity: 0;
+        backdrop-filter: blur(0px);
+    }
+    to {
+        opacity: 1;
+        backdrop-filter: blur(16px);
+    }
+}
+
+.ic-confirm-box {
+    width: 100%;
+    max-width: 250px;
+    background: rgba(30, 30, 35, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    box-sizing: border-box;
+    animation: confirmScaleIn 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes confirmScaleIn {
+    from {
+        transform: scale(0.9);
+    }
+    to {
+        transform: scale(1);
+    }
+}
+
+.ic-confirm-icon {
+    font-size: 24px;
+    color: #ff453a; /* Apple Red */
+    margin-bottom: 8px;
+    filter: drop-shadow(0 2px 8px rgba(255, 69, 58, 0.3));
+}
+
+.ic-confirm-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 4px;
+}
+
+.ic-confirm-desc {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: 16px;
+    line-height: 1.3;
+}
+
+.ic-confirm-buttons {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+}
+
+.ic-confirm-btn {
+    flex: 1;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 0;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    outline: none;
+}
+
+.ic-confirm-btn.cancel {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.ic-confirm-btn.cancel:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.ic-confirm-btn.confirm {
+    background: #ff453a;
+    color: #fff;
+}
+
+.ic-confirm-btn.confirm:hover {
+    background: #ff3b30;
+    box-shadow: 0 0 10px rgba(255, 69, 58, 0.4);
+}

@@ -1,0 +1,24 @@
+{
+  "name": "liquid-dynamic-island",
+  "private": true,
+  "version": "2.0.0",
+  "description": "Liquid Dynamic Island — widget Dynamic Island pour Windows (Tauri + Rust)",
+  "scripts": {
+    "dev": "tauri dev",
+    "build": "tauri build",
+    "dev:ui": "vite",
+    "build:ui": "vite build",
+    "tauri": "tauri"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "2.12.1",
+    "@vitejs/plugin-react": "^6.1.2",
+    "vite": "^8.3.3"
+  },
+  "dependencies": {
+    "@glass-sdk/liquid-glass": "0.0.1",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "type": "module"
+}

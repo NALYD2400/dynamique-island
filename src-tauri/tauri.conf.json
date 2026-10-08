@@ -1,0 +1,60 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Liquid Dynamic Island",
+  "version": "2.0.0",
+  "identifier": "com.nalyd.liquid-dynamic-island",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:1420",
+    "beforeDevCommand": "npm run dev:ui",
+    "beforeBuildCommand": "npm run build:ui"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": [
+      "nsis"
+    ],
+    "icon": [
+      "icons/icon.ico"
+    ],
+    "publisher": "NALYD2400",
+    "licenseFile": "installer/license_fr.txt",
+    "shortDescription": "Dynamic Island pour Windows",
+    "longDescription": "Widget Dynamic Island premium pour Windows : musique, mixeur audio, centre de contrôle et notifications.",
+    "createUpdaterArtifacts": true,
+    "windows": {
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper",
+        "silent": true
+      },
+      "nsis": {
+        "installMode": "currentUser",
+        "installerIcon": "icons/icon.ico",
+        "headerImage": "installer/installerHeader.bmp",
+        "sidebarImage": "installer/installerSidebar.bmp",
+        "languages": [
+          "French"
+        ],
+        "displayLanguageSelector": false
+      }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEQ4RDAzMThBRDY4NjYyRDQKUldUVVlvYldpakhRMlBZV2NqWHFVTWVwd0xCNk16Zk5zR0NXcVBiaHQybXdxcTZQc2N0cHhMNXgK",
+      "endpoints": [
+        "https://github.com/NALYD2400/dynamique-island/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
+  }
+}
