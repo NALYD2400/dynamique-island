@@ -99,6 +99,12 @@ export const preferenceMethods = {
             } else if (e.key === '+' || e.key === '=' || e.key === '-') {
                 e.preventDefault();
                 this.stepLayoutScale(e.key === '-' ? -1 : 1);
+            } else if (e.key.startsWith('Arrow')) {
+                // Déplacement au clavier : pas de limite de curseur, donc on peut aller jusqu'en haut de tous les écrans.
+                e.preventDefault();
+                const step = e.shiftKey ? 10 : 1;
+                const moves = { ArrowUp: [0, -step], ArrowDown: [0, step], ArrowLeft: [-step, 0], ArrowRight: [step, 0] };
+                if (moves[e.key]) ipcRenderer.send('layout-nudge', ...moves[e.key]);
             }
         });
     },

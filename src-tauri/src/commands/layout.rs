@@ -54,6 +54,12 @@ pub fn layout_drag_move(app: AppHandle) {
     island::drag::update(&app);
 }
 
+/// Flèches du clavier en mode placement : déplacement au pixel, sans limite de curseur.
+#[tauri::command]
+pub fn layout_nudge(app: AppHandle, dx: i32, dy: i32) {
+    island::drag::nudge(&app, dx.clamp(-200, 200), dy.clamp(-200, 200));
+}
+
 #[tauri::command]
 pub fn layout_drag_end(app: AppHandle) {
     island::drag::end(&app);

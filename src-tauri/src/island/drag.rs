@@ -36,12 +36,24 @@ pub fn begin(app: &AppHandle) {
 pub fn update(app: &AppHandle) {
     let Some(grab) = GRAB.lock().ok().and_then(|g| *g) else { return };
     let (Some(handle), Some(cursor)) = (window(app), win::cursor_position()) else { return };
+    let (x, y) = (grab.window.0 + cursor.0 - grab.cursor.0, grab.window.1 + cursor.1 - grab.cursor.1);
+    place(app, &handle, x, y);
+}
+
+/// Déplacement au clavier (flèches), sans limite de curseur : la pilule peut ainsi
+/// dépasser le bord de l'écran le plus haut, que la souris ne peut pas atteindre.
+pub fn nudge(app: &AppHandle, dx: i32, dy: i32) {
+    let Some(handle) = window(app) else { return };
+    let Ok(position) = handle.outer_position() else { return };
+    place(app, &handle, position.x + dx, position.y + dy);
+    persist(app);
+}
+
+/// Place la fenêtre à la position physique donnée. L'écran sous le centre de la fenêtre
+/// devient l'écran cible : on peut passer sur un autre écran, avec les limites de celui-ci.
+fn place(app: &AppHandle, handle: &tauri::WebviewWindow, x: i32, y: i32) {
     let state = app.state::<AppState>();
     let current = state.layout.lock().clone();
-
-    // Position physique voulue. L'écran sous le centre de la fenêtre devient l'écran cible :
-    // on peut ainsi passer sur un autre écran, avec les limites de celui-ci.
-    let (x, y) = (grab.window.0 + cursor.0 - grab.cursor.0, grab.window.1 + cursor.1 - grab.cursor.1);
     let size = handle.outer_size().map(|s| (s.width as i32, s.height as i32)).unwrap_or((0, 0));
     let centre = (x + size.0 / 2, y + size.1 / 2);
     let monitor = handle.available_monitors().ok().and_then(|list| list.into_iter().find(|m| contains(m, centre)));
@@ -61,6 +73,13 @@ pub fn update(app: &AppHandle) {
     *state.layout.lock() = clamped;
 }
 
+fn persist(app: &AppHandle) {
+    let state = app.state::<AppState>();
+    let layout = state.layout.lock().clone();
+    layout::save(&state.data_dir, &layout);
+    broadcast_layout(app);
+}
+
 /// Le point (pixels physiques) est-il dans cet écran ?
 fn contains(monitor: &tauri::Monitor, (x, y): (i32, i32)) -> bool {
     let (origin, size) = (monitor.position(), monitor.size());
@@ -72,9 +91,6 @@ pub fn end(app: &AppHandle) {
     if !was_dragging {
         return;
     }
-    let state = app.state::<AppState>();
-    state.suppress_move_sync.store(false, Ordering::SeqCst);
-    let layout = state.layout.lock().clone();
-    layout::save(&state.data_dir, &layout);
-    broadcast_layout(app);
+    app.state::<AppState>().suppress_move_sync.store(false, Ordering::SeqCst);
+    persist(app);
 }

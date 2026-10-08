@@ -69,6 +69,7 @@ pub fn run() {
             commands::layout::layout_drag_begin,
             commands::layout::layout_drag_move,
             commands::layout::layout_drag_end,
+            commands::layout::layout_nudge,
             commands::layout::set_target_display,
             commands::app::set_ignore_mouse,
             commands::app::set_hit_region,

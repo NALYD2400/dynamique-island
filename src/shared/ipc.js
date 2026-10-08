@@ -19,6 +19,7 @@ const SEND_CHANNELS = {
     'layout-drag-begin': () => ['layout_drag_begin'],
     'layout-drag-move': () => ['layout_drag_move'],
     'layout-drag-end': () => ['layout_drag_end'],
+    'layout-nudge': (dx, dy) => ['layout_nudge', { dx: Math.round(Number(dx) || 0), dy: Math.round(Number(dy) || 0) }],
     'set-layout-edit-mode': (enabled) => ['set_layout_edit_mode', { enabled: Boolean(enabled) }],
     'close-settings': () => ['close_settings'],
     'trigger-notif': (data) => ['trigger_notification', { data: data ?? {} }],
